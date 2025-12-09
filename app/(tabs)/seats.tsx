@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeScreen } from '@/components/layout/safe-screen';
 
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
@@ -49,7 +50,7 @@ export default function SeatsScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <SafeScreen>
       <SectionHeader>Seats</SectionHeader>
       <View style={styles.actionsRow}>
         <AppButton onPress={() => setIsModalOpen(true)}>Add Seats</AppButton>
@@ -73,51 +74,53 @@ export default function SeatsScreen() {
       />
 
       <Modal animationType="slide" visible={isModalOpen} onRequestClose={() => setIsModalOpen(false)}>
-        <ScrollView
-          style={[styles.modalContainer, { backgroundColor: theme.background }]}
-          contentContainerStyle={{ padding: spacing.lg }}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>Create seats</Text>
-          <Text style={[styles.label, { color: theme.text }]}>Floor</Text>
-          <TextInput
-            value={floor}
-            onChangeText={setFloor}
-            keyboardType="numeric"
-            style={[
-              styles.input,
-              { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
-            ]}
-          />
-          <Text style={[styles.label, { color: theme.text }]}>Start seat</Text>
-          <TextInput
-            value={startSeat}
-            onChangeText={setStartSeat}
-            keyboardType="numeric"
-            style={[
-              styles.input,
-              { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
-            ]}
-          />
-          <Text style={[styles.label, { color: theme.text }]}>End seat</Text>
-          <TextInput
-            value={endSeat}
-            onChangeText={setEndSeat}
-            keyboardType="numeric"
-            style={[
-              styles.input,
-              { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
-            ]}
-          />
-          <View style={styles.modalActions}>
-            <AppButton variant="outline" onPress={() => setIsModalOpen(false)}>
-              Cancel
-            </AppButton>
-            <AppButton onPress={onCreateSeats} loading={createSeats.isPending}>
-              Save
-            </AppButton>
-          </View>
-        </ScrollView>
+        <SafeScreen edges={['top', 'bottom']}>
+          <ScrollView
+            style={[styles.modalContainer, { backgroundColor: theme.background }]}
+            contentContainerStyle={{ padding: spacing.lg }}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Create seats</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Floor</Text>
+            <TextInput
+              value={floor}
+              onChangeText={setFloor}
+              keyboardType="numeric"
+              style={[
+                styles.input,
+                { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
+              ]}
+            />
+            <Text style={[styles.label, { color: theme.text }]}>Start seat</Text>
+            <TextInput
+              value={startSeat}
+              onChangeText={setStartSeat}
+              keyboardType="numeric"
+              style={[
+                styles.input,
+                { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
+              ]}
+            />
+            <Text style={[styles.label, { color: theme.text }]}>End seat</Text>
+            <TextInput
+              value={endSeat}
+              onChangeText={setEndSeat}
+              keyboardType="numeric"
+              style={[
+                styles.input,
+                { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
+              ]}
+            />
+            <View style={styles.modalActions}>
+              <AppButton variant="outline" onPress={() => setIsModalOpen(false)}>
+                Cancel
+              </AppButton>
+              <AppButton onPress={onCreateSeats} loading={createSeats.isPending}>
+                Save
+              </AppButton>
+            </View>
+          </ScrollView>
+        </SafeScreen>
       </Modal>
-    </View>
+    </SafeScreen>
   );
 }
 

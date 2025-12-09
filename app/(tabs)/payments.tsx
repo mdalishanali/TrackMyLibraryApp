@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeScreen } from '@/components/layout/safe-screen';
 
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
@@ -74,7 +75,7 @@ export default function PaymentsScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <SafeScreen>
       <SectionHeader>Payments</SectionHeader>
       <View style={styles.actionsRow}>
         <AppButton onPress={() => setIsModalOpen(true)}>Add Payment</AppButton>
@@ -106,48 +107,50 @@ export default function PaymentsScreen() {
       />
 
       <Modal animationType="slide" visible={isModalOpen} onRequestClose={() => setIsModalOpen(false)}>
-        <ScrollView
-          style={[styles.modalContainer, { backgroundColor: theme.background }]}
-          contentContainerStyle={{ padding: spacing.lg }}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>Record Payment</Text>
-          <Text style={[styles.label, { color: theme.text }]}>Select student</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              {studentsQuery.data?.map((student) => (
-                <TouchableOpacity
-                  key={student._id}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: studentId === student._id ? theme.primary : theme.surface,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                  onPress={() => setStudentId(student._id)}>
-                  <Text style={{ color: studentId === student._id ? '#fff' : theme.text }}>{student.name}</Text>
-                </TouchableOpacity>
-              ))}
+        <SafeScreen edges={['top', 'bottom']}>
+          <ScrollView
+            style={[styles.modalContainer, { backgroundColor: theme.background }]}
+            contentContainerStyle={{ padding: spacing.lg }}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Record Payment</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Select student</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                {studentsQuery.data?.map((student) => (
+                  <TouchableOpacity
+                    key={student._id}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: studentId === student._id ? theme.primary : theme.surface,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                    onPress={() => setStudentId(student._id)}>
+                    <Text style={{ color: studentId === student._id ? '#fff' : theme.text }}>{student.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {renderInput('Amount (₹)', rupees, setRupees, theme, 'numeric')}
+            {renderInput('Start Date (YYYY-MM-DD)', startDate, setStartDate, theme)}
+            {renderInput('End Date (YYYY-MM-DD)', endDate, setEndDate, theme)}
+            {renderInput('Payment Date (YYYY-MM-DD)', paymentDate, setPaymentDate, theme)}
+            {renderInput('Payment Mode (cash|upi)', paymentMode, (val) => setPaymentMode(val as 'cash' | 'upi'), theme)}
+            {renderInput('Notes', notes, setNotes, theme)}
+
+            <View style={styles.modalActions}>
+              <AppButton variant="outline" onPress={() => setIsModalOpen(false)}>
+                Cancel
+              </AppButton>
+              <AppButton onPress={onCreatePayment} loading={createPayment.isPending}>
+                Save
+              </AppButton>
             </View>
           </ScrollView>
-
-          {renderInput('Amount (₹)', rupees, setRupees, theme, 'numeric')}
-          {renderInput('Start Date (YYYY-MM-DD)', startDate, setStartDate, theme)}
-          {renderInput('End Date (YYYY-MM-DD)', endDate, setEndDate, theme)}
-          {renderInput('Payment Date (YYYY-MM-DD)', paymentDate, setPaymentDate, theme)}
-          {renderInput('Payment Mode (cash|upi)', paymentMode, (val) => setPaymentMode(val as 'cash' | 'upi'), theme)}
-          {renderInput('Notes', notes, setNotes, theme)}
-
-          <View style={styles.modalActions}>
-            <AppButton variant="outline" onPress={() => setIsModalOpen(false)}>
-              Cancel
-            </AppButton>
-            <AppButton onPress={onCreatePayment} loading={createPayment.isPending}>
-              Save
-            </AppButton>
-          </View>
-        </ScrollView>
+        </SafeScreen>
       </Modal>
-    </View>
+    </SafeScreen>
   );
 }
 

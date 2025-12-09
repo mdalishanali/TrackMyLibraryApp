@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { Link } from 'expo-router';
 
+import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -13,7 +15,8 @@ export default function MoreScreen() {
   const { user, logout } = useAuth();
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <SafeScreen>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <SectionHeader>Profile</SectionHeader>
       <AppCard style={styles.card}>
         <Text style={[styles.title, { color: theme.text }]}>{user?.name ?? 'User'}</Text>
@@ -29,14 +32,37 @@ export default function MoreScreen() {
         </View>
       </AppCard>
 
-      <SectionHeader>Theme Tokens</SectionHeader>
-      <AppCard>
-        <Text style={[styles.meta, { color: theme.muted }]}>
-          Colors, font sizes, and radius are centralized in `constants/design.ts`. Reuse those tokens when extending the
-          app to keep a consistent look and allow easy theming.
-        </Text>
+      <SectionHeader>More Options</SectionHeader>
+      <AppCard style={styles.listCard}>
+        <Link href="/analytics" asChild>
+          <View style={styles.optionRow}>
+            <Text style={[styles.option, { color: theme.text }]}>Analytics</Text>
+          </View>
+        </Link>
+        <Link href="/profile" asChild>
+          <View style={styles.optionRow}>
+            <Text style={[styles.option, { color: theme.text }]}>Profile</Text>
+          </View>
+        </Link>
+        <Link href="/users" asChild>
+          <View style={styles.optionRow}>
+            <Text style={[styles.option, { color: theme.text }]}>Users</Text>
+          </View>
+        </Link>
+        <Link href="/payment-dashboard" asChild>
+          <View style={styles.optionRow}>
+            <Text style={[styles.option, { color: theme.text }]}>Payment Dashboard</Text>
+          </View>
+        </Link>
+        <View style={[styles.optionRow, { justifyContent: 'space-between' }]}>
+          <Text style={[styles.option, { color: theme.text }]}>Logout</Text>
+          <AppButton variant="outline" onPress={logout}>
+            Logout
+          </AppButton>
+        </View>
       </AppCard>
-    </View>
+      </View>
+    </SafeScreen>
   );
 }
 
@@ -56,5 +82,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     marginTop: spacing.sm,
+  },
+  listCard: {
+    gap: spacing.md,
+  },
+  optionRow: {
+    paddingVertical: spacing.sm,
+  },
+  option: {
+    fontSize: typography.size.md,
+    fontWeight: '600',
   },
 });

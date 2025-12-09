@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -17,12 +17,40 @@ export type StudentPayload = {
   status?: string;
 };
 
+type StudentsPage = {
+  students: Student[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+};
+
 export const useStudentsQuery = (params?: { name?: string; filter?: string }) =>
   useQuery({
     queryKey: queryKeys.students(params),
     queryFn: async () => {
       const { data } = await api.get('/students', { params });
       return data.students as Student[];
+    },
+  });
+
+export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number }) =>
+  useInfiniteQuery<StudentsPage>({
+    queryKey: queryKeys.students(params),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const current = lastPage.pagination?.page ?? 1;
+      const limit = lastPage.pagination?.limit ?? params?.limit ?? 10;
+      const total = lastPage.pagination?.total ?? 0;
+      const nextPage = current + 1;
+      return (current - 1) * limit + lastPage.students.length < total ? nextPage : undefined;
+    },
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get('/students', {
+        params: { ...params, page: pageParam, limit: params?.limit ?? 10 },
+      });
+      return data as StudentsPage;
     },
   });
 

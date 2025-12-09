@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
@@ -13,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeScreen } from '@/components/layout/safe-screen';
 import { z } from 'zod';
 
 import { AppBadge } from '@/components/ui/app-badge';
@@ -24,14 +26,14 @@ import { radius, spacing, themeFor, typography } from '@/constants/design';
 import {
   useCreateStudent,
   useDeleteStudent,
-  useStudentsQuery,
   useUpdateStudent,
   StudentPayload,
+  useInfiniteStudentsQuery,
 } from '@/hooks/use-students';
 import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatDate } from '@/utils/format';
+import { formatCurrency, formatDate } from '@/utils/format';
 
 const studentSchema = z.object({
   name: z.string().min(1),
@@ -64,13 +66,13 @@ export default function StudentsScreen() {
   const colorScheme = useColorScheme();
   const theme = themeFor(colorScheme);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<string | undefined>();
+  const [filter, setFilter] = useState<string>('recent');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [paymentStudentId, setPaymentStudentId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
-  const studentsQuery = useStudentsQuery({ name: search || undefined, filter });
+  const studentsQuery = useInfiniteStudentsQuery({ name: search || undefined, filter, limit: 10 });
   const seatsQuery = useSeatsQuery();
   const createStudent = useCreateStudent();
   const updateStudent = useUpdateStudent(editingId ?? undefined);
@@ -214,22 +216,57 @@ export default function StudentsScreen() {
     return <FullScreenLoader message="Loading students..." />;
   }
 
+  const students = studentsQuery.data?.pages.flatMap((page) => page.students) ?? [];
+
   const renderStudent = ({ item }: { item: any }) => (
     <AppCard style={styles.card}>
       <View style={styles.cardHeader}>
-        <View>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>{item.name}</Text>
-          <Text style={[styles.cardMeta, { color: theme.muted }]}>ID: {item.id ?? '—'}</Text>
+        <View style={styles.studentRow}>
+          <View style={[styles.studentAvatar, { backgroundColor: theme.surfaceAlt }]}>
+            {item.profilePicture ? (
+              <Image source={{ uri: item.profilePicture }} style={styles.studentAvatarImage} contentFit="cover" />
+            ) : (
+              <Text style={[styles.studentAvatarText, { color: theme.text }]}>{item.name?.[0]?.toUpperCase() || 'S'}</Text>
+            )}
+          </View>
+          <View>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{item.name}</Text>
+            <Text style={[styles.cardMeta, { color: theme.muted }]}>ID: {item.id ?? '—'}</Text>
+          </View>
         </View>
         <AppBadge tone={item.status === 'Active' ? 'success' : 'warning'}>{item.status ?? 'Active'}</AppBadge>
       </View>
-      <Text style={[styles.cardMeta, { color: theme.muted }]}>Phone: {item.number}</Text>
-      <Text style={[styles.cardMeta, { color: theme.muted }]}>Seat: {item.seatNumber ?? 'Unallocated'}</Text>
-      <Text style={[styles.cardMeta, { color: theme.muted }]}>Joined: {formatDate(item.joiningDate)}</Text>
-      <Text style={[styles.cardMeta, { color: theme.muted }]}>Payment: {item.paymentStatus ?? 'N/A'}</Text>
+
+      <View style={styles.metaRow}>
+        <Text style={[styles.cardMeta, { color: theme.muted }]}>Phone: {item.number}</Text>
+        <Text style={[styles.cardMeta, { color: theme.muted }]}>Shift: {item.shift ?? '—'}</Text>
+      </View>
+      <View style={styles.metaRow}>
+        <Text style={[styles.cardMeta, { color: theme.muted }]}>Joined: {formatDate(item.joiningDate)}</Text>
+        <Text style={[styles.cardMeta, { color: theme.muted }]}>Seat: {item.seatNumber ?? 'Unallocated'}</Text>
+      </View>
+
+      <View style={styles.paymentCard}>
+        <Text style={[styles.paymentTitle, { color: theme.text }]}>Payment Info</Text>
+        <Text style={[styles.paymentMeta, { color: theme.muted }]}>
+          Last Payment: {item.lastPayment?.paymentDate ? formatDate(item.lastPayment.paymentDate) : 'No payment yet'}
+        </Text>
+        <Text style={[styles.paymentMeta, { color: theme.muted }]}>
+          Period:{' '}
+          {item.lastPayment?.startDate
+            ? `${formatDate(item.lastPayment.startDate)} - ${formatDate(item.lastPayment.endDate)}`
+            : '—'}
+        </Text>
+        <Text style={[styles.paymentMeta, { color: theme.muted }]}>
+          Status: {item.paymentStatus ?? 'Unknown'}
+        </Text>
+        {item.lastPayment?.rupees ? (
+          <Text style={[styles.paymentMeta, { color: theme.text }]}>{formatCurrency(item.lastPayment.rupees)}</Text>
+        ) : null}
+      </View>
 
       <View style={styles.actionsRow}>
-        <AppButton variant="outline" onPress={() => Alert.alert(item.name, item.notes || 'No notes')}>
+        <AppButton variant="outline" onPress={() => router.push(`/(tabs)/students/${item._id}`)}>
           View
         </AppButton>
         <AppButton variant="outline" onPress={() => openEdit(item._id)}>
@@ -244,128 +281,171 @@ export default function StudentsScreen() {
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
-      <SectionHeader>Students</SectionHeader>
-
-      <View style={styles.searchRow}>
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search by name"
-          placeholderTextColor={theme.muted}
-          style={[
-            styles.searchInput,
-            { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
-          ]}
-        />
-        <AppButton variant="outline" onPress={() => setFilter(filter ? undefined : 'dues')}>
-          {filter ? 'Clear' : 'Dues'}
-        </AppButton>
-        <AppButton onPress={openCreateForm}>Add</AppButton>
-      </View>
-
+    <SafeScreen>
       <FlatList
-        data={studentsQuery.data ?? []}
+        data={students}
         keyExtractor={(item) => item._id}
         renderItem={renderStudent}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
         refreshControl={<RefreshControl refreshing={studentsQuery.isRefetching} onRefresh={studentsQuery.refetch} />}
+        onEndReached={() => {
+          if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
+            studentsQuery.fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.4}
         ListEmptyComponent={<Text style={{ color: theme.muted, padding: spacing.lg }}>No students yet.</Text>}
+        ListFooterComponent={
+          studentsQuery.isFetchingNextPage ? (
+            <Text style={{ color: theme.muted, padding: spacing.sm }}>Loading more...</Text>
+          ) : null
+        }
+        ListHeaderComponent={
+          <View style={{ gap: spacing.md }}>
+            <SectionHeader>Students</SectionHeader>
+
+            <View style={styles.searchRow}>
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search by name"
+                placeholderTextColor={theme.muted}
+                style={[
+                  styles.searchInput,
+                  { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
+                ]}
+              />
+              <AppButton onPress={openCreateForm}>Add</AppButton>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
+              {[
+                { key: 'recent', label: 'Recent' },
+                { key: 'paid', label: 'Paid' },
+                { key: 'dues', label: 'Due' },
+                { key: 'trial', label: 'Trial' },
+                { key: 'defaulter', label: 'Defaulter' },
+                { key: 'active', label: 'Active' },
+                { key: 'inactive', label: 'Inactive' },
+                { key: 'unallocated', label: 'Unallocated' },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: filter === item.key ? theme.primary : theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  onPress={() => setFilter(item.key)}>
+                  <Text style={{ color: filter === item.key ? '#fff' : theme.text, fontWeight: '600' }}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        }
       />
 
       <Modal animationType="slide" visible={isFormOpen} onRequestClose={closeForm}>
-        <ScrollView
-          style={[styles.modalContainer, { backgroundColor: theme.background }]}
-          contentContainerStyle={{ padding: spacing.lg }}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>
-            {editingId ? 'Edit Student' : 'Add Student'}
-          </Text>
+        <SafeScreen>
+          <ScrollView
+            style={[styles.modalContainer, { backgroundColor: theme.background }]}
+            contentContainerStyle={{ padding: spacing.lg }}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {editingId ? 'Edit Student' : 'Add Student'}
+            </Text>
 
-          {renderInput('Name', 'name', control, errors, theme)}
-          {renderInput('Phone', 'number', control, errors, theme)}
-          {renderInput('Joining Date (YYYY-MM-DD)', 'joiningDate', control, errors, theme)}
-          {renderInput('Start Time (HH:mm)', 'startTime', control, errors, theme)}
-          {renderInput('End Time (HH:mm)', 'endTime', control, errors, theme)}
-          {renderInput('Fees (₹)', 'fees', control, errors, theme, 'numeric')}
-          {renderInput('Notes', 'notes', control, errors, theme)}
+            {renderInput('Name', 'name', control, errors, theme)}
+            {renderInput('Phone', 'number', control, errors, theme)}
+            {renderInput('Joining Date (YYYY-MM-DD)', 'joiningDate', control, errors, theme)}
+            {renderInput('Start Time (HH:mm)', 'startTime', control, errors, theme)}
+            {renderInput('End Time (HH:mm)', 'endTime', control, errors, theme)}
+            {renderInput('Fees (₹)', 'fees', control, errors, theme, 'numeric')}
+            {renderInput('Notes', 'notes', control, errors, theme)}
 
-          <Text style={[styles.label, { color: theme.text }]}>Seat</Text>
-          <Controller
-            control={control}
-            name="seat"
-            render={({ field: { onChange, value } }) => (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
-                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: !value ? theme.primarySoft : theme.surface,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                    onPress={() => onChange(undefined)}>
-                    <Text style={{ color: theme.text }}>Unallocated</Text>
-                  </TouchableOpacity>
-                  {seatsQuery.data?.map((seat) => (
+            <Text style={[styles.label, { color: theme.text }]}>Seat</Text>
+            <Controller
+              control={control}
+              name="seat"
+              render={({ field: { onChange, value } }) => (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                     <TouchableOpacity
-                      key={seat._id ?? seat.seatNumber}
                       style={[
                         styles.chip,
                         {
-                          backgroundColor: value === seat._id ? theme.primary : theme.surface,
+                          backgroundColor: !value ? theme.primarySoft : theme.surface,
                           borderColor: theme.border,
                         },
                       ]}
-                      onPress={() => onChange(seat._id)}>
-                      <Text style={{ color: value === seat._id ? '#fff' : theme.text }}>
-                        Floor {seat.floor ?? '?'} · Seat {seat.seatNumber}
-                      </Text>
+                      onPress={() => onChange(undefined)}>
+                      <Text style={{ color: theme.text }}>Unallocated</Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-          />
+                    {seatsQuery.data?.map((seat) => (
+                      <TouchableOpacity
+                        key={seat._id ?? seat.seatNumber}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: value === seat._id ? theme.primary : theme.surface,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                        onPress={() => onChange(seat._id)}>
+                        <Text style={{ color: value === seat._id ? '#fff' : theme.text }}>
+                          Floor {seat.floor ?? '?'} · Seat {seat.seatNumber}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+            />
 
-          <View style={styles.modalActions}>
-            <AppButton variant="outline" onPress={closeForm}>
-              Cancel
-            </AppButton>
-            <AppButton onPress={handleSubmit(onSubmitStudent)} loading={createStudent.isPending || updateStudent.isPending}>
-              Save
-            </AppButton>
-          </View>
-        </ScrollView>
+            <View style={styles.modalActions}>
+              <AppButton variant="outline" onPress={closeForm}>
+                Cancel
+              </AppButton>
+              <AppButton onPress={handleSubmit(onSubmitStudent)} loading={createStudent.isPending || updateStudent.isPending}>
+                Save
+              </AppButton>
+            </View>
+          </ScrollView>
+        </SafeScreen>
       </Modal>
 
       <Modal animationType="slide" visible={isPaymentOpen} onRequestClose={() => setIsPaymentOpen(false)}>
-        <ScrollView
-          style={[styles.modalContainer, { backgroundColor: theme.background }]}
-          contentContainerStyle={{ padding: spacing.lg }}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>Record Payment</Text>
-          {renderPaymentInput('Student ID', 'student', paymentControl, paymentErrors, theme, 'default', true)}
-          {renderPaymentInput('Amount (₹)', 'rupees', paymentControl, paymentErrors, theme, 'numeric')}
-          {renderPaymentInput('Start Date (YYYY-MM-DD)', 'startDate', paymentControl, paymentErrors, theme)}
-          {renderPaymentInput('End Date (YYYY-MM-DD)', 'endDate', paymentControl, paymentErrors, theme)}
-          {renderPaymentInput('Payment Mode (cash|upi)', 'paymentMode', paymentControl, paymentErrors, theme)}
-          {renderPaymentInput('Payment Date (YYYY-MM-DD)', 'paymentDate', paymentControl, paymentErrors, theme)}
-          {renderPaymentInput('Notes', 'notes', paymentControl, paymentErrors, theme)}
+        <SafeScreen>
+          <ScrollView
+            style={[styles.modalContainer, { backgroundColor: theme.background }]}
+            contentContainerStyle={{ padding: spacing.lg }}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Record Payment</Text>
+            {renderPaymentInput('Student ID', 'student', paymentControl, paymentErrors, theme, 'default', true)}
+            {renderPaymentInput('Amount (₹)', 'rupees', paymentControl, paymentErrors, theme, 'numeric')}
+            {renderPaymentInput('Start Date (YYYY-MM-DD)', 'startDate', paymentControl, paymentErrors, theme)}
+            {renderPaymentInput('End Date (YYYY-MM-DD)', 'endDate', paymentControl, paymentErrors, theme)}
+            {renderPaymentInput('Payment Mode (cash|upi)', 'paymentMode', paymentControl, paymentErrors, theme)}
+            {renderPaymentInput('Payment Date (YYYY-MM-DD)', 'paymentDate', paymentControl, paymentErrors, theme)}
+            {renderPaymentInput('Notes', 'notes', paymentControl, paymentErrors, theme)}
 
-          <View style={styles.modalActions}>
-            <AppButton variant="outline" onPress={() => setIsPaymentOpen(false)}>
-              Cancel
-            </AppButton>
-            <AppButton
-              onPress={handlePaymentSubmit(onSubmitPayment)}
-              loading={createPayment.isPending}
-              disabled={!paymentStudentId}>
-              Save Payment
-            </AppButton>
-          </View>
-        </ScrollView>
+            <View style={styles.modalActions}>
+              <AppButton variant="outline" onPress={() => setIsPaymentOpen(false)}>
+                Cancel
+              </AppButton>
+              <AppButton
+                onPress={handlePaymentSubmit(onSubmitPayment)}
+                loading={createPayment.isPending}
+                disabled={!paymentStudentId}>
+                Save Payment
+              </AppButton>
+            </View>
+          </ScrollView>
+        </SafeScreen>
       </Modal>
-    </View>
+    </SafeScreen>
   );
 }
 
@@ -509,5 +589,50 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: radius.lg,
     borderWidth: 1,
+  },
+  filterChips: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  studentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  studentAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  studentAvatarText: {
+    fontSize: typography.size.lg,
+    fontWeight: '700',
+  },
+  studentAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  paymentCard: {
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+  },
+  paymentTitle: {
+    fontSize: typography.size.md,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  paymentMeta: {
+    fontSize: typography.size.sm,
+    marginBottom: 2,
   },
 });
