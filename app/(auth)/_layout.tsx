@@ -1,4 +1,4 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Slot, Stack } from 'expo-router';
 
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { useAuth } from '@/hooks/use-auth';
@@ -18,6 +18,7 @@ export default function AuthLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
+      <Slot />
     </Stack>
   );
 }

@@ -4,6 +4,8 @@ import { API_BASE_URL } from '@/constants/config';
 import { queryClient } from '@/lib/query-client';
 import { useAuthStore } from '@/store/auth';
 
+console.log({ API_BASE_URL });
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {

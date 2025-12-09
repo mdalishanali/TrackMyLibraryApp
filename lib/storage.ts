@@ -1,26 +1,37 @@
-import { MMKV } from "react-native-mmkv";
-import { StateStorage } from "zustand/middleware";
+import { MMKV } from 'react-native-mmkv';
+import { StateStorage } from 'zustand/middleware';
 
-const getEncryptionKey = () => {
-  return process.env.EXPO_PUBLIC_ENCRYPTION_KEY || "default-secure-key";
-};
+const getEncryptionKey = () => process.env.EXPO_PUBLIC_ENCRYPTION_KEY || undefined;
 
 export const storage = new MMKV({
-  id: "app-secure-storage",
-  encryptionKey: getEncryptionKey()
+  id: 'library-auth-storage',
+  encryptionKey: getEncryptionKey(),
 });
 
 export const mmkStorage: StateStorage = {
   setItem: (name, value) => {
-    storage.set(name, value);
+    try {
+      storage.set(name, value);
+    } catch (error) {
+      console.warn('MMKV setItem failed', error);
+    }
   },
   getItem: (name) => {
-    const value = storage.getString(name);
-    return value ?? null;
+    try {
+      const value = storage.getString(name);
+      return value ?? null;
+    } catch (error) {
+      console.warn('MMKV getItem failed', error);
+      return null;
+    }
   },
   removeItem: (name) => {
-    storage.delete(name);
-  }
+    try {
+      storage.delete(name);
+    } catch (error) {
+      console.warn('MMKV removeItem failed', error);
+    }
+  },
 };
 
 export default mmkStorage;

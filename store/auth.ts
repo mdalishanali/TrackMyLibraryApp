@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { queryClient } from '@/lib/query-client';
-import { zustandMMKVStorage } from '@/lib/storage';
+import { mmkStorage } from '@/lib/storage';
 
 export type AuthUser = {
   id?: string;
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => zustandMMKVStorage),
+      storage: createJSONStorage(() => mmkStorage),
       partialize: (state) => ({ user: state.user, token: state.token }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
