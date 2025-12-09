@@ -1,13 +1,24 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
+import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { hydrated, isAuthenticated } = useAuth();
+
+  if (!hydrated) {
+    return <FullScreenLoader message="Restoring your session..." />;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   return (
     <Tabs
