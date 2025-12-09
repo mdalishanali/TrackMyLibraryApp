@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "library-app",
-    "slug": "library-app",
+    "name": "track-my-library",
+    "slug": "track-my-library",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "libraryapp",
+    "scheme": "trackmylibrary",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.alishandev.trackmylibrary"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.alishandev.trackmylibrary"
     },
     "web": {
       "output": "static",

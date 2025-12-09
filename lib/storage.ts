@@ -1,25 +1,26 @@
-import { MMKV } from 'react-native-mmkv';
+import { MMKV } from "react-native-mmkv";
+import { StateStorage } from "zustand/middleware";
 
-/**
- * Centralized MMKV instance to persist auth and other lightweight app data.
- */
-export const mmkv = new MMKV({
-  id: 'library-storage',
-  encryptionKey: undefined,
+const getEncryptionKey = () => {
+  return process.env.EXPO_PUBLIC_ENCRYPTION_KEY || "default-secure-key";
+};
+
+export const storage = new MMKV({
+  id: "app-secure-storage",
+  encryptionKey: getEncryptionKey()
 });
 
-/**
- * Adapter to let Zustand persist data into MMKV.
- */
-export const zustandMMKVStorage = {
-  setItem: (key: string, value: string) => {
-    mmkv.set(key, value);
+export const mmkStorage: StateStorage = {
+  setItem: (name, value) => {
+    storage.set(name, value);
   },
-  getItem: (key: string) => {
-    const value = mmkv.getString(key);
+  getItem: (name) => {
+    const value = storage.getString(name);
     return value ?? null;
   },
-  removeItem: (key: string) => {
-    mmkv.delete(key);
-  },
+  removeItem: (name) => {
+    storage.delete(name);
+  }
 };
+
+export default mmkStorage;
