@@ -1,18 +1,16 @@
-import { useState, useMemo } from 'react';
-import { Alert, StyleSheet, Text } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
-import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { SectionHeader } from '@/components/ui/section-header';
-import { spacing, themeFor } from '@/constants/design';
+import { themeFor } from '@/constants/design';
 
 import {
   useCreateStudent,
   useDeleteStudent,
   useUpdateStudent,
-  useInfiniteStudentsQuery,
-  StudentPayload
+  useInfiniteStudentsQuery
 } from '@/hooks/use-students';
 
 import { useCreatePayment } from '@/hooks/use-payments';
@@ -23,8 +21,8 @@ import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
 import StudentList from '@/components/students/StudentList';
 
-import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
-import { PaymentFormModal, PaymentFormValues } from '@/components/students/payment-form-modal';
+import { StudentFormModal } from '@/components/students/student-form-modal';
+import { PaymentFormModal } from '@/components/students/payment-form-modal';
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -32,6 +30,7 @@ export default function StudentsScreen() {
   const theme = themeFor(color);
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState('recent');
 
   const [editingStudent, setEditingStudent] = useState(null);
@@ -40,22 +39,32 @@ export default function StudentsScreen() {
   const [paymentStudent, setPaymentStudent] = useState(null);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
 
-  const studentsQuery = useInfiniteStudentsQuery({ name: search, filter });
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const studentsQuery = useInfiniteStudentsQuery({
+    name: debouncedSearch,
+    filter
+  });
+
   const seatsQuery = useSeatsQuery();
 
   const createStudent = useCreateStudent();
-  const updateStudent = useUpdateStudent(editingStudent?._id);
   const deleteStudent = useDeleteStudent();
+  const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
 
   const students = studentsQuery.data?.pages.flatMap(p => p.students) ?? [];
 
   const seats = useMemo(
-    () => (seatsQuery.data ?? []).map(s => ({
-      _id: s._id,
-      seatNumber: s.seatNumber,
-      floor: s.floor
-    })),
+    () =>
+      (seatsQuery.data ?? []).map(s => ({
+        _id: s._id,
+        seatNumber: s.seatNumber,
+        floor: s.floor
+      })),
     [seatsQuery.data]
   );
 
@@ -64,24 +73,17 @@ export default function StudentsScreen() {
     setIsStudentFormOpen(true);
   };
 
-  const openEditForm = (id) => {
+  const openEditForm = id => {
     const s = students.find(u => u._id === id);
     setEditingStudent(s);
     setIsStudentFormOpen(true);
   };
 
-  const removeStudent = async (id) => {
-    Alert.alert('Delete student?', 'Confirm delete', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => deleteStudent.mutateAsync(id)
-      }
-    ]);
+  const removeStudent = id => {
+    deleteStudent.mutateAsync(id);
   };
 
-  const mapToForm = (s) => {
+  const mapToForm = s => {
     const d = new Date().toISOString().slice(0, 10);
     if (!s)
       return {
@@ -108,7 +110,7 @@ export default function StudentsScreen() {
     };
   };
 
-  const saveStudent = async (values) => {
+  const saveStudent = async values => {
     const payload = {
       name: values.name,
       number: values.number,
@@ -127,12 +129,12 @@ export default function StudentsScreen() {
     setEditingStudent(null);
   };
 
-  const openPayment = (student) => {
+  const openPayment = student => {
     setPaymentStudent(student);
     setIsPaymentFormOpen(true);
   };
 
-  const buildPaymentDefaults = (s) => {
+  const buildPaymentDefaults = s => {
     const d = new Date().toISOString().slice(0, 10);
     return {
       student: s?._id || '',
@@ -145,13 +147,11 @@ export default function StudentsScreen() {
     };
   };
 
-  const savePayment = async (values) => {
+  const savePayment = async values => {
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
   };
-
-  if (studentsQuery.isLoading) return <FullScreenLoader message="Loading students..." />;
 
   return (
     <SafeScreen>
@@ -161,22 +161,28 @@ export default function StudentsScreen() {
 
       <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
 
-      <StudentList
-        students={students}
-        theme={theme}
-        onView={(id) => router.push(`/(tabs)/students/${id}`)}
-        onEdit={openEditForm}
-        onDelete={removeStudent}
-        onPay={openPayment}
-        onLoadMore={() => {
-          if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
-            studentsQuery.fetchNextPage();
-          }
-        }}
-        refreshing={studentsQuery.isRefetching}
-        onRefresh={studentsQuery.refetch}
-        loadingMore={studentsQuery.isFetchingNextPage}
-      />
+      {studentsQuery.isFetching && students.length === 0 ? (
+        <View style={{ paddingTop: 40 }}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      ) : (
+        <StudentList
+          students={students}
+          theme={theme}
+          onView={id => router.push(`/(tabs)/students/${id}`)}
+          onEdit={openEditForm}
+          onDelete={removeStudent}
+          onPay={openPayment}
+          onLoadMore={() => {
+            if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
+              studentsQuery.fetchNextPage();
+            }
+          }}
+          refreshing={studentsQuery.isRefetching}
+          onRefresh={studentsQuery.refetch}
+          loadingMore={studentsQuery.isFetchingNextPage}
+        />
+      )}
 
       <StudentFormModal
         visible={isStudentFormOpen}

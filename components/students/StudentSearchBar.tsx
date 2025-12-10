@@ -4,25 +4,29 @@ import { spacing, radius } from '@/constants/design';
 
 export default function StudentSearchBar({ search, setSearch, onAdd, theme }) {
     return (
-        <View style={styles.row}>
-            <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search students"
-                placeholderTextColor={theme.muted}
+        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+            <View
                 style={[
-                    styles.input,
+                    styles.inputWrapper,
                     {
                         backgroundColor: theme.surfaceAlt,
-                        borderColor: theme.border,
-                        color: theme.text
+                        borderColor: theme.border
                     }
                 ]}
-            />
+            >
+                <TextInput
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder="Search students"
+                    placeholderTextColor={theme.muted}
+                    style={[styles.input, { color: theme.text }]}
+                />
+            </View>
 
             <AppButton
                 onPress={onAdd}
-                style={styles.addButton}
+                style={[styles.addButton, { backgroundColor: theme.primary }]}
+                textStyle={{ fontSize: 15 }}
             >
                 Add
             </AppButton>
@@ -31,22 +35,28 @@ export default function StudentSearchBar({ search, setSearch, onAdd, theme }) {
 }
 
 const styles = StyleSheet.create({
-    row: {
+    container: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.sm,
+        paddingHorizontal: spacing.xs,
         marginBottom: spacing.sm
     },
-    input: {
+    inputWrapper: {
         flex: 1,
-        borderWidth: 1,
         borderRadius: radius.lg,
+        borderWidth: 1,
         paddingHorizontal: spacing.md,
-        height: 44,
-        fontSize: 15,
+        height: 48,
+        justifyContent: 'center'
+    },
+    input: {
+        fontSize: 15
     },
     addButton: {
-        height: 44,
+        height: 48,
+        paddingHorizontal: spacing.lg,
         borderRadius: radius.lg,
+        justifyContent: 'center'
     }
 });

@@ -18,28 +18,28 @@ export default function StudentFilters({ selected, setSelected, theme }) {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.row}
-                bounces={false}
             >
-                {FILTERS.map((item) => {
-                    const isActive = selected === item;
-
+                {FILTERS.map(item => {
+                    const active = selected === item;
                     return (
                         <TouchableOpacity
                             key={item}
                             onPress={() => setSelected(item)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             style={[
                                 styles.chip,
                                 {
-                                    backgroundColor: isActive ? theme.primary : theme.surfaceAlt,
-                                    borderColor: isActive ? theme.primary : theme.border
+                                    backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                                    borderColor: active ? theme.primary : theme.border
                                 }
                             ]}
                         >
                             <Text
                                 style={{
-                                    color: isActive ? '#fff' : theme.text,
-                                    fontWeight: '600',
+                                    color: active ? '#fff' : theme.text,
+                                    fontWeight: '600'
                                 }}
                             >
                                 {item.charAt(0).toUpperCase() + item.slice(1)}
@@ -55,17 +55,18 @@ export default function StudentFilters({ selected, setSelected, theme }) {
 const styles = StyleSheet.create({
     wrapper: {
         marginBottom: spacing.md,
+        paddingVertical: spacing.xs
     },
     row: {
         flexDirection: 'row',
+        alignItems: 'center',
         gap: spacing.sm,
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.xs,
+        paddingHorizontal: spacing.xs
     },
     chip: {
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs + 2,
+        paddingVertical: spacing.sm,
         borderRadius: radius.lg,
-        borderWidth: 1,
-    },
+        borderWidth: 1
+    }
 });

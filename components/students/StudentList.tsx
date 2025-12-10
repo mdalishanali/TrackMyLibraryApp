@@ -28,7 +28,7 @@ export default function StudentList({
                     onPay={onPay}
                 />
             )}
-            contentContainerStyle={{ gap: spacing.md }}
+            contentContainerStyle={{ gap: spacing.md, padding:10 }}
             onEndReached={onLoadMore}
             onEndReachedThreshold={0.4}
             refreshing={refreshing}
