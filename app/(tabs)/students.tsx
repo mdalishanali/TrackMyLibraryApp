@@ -21,8 +21,10 @@ import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
 import StudentList from '@/components/students/StudentList';
 
-import { StudentFormModal } from '@/components/students/student-form-modal';
 import { PaymentFormModal } from '@/components/students/payment-form-modal';
+
+import { useStudentForm } from '@/hooks/use-student-form';
+import { StudentForm } from '@/components/students/StudentForm';
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -153,6 +155,11 @@ export default function StudentsScreen() {
     setPaymentStudent(null);
   };
 
+  const studentForm = useStudentForm({
+    initialValues: mapToForm(editingStudent),
+    onSubmit: saveStudent
+  });
+
   return (
     <SafeScreen>
       <SectionHeader>Students</SectionHeader>
@@ -184,15 +191,13 @@ export default function StudentsScreen() {
         />
       )}
 
-      <StudentFormModal
+      <StudentForm
         visible={isStudentFormOpen}
         onClose={() => setIsStudentFormOpen(false)}
-        initialValues={mapToForm(editingStudent)}
+        form={studentForm}
         seats={seats}
-        title={editingStudent ? 'Edit Student' : 'Add Student'}
         theme={theme}
-        isSubmitting={createStudent.isPending || updateStudent.isPending}
-        onSubmit={saveStudent}
+        title={editingStudent ? 'Edit Student' : 'Add Student'}
       />
 
       <PaymentFormModal
