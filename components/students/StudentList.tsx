@@ -1,4 +1,4 @@
-import { FlatList, Text } from 'react-native';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import StudentCard from './StudentCard';
 import { spacing } from '@/constants/design';
 
@@ -34,10 +34,18 @@ export default function StudentList({
             refreshing={refreshing}
             onRefresh={onRefresh}
             ListFooterComponent={
-                loadingMore ? <Text style={{ color: theme.muted }}>Loading more...</Text> : null
+                loadingMore ? (
+                    <View style={{ paddingVertical: spacing.md, alignItems: 'center' }}>
+                        <ActivityIndicator color={theme.primary} />
+                        <Text style={{ color: theme.muted, marginTop: spacing.xs }}>Loading more...</Text>
+                    </View>
+                ) : null
             }
             ListEmptyComponent={
-                <Text style={{ color: theme.muted }}>No students found</Text>
+                <View style={{ paddingTop: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
+                    <Text style={{ color: theme.muted, fontWeight: '600' }}>No students found</Text>
+                    <Text style={{ color: theme.muted }}>Try adjusting search or filters.</Text>
+                </View>
             }
         />
     );
