@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -15,7 +15,7 @@ import {
 } from '@/hooks/use-students';
 
 import { useCreatePayment } from '@/hooks/use-payments';
-import { useSeatsQuery } from '@/hooks/use-seats';
+  import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
@@ -26,6 +26,8 @@ import { PaymentFormModal } from '@/components/students/payment-form-modal';
 
 import { StudentFormModal } from '@/components/students/student-form-modal';
 import StudentSkeletonList from '@/components/students/StudentSkeletonList';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { showToast } from '@/lib/toast';
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -41,6 +43,7 @@ export default function StudentsScreen() {
 
   const [paymentStudent, setPaymentStudent] = useState(null);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 400);
@@ -83,7 +86,8 @@ export default function StudentsScreen() {
   };
 
   const removeStudent = id => {
-    deleteStudent.mutateAsync(id);
+    const s = students.find(u => u._id === id);
+    setPendingDelete(s ?? null);
   };
 
   const mapToForm = s => {
@@ -137,6 +141,7 @@ export default function StudentsScreen() {
     setIsStudentFormOpen(false);
     setEditingStudent(null);
     setFilter('recent');
+    showToast(editingStudent ? 'Student updated' : 'Student created', 'success');
   };
 
   const openPayment = student => {
@@ -161,6 +166,14 @@ export default function StudentsScreen() {
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
+    showToast('Payment recorded', 'success');
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await deleteStudent.mutateAsync(pendingDelete._id);
+    showToast('Student deleted', 'success');
+    setPendingDelete(null);
   };
 
   const initialFormValues = useMemo(
@@ -192,7 +205,7 @@ export default function StudentsScreen() {
         <StudentList
           students={students}
           theme={theme}
-          onView={id => router.push(`/students/${id}`)}
+          onView={id => router.push({ pathname: '/(tabs)/students/[id]', params: { id } })}
           onEdit={openEditForm}
           onDelete={removeStudent}
           onPay={openPayment}
@@ -218,7 +231,7 @@ export default function StudentsScreen() {
         title={editingStudent ? 'Edit Student' : 'Add Student'}
       />
 
-  <PaymentFormModal
+      <PaymentFormModal
         visible={isPaymentFormOpen}
         onClose={() => setIsPaymentFormOpen(false)}
         initialValues={buildPaymentDefaults(paymentStudent)}
@@ -226,6 +239,16 @@ export default function StudentsScreen() {
         disabled={!paymentStudent?._id}
         isSubmitting={createPayment.isPending}
         onSubmit={savePayment}
+      />
+      <ConfirmDialog
+        visible={Boolean(pendingDelete)}
+        title="Delete student?"
+        description={`Are you sure you want to delete ${pendingDelete?.name || 'this student'}? This cannot be undone.`}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        destructive
+        confirmText="Delete"
+        loading={deleteStudent.isPending}
       />
     </SafeScreen>
   );

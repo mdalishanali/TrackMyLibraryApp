@@ -87,7 +87,7 @@ export const useDeleteStudent = () =>
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });

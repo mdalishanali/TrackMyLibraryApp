@@ -1,4 +1,5 @@
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import StudentCard from './StudentCard';
 import { spacing } from '@/constants/design';
 
@@ -14,6 +15,7 @@ export default function StudentList({
     onRefresh,
     loadingMore
 }) {
+    const insets = useSafeAreaInsets();
     return (
         <FlatList
             data={students}
@@ -28,7 +30,13 @@ export default function StudentList({
                     onPay={onPay}
                 />
             )}
-            contentContainerStyle={{ gap: spacing.md, padding:10 }}
+            style={{ backgroundColor: theme.background }}
+            contentContainerStyle={{
+                gap: spacing.md,
+                padding: 10,
+                paddingBottom: spacing.lg + insets.bottom,
+                backgroundColor: theme.background,
+            }}
             onEndReached={onLoadMore}
             onEndReachedThreshold={0.4}
             refreshing={refreshing}

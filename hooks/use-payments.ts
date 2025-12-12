@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -15,12 +15,52 @@ export type PaymentPayload = {
   notes?: string;
 };
 
+type PaymentsPage = {
+  payments: Payment[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+};
+
+export type PaymentFilters = {
+  student?: string;
+  year?: string;
+  month?: string;
+  paymentMode?: 'cash' | 'upi';
+  search?: string;
+  limit?: number;
+};
+
 export const usePaymentsQuery = (params?: { student?: string }) =>
   useQuery({
     queryKey: queryKeys.payments(params),
     queryFn: async () => {
       const { data } = await api.get('/payments', { params });
-      return data.payments as Payment[];
+      return (data.payments ?? data) as Payment[];
+    },
+  });
+
+export const useInfinitePaymentsQuery = (params?: PaymentFilters) =>
+  useInfiniteQuery<PaymentsPage>({
+    queryKey: queryKeys.payments(params),
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get('/payments', {
+        params: { ...params, page: pageParam, limit: params?.limit ?? 10 },
+      });
+      return data as PaymentsPage;
+    },
+    getNextPageParam: (lastPage) => {
+      const current = lastPage.pagination?.page ?? 1;
+      const limit = lastPage.pagination?.limit ?? params?.limit ?? 10;
+      const total = lastPage.pagination?.total;
+      const nextPage = current + 1;
+      if (typeof total === 'number') {
+        return (current - 1) * limit + lastPage.payments.length < total ? nextPage : undefined;
+      }
+      return lastPage.payments.length >= limit ? nextPage : undefined;
     },
   });
 
@@ -31,7 +71,7 @@ export const useCreatePayment = () =>
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.payments() });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.students() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },

@@ -5,11 +5,13 @@ import { HapticTab } from '@/components/haptic-tab';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { themeFor } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const designTheme = themeFor(colorScheme);
   const { hydrated, isAuthenticated } = useAuth();
 
   if (!hydrated) {
@@ -26,6 +28,13 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: designTheme.background,
+          borderTopWidth: 0,
+          elevation: 0,
+        },
+        tabBarHideOnKeyboard: true,
+        sceneStyle: { backgroundColor: designTheme.background },
       }}>
       <Tabs.Screen
         name="index"

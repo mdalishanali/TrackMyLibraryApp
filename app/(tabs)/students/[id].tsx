@@ -1,5 +1,6 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppBadge } from '@/components/ui/app-badge';
@@ -21,6 +22,7 @@ export default function StudentDetailScreen() {
   const colorScheme = useColorScheme();
   const theme = themeFor(colorScheme);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const studentQuery = useStudentQuery(id);
   const paymentsQuery = usePaymentsQuery({ student: id });
@@ -48,7 +50,13 @@ export default function StudentDetailScreen() {
 
   return (
     <SafeScreen>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.background }}
+        contentContainerStyle={[
+          styles.container,
+          { backgroundColor: theme.background, paddingBottom: spacing.lg + insets.bottom },
+        ]}
+      >
         <SectionHeader>{student.name}</SectionHeader>
         <AppCard style={styles.headerCard}>
           <View style={styles.heroRow}>
