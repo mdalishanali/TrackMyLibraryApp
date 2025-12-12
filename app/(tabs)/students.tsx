@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -23,8 +24,8 @@ import StudentList from '@/components/students/StudentList';
 
 import { PaymentFormModal } from '@/components/students/payment-form-modal';
 
-import { useStudentForm } from '@/hooks/use-student-form';
-import { StudentForm } from '@/components/students/StudentForm';
+import { StudentFormModal } from '@/components/students/student-form-modal';
+import StudentSkeletonList from '@/components/students/StudentSkeletonList';
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -97,6 +98,8 @@ export default function StudentsScreen() {
         startTime: '09:00',
         endTime: '18:00',
         status: 'Active',
+        fees: undefined,
+        gender: 'Male',
         notes: ''
       };
     return {
@@ -108,6 +111,8 @@ export default function StudentsScreen() {
       startTime: s.time?.[0]?.start ?? '09:00',
       endTime: s.time?.[0]?.end ?? '18:00',
       status: s.status ?? 'Active',
+      fees: s.fees,
+      gender: s.gender ?? 'Male',
       notes: s.notes ?? ''
     };
   };
@@ -121,7 +126,9 @@ export default function StudentsScreen() {
       shift: values.shift,
       time: [{ start: values.startTime, end: values.endTime }],
       status: values.status,
-      notes: values.notes
+      fees: values.fees,
+      notes: values.notes,
+      gender: values.gender
     };
 
     if (editingStudent) await updateStudent.mutateAsync(payload);
@@ -129,6 +136,7 @@ export default function StudentsScreen() {
 
     setIsStudentFormOpen(false);
     setEditingStudent(null);
+    setFilter('recent');
   };
 
   const openPayment = student => {
@@ -155,28 +163,36 @@ export default function StudentsScreen() {
     setPaymentStudent(null);
   };
 
-  const studentForm = useStudentForm({
-    initialValues: mapToForm(editingStudent),
-    onSubmit: saveStudent
-  });
+  const initialFormValues = useMemo(
+    () => mapToForm(editingStudent),
+    [editingStudent, isStudentFormOpen]
+  );
 
   return (
     <SafeScreen>
-      <SectionHeader>Students</SectionHeader>
-
-      <StudentSearchBar search={search} setSearch={setSearch} onAdd={openCreateForm} theme={theme} />
-
-      <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
+      <View style={styles.heroShadow}>
+        <LinearGradient
+          colors={[theme.surfaceAlt, theme.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { borderColor: theme.border }]}
+        >
+          <View style={styles.heroHeader}>
+            <SectionHeader>Students</SectionHeader>
+            <Text style={[styles.heroSub, { color: theme.muted }]}>Search, filter, and manage students.</Text>
+          </View>
+          <StudentSearchBar search={search} setSearch={setSearch} onAdd={openCreateForm} theme={theme} />
+          <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
+        </LinearGradient>
+      </View>
 
       {studentsQuery.isFetching && students.length === 0 ? (
-        <View style={{ paddingTop: 40 }}>
-          <ActivityIndicator size="large" color={theme.primary} />
-        </View>
+        <StudentSkeletonList />
       ) : (
         <StudentList
           students={students}
           theme={theme}
-          onView={id => router.push(`/(tabs)/students/${id}`)}
+          onView={id => router.push(`/students/${id}`)}
           onEdit={openEditForm}
           onDelete={removeStudent}
           onPay={openPayment}
@@ -191,16 +207,18 @@ export default function StudentsScreen() {
         />
       )}
 
-      <StudentForm
+      <StudentFormModal
         visible={isStudentFormOpen}
         onClose={() => setIsStudentFormOpen(false)}
-        form={studentForm}
+        onSubmit={saveStudent}
+        initialValues={initialFormValues}
         seats={seats}
         theme={theme}
+        isSubmitting={createStudent.isPending || updateStudent.isPending}
         title={editingStudent ? 'Edit Student' : 'Add Student'}
       />
 
-      <PaymentFormModal
+  <PaymentFormModal
         visible={isPaymentFormOpen}
         onClose={() => setIsPaymentFormOpen(false)}
         initialValues={buildPaymentDefaults(paymentStudent)}
@@ -212,3 +230,24 @@ export default function StudentsScreen() {
     </SafeScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  heroShadow: {
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
+  heroCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    gap: 12,
+  },
+  heroHeader: {
+    gap: 4,
+    marginBottom: 4,
+  },
+  heroSub: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

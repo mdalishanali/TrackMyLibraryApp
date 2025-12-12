@@ -6,16 +6,8 @@ import { spacing, radius, typography } from '@/constants/design';
 
 export default function StudentSearchBar({ search, setSearch, onAdd, theme }) {
   return (
-    <View style={[styles.container, { backgroundColor: theme.surface }]}>
-      <View
-        style={[
-          styles.inputWrapper,
-          {
-            backgroundColor: theme.surfaceAlt,
-            borderColor: theme.border,
-          },
-        ]}
-      >
+    <View style={[styles.wrapper, { backgroundColor: theme.surface }]}>
+      <View style={[styles.container, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
         <Ionicons name="search-outline" size={18} color={theme.muted} />
         <TextInput
           value={search}
@@ -24,33 +16,42 @@ export default function StudentSearchBar({ search, setSearch, onAdd, theme }) {
           placeholderTextColor={theme.muted}
           style={[styles.input, { color: theme.text }]}
         />
+        {search?.length ? (
+          <Ionicons
+            name="close-circle"
+            size={18}
+            color={theme.muted}
+            onPress={() => setSearch('')}
+          />
+        ) : null}
       </View>
 
       <AppButton
         onPress={onAdd}
         fullWidth={false}
         variant="primary"
+        style={styles.addButton}
       >
-        Add
+        + Add
       </AppButton>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.xs,
     marginBottom: spacing.sm,
   },
-  inputWrapper: {
+  container: {
     flex: 1,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
-    height: 48,
+    height: 52,
     alignItems: 'center',
     gap: spacing.sm,
     flexDirection: 'row',
@@ -58,5 +59,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: typography.size.md,
+  },
+  addButton: {
+    height: 52,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
 });

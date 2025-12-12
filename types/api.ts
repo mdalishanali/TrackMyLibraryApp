@@ -23,6 +23,7 @@ export type Student = {
   nextDueDate?: string;
   paymentStatus?: string;
   profilePicture?: string;
+  gender?: string;
 };
 
 export type Payment = {

@@ -15,6 +15,7 @@ export type StudentPayload = {
   fees?: number;
   notes?: string;
   status?: string;
+  gender?: string;
 };
 
 type StudentsPage = {

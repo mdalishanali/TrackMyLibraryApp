@@ -5,6 +5,7 @@ import { radius, spacing, themeFor, typography } from '@/constants/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type Variant = 'primary' | 'outline' | 'ghost' | 'danger';
+type Tone = 'primary' | 'info' | 'success' | 'danger' | 'neutral';
 
 type Props = PropsWithChildren<{
   onPress?: (event: GestureResponderEvent) => void;
@@ -12,6 +13,7 @@ type Props = PropsWithChildren<{
   loading?: boolean;
   variant?: Variant;
   fullWidth?: boolean;
+  tone?: Tone;
 }>;
 
 export function AppButton({
@@ -21,18 +23,30 @@ export function AppButton({
   loading,
   variant = 'primary',
   fullWidth,
+  tone = 'primary',
 }: Props) {
   const colorScheme = useColorScheme();
   const theme = themeFor(colorScheme);
 
+  const toneColor =
+    tone === 'info'
+      ? theme.info
+      : tone === 'success'
+        ? theme.success
+        : tone === 'danger'
+          ? theme.danger
+          : tone === 'neutral'
+            ? theme.text
+            : theme.primary;
+
   const background =
     variant === 'primary'
-      ? theme.primary
+      ? toneColor
       : variant === 'danger'
         ? theme.danger
         : variant === 'outline' || variant === 'ghost'
           ? 'transparent'
-          : theme.primary;
+          : toneColor;
 
   const borderColor = variant === 'outline' ? theme.border : 'transparent';
   const textColor = variant === 'primary' || variant === 'danger' ? '#fff' : theme.text;
@@ -46,8 +60,12 @@ export function AppButton({
         {
           backgroundColor: background,
           borderColor,
-          opacity: disabled || loading || pressed ? 0.8 : 1,
+          opacity: disabled || loading ? 0.6 : pressed ? 0.85 : 1,
           width: fullWidth ? '100%' : undefined,
+          shadowOpacity: variant === 'primary' && !disabled ? 0.15 : 0,
+          shadowColor: background,
+          shadowOffset: { width: 0, height: 8 },
+          shadowRadius: 14,
         },
       ]}>
       {loading ? <ActivityIndicator color={textColor} /> : <Text style={[styles.text, { color: textColor }]}>{children}</Text>}

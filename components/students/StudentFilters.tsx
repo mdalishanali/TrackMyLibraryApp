@@ -35,6 +35,10 @@ export default function StudentFilters({ selected, setSelected, theme }) {
                 {
                   backgroundColor: active ? theme.primary : theme.surfaceAlt,
                   borderColor: active ? theme.primary : theme.border,
+                  shadowColor: active ? theme.primary : 'transparent',
+                  shadowOpacity: active ? 0.18 : 0,
+                  shadowRadius: active ? 8 : 0,
+                  shadowOffset: { width: 0, height: active ? 4 : 0 },
                 },
               ]}
             >
@@ -64,6 +68,7 @@ const styles = StyleSheet.create({
   wrapper: {
     marginBottom: spacing.md,
     paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   row: {
     flexDirection: 'row',
