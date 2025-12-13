@@ -62,7 +62,7 @@ export const useCreateStudent = () =>
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
@@ -75,7 +75,7 @@ export const useUpdateStudent = (id?: string) =>
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });

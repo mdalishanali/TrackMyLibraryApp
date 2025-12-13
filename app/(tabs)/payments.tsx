@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
+import { PaymentFormModal, PaymentFormValues } from '@/components/students/payment-form-modal';
 import { SectionHeader } from '@/components/ui/section-header';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -50,13 +50,19 @@ export default function PaymentsScreen() {
   const createPayment = useCreatePayment();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [studentId, setStudentId] = useState<string>('');
-  const [rupees, setRupees] = useState<string>('0');
-  const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [paymentMode, setPaymentMode] = useState<'cash' | 'upi'>('cash');
-  const [notes, setNotes] = useState<string>('');
+  const buildPaymentDefaults = (student?: string): PaymentFormValues => {
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      student: student ?? '',
+      rupees: 0,
+      startDate: today,
+      endDate: today,
+      paymentDate: today,
+      paymentMode: 'cash',
+      notes: '',
+    };
+  };
+  const [paymentDefaults, setPaymentDefaults] = useState<PaymentFormValues>(buildPaymentDefaults());
   const [selectedYear, setSelectedYear] = useState<string | null>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string | null>((new Date().getMonth() + 1).toString());
   const [modeFilter, setModeFilter] = useState<'cash' | 'upi' | null>(null);
@@ -83,29 +89,23 @@ export default function PaymentsScreen() {
   const paymentsQuery = useInfinitePaymentsQuery(filterParams);
   const payments = paymentsQuery.data?.pages.flatMap((page) => page.payments) ?? [];
 
-  const resetForm = () => {
-    setStudentId('');
-    setRupees('0');
-    setStartDate(new Date().toISOString().slice(0, 10));
-    setEndDate(new Date().toISOString().slice(0, 10));
-    setPaymentDate(new Date().toISOString().slice(0, 10));
-    setPaymentMode('cash');
-    setNotes('');
+  const openPaymentModal = (student?: string) => {
+    setPaymentDefaults(buildPaymentDefaults(student));
+    setIsModalOpen(true);
   };
 
-  const onCreatePayment = async () => {
-    if (!studentId) return Alert.alert('Choose a student', 'Select a student to record payment.');
+  const onCreatePayment = async (values: PaymentFormValues) => {
+    if (!values.student) return Alert.alert('Choose a student', 'Select a student to record payment.');
     try {
       await createPayment.mutateAsync({
-        student: studentId,
-        rupees: Number(rupees),
-        startDate,
-        endDate,
-        paymentMode,
-        paymentDate,
-        notes,
+        student: values.student,
+        rupees: Number(values.rupees),
+        startDate: values.startDate,
+        endDate: values.endDate,
+        paymentMode: values.paymentMode,
+        paymentDate: values.paymentDate,
+        notes: values.notes,
       });
-      resetForm();
       setIsModalOpen(false);
     } catch (error) {
       Alert.alert('Error', (error as Error).message);
@@ -144,7 +144,7 @@ export default function PaymentsScreen() {
                   Manage, filter, and review student payments in one place.
                 </Text>
               </View>
-              <AppButton onPress={() => setIsModalOpen(true)}>Add Payment</AppButton>
+              <AppButton onPress={() => openPaymentModal()}>Add Payment</AppButton>
             </View>
 
             <AppCard style={[styles.filterCard, { backgroundColor: theme.surfaceAlt }]}>
@@ -328,50 +328,16 @@ export default function PaymentsScreen() {
         }
       />
 
-      <Modal animationType="slide" visible={isModalOpen} onRequestClose={() => setIsModalOpen(false)}>
-        <SafeScreen edges={['top', 'bottom']}>
-          <ScrollView
-            style={[styles.modalContainer, { backgroundColor: theme.background }]}
-            contentContainerStyle={{ padding: spacing.lg }}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Record Payment</Text>
-            <Text style={[styles.label, { color: theme.text }]}>Select student</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                {studentsQuery.data?.map((student) => (
-                  <TouchableOpacity
-                    key={student._id}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: studentId === student._id ? theme.primary : theme.surface,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                    onPress={() => setStudentId(student._id)}>
-                    <Text style={{ color: studentId === student._id ? '#fff' : theme.text }}>{student.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            {renderInput('Amount (₹)', rupees, setRupees, theme, 'numeric')}
-            {renderInput('Start Date (YYYY-MM-DD)', startDate, setStartDate, theme)}
-            {renderInput('End Date (YYYY-MM-DD)', endDate, setEndDate, theme)}
-            {renderInput('Payment Date (YYYY-MM-DD)', paymentDate, setPaymentDate, theme)}
-            {renderInput('Payment Mode (cash|upi)', paymentMode, (val) => setPaymentMode(val as 'cash' | 'upi'), theme)}
-            {renderInput('Notes', notes, setNotes, theme)}
-
-            <View style={styles.modalActions}>
-              <AppButton variant="outline" onPress={() => setIsModalOpen(false)}>
-                Cancel
-              </AppButton>
-              <AppButton onPress={onCreatePayment} loading={createPayment.isPending}>
-                Save
-              </AppButton>
-            </View>
-          </ScrollView>
-        </SafeScreen>
-      </Modal>
+      <PaymentFormModal
+        visible={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        initialValues={paymentDefaults}
+        theme={theme}
+        isSubmitting={createPayment.isPending}
+        onSubmit={onCreatePayment}
+        studentOptions={(studentsQuery.data ?? []).map((s) => ({ id: s._id, name: s.name }))}
+        title="Record Payment"
+      />
     </SafeScreen>
   );
 }
@@ -396,31 +362,6 @@ function FilterChip({ label, active, onPress, theme }: FilterChipProps) {
       ]}>
       <Text style={{ color: active ? '#fff' : theme.text }}>{label}</Text>
     </TouchableOpacity>
-  );
-}
-
-function renderInput(
-  label: string,
-  value: string,
-  onChange: (text: string) => void,
-  theme: ReturnType<typeof themeFor>,
-  keyboardType: 'default' | 'numeric' = 'default'
-) {
-  return (
-    <View style={{ marginBottom: spacing.sm }}>
-      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={label}
-        placeholderTextColor={theme.muted}
-        keyboardType={keyboardType}
-        style={[
-          styles.input,
-          { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt },
-        ]}
-      />
-    </View>
   );
 }
 
@@ -552,22 +493,6 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: typography.size.xl,
     fontWeight: '800',
-  },
-  modalContainer: { flex: 1 },
-  modalTitle: {
-    fontSize: typography.size.xl,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-  },
-  label: {
-    fontSize: typography.size.sm,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
   },
   modalActions: {
     flexDirection: 'row',

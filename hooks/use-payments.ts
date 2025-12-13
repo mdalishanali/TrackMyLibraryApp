@@ -76,3 +76,29 @@ export const useCreatePayment = () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
+
+export const useUpdatePayment = () =>
+  useMutation({
+    mutationFn: async ({ id, ...payload }: { id: string } & Partial<PaymentPayload>) => {
+      const { data } = await api.put(`/payments/${id}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+
+export const useDeletePayment = () =>
+  useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/payments/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });

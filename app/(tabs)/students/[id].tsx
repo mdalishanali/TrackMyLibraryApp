@@ -1,18 +1,21 @@
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
+import { PaymentFormModal, PaymentFormValues } from '@/components/students/payment-form-modal';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { InfoRow } from '@/components/ui/info-row';
-import { SectionHeader } from '@/components/ui/section-header';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing, themeFor, typography } from '@/constants/design';
 import { useDeleteStudent } from '@/hooks/use-students';
 import { useStudentQuery } from '@/hooks/use-student';
-import { usePaymentsQuery } from '@/hooks/use-payments';
+import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Image } from 'expo-image';
@@ -23,10 +26,30 @@ export default function StudentDetailScreen() {
   const theme = themeFor(colorScheme);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const createPayment = useCreatePayment();
+  const updatePayment = useUpdatePayment();
+  const deletePaymentMutation = useDeletePaymentMutation();
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentDefaults, setPaymentDefaults] = useState<PaymentFormValues | null>(null);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const isPaymentSaving = createPayment.isPending || updatePayment.isPending;
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
 
   const studentQuery = useStudentQuery(id);
-  const paymentsQuery = usePaymentsQuery({ student: id });
+  const paymentsQuery = useInfinitePaymentsQuery({ student: id, limit: 4 });
   const deleteStudent = useDeleteStudent();
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!paymentsQuery.hasNextPage || paymentsQuery.isFetchingNextPage) return;
+      const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+      const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+      if (distanceFromBottom < 160) {
+        paymentsQuery.fetchNextPage();
+      }
+    },
+    [paymentsQuery],
+  );
 
   if (studentQuery.isLoading) {
     return <FullScreenLoader message="Loading student..." />;
@@ -43,9 +66,56 @@ export default function StudentDetailScreen() {
     );
   }
 
-  const onDelete = async () => {
+  const confirmDeleteStudent = async () => {
+    if (deleteStudent.isPending) return;
     await deleteStudent.mutateAsync(student._id);
+    setConfirmStudentDelete(false);
     router.back();
+  };
+
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const basePaymentValues = useMemo<PaymentFormValues>(
+    () => ({
+      student: student._id,
+      rupees: 0,
+      startDate: todayIso,
+      endDate: todayIso,
+      paymentDate: todayIso,
+      paymentMode: 'cash',
+      notes: '',
+    }),
+    [student._id, student.fees, todayIso],
+  );
+
+  const openPayment = () => {
+    setPaymentDefaults({ ...basePaymentValues, rupees: student.fees ?? 0 });
+    setEditingPaymentId(null);
+    setIsPaymentOpen(true);
+  };
+
+  const startEditPayment = (payment: any) => {
+    setPaymentDefaults({
+      student: student._id,
+      rupees: payment.rupees,
+      startDate: payment.startDate?.slice(0, 10) ?? todayIso,
+      endDate: payment.endDate?.slice(0, 10) ?? todayIso,
+      paymentDate: payment.paymentDate?.slice(0, 10) ?? todayIso,
+      paymentMode: payment.paymentMode ?? 'cash',
+      notes: payment.notes ?? '',
+    });
+    setEditingPaymentId(payment._id);
+    setIsPaymentOpen(true);
+  };
+
+  const submitPayment = async (values: PaymentFormValues) => {
+    if (editingPaymentId) {
+      await updatePayment.mutateAsync({ id: editingPaymentId, ...values });
+    } else {
+      await createPayment.mutateAsync(values);
+    }
+    setPaymentDefaults(basePaymentValues);
+    setEditingPaymentId(null);
+    setIsPaymentOpen(false);
   };
 
   return (
@@ -54,37 +124,93 @@ export default function StudentDetailScreen() {
         style={{ flex: 1, backgroundColor: theme.background }}
         contentContainerStyle={[
           styles.container,
-          { backgroundColor: theme.background, paddingBottom: spacing.lg + insets.bottom },
+          {
+            backgroundColor: theme.background,
+            paddingBottom: spacing.lg + insets.bottom,
+            paddingTop: spacing.md,
+            paddingHorizontal: spacing.lg,
+          },
         ]}
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
       >
-        <SectionHeader>{student.name}</SectionHeader>
-        <AppCard style={styles.headerCard}>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[
+              styles.iconButton,
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                shadowColor: theme.shadow,
+                shadowOpacity: 0.12,
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 8,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="chevron-back" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <AppBadge tone="info">Student</AppBadge>
+        </View>
+
+        <AppCard style={[styles.headerCard, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
           <View style={styles.heroRow}>
-            <View style={[styles.avatar, { backgroundColor: theme.surfaceAlt }]}>
+            <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
               {student.profilePicture ? (
                 <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} contentFit="cover" />
               ) : (
-                <Text style={[styles.avatarText, { color: theme.text }]}>
-                  {student.name?.[0]?.toUpperCase() || 'S'}
-                </Text>
+                <Text style={[styles.avatarText, { color: theme.text }]}>{student.name?.[0]?.toUpperCase() || 'S'}</Text>
               )}
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, gap: spacing.xs }}>
               <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                 {student.name}
               </Text>
-              <Text style={[styles.meta, { color: theme.muted }]}>ID: {student.id ?? '—'}</Text>
-              <AppBadge tone={student.status === 'Active' ? 'success' : 'warning'} style={{ marginTop: spacing.xs }}>
-                {student.status ?? 'Active'}
-              </AppBadge>
+              <View style={styles.inlineMeta}>
+                <Text style={[styles.meta, { color: theme.muted }]}>ID</Text>
+                <Text style={[styles.metaStrong, { color: theme.text }]}>{student.id ?? '—'}</Text>
+              </View>
+              <View style={styles.badgeRow}>
+                <AppBadge tone={student.status === 'Active' ? 'success' : 'warning'}>
+                  {student.status ?? 'Active'}
+                </AppBadge>
+                <View style={[styles.pill, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+                  <Text style={[styles.pillLabel, { color: theme.muted }]}>Shift</Text>
+                  <Text style={[styles.pillValue, { color: theme.text }]}>{student.shift || '—'}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={[styles.idBlock, { borderColor: theme.border }]}>
+              <Text style={[styles.pillLabel, { color: theme.muted }]}>Seat</Text>
+              <Text style={[styles.metaStrong, { color: theme.text }]}>
+                {student.seatNumber ? String(student.seatNumber) : 'Unallocated'}
+              </Text>
             </View>
           </View>
-          <View style={styles.actionRow}>
-            <AppButton onPress={() => router.push(`/(tabs)/students/${student._id}?pay=1`)}>Pay</AppButton>
-            <AppButton variant="outline" onPress={() => router.push('/(tabs)/students')}>
-              Back
+
+          <View style={styles.metaRow}>
+            <View style={[styles.pill, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+              <Text style={[styles.pillLabel, { color: theme.muted }]}>Joined</Text>
+              <Text style={[styles.pillValue, { color: theme.text }]}>{formatDate(student.joiningDate)}</Text>
+            </View>
+            <View style={[styles.pill, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+              <Text style={[styles.pillLabel, { color: theme.muted }]}>Payment</Text>
+              <Text style={[styles.pillValue, { color: theme.text }]}>{student.paymentStatus || '—'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionColumn}>
+            <AppButton onPress={openPayment} fullWidth tone="neutral">
+              Pay
             </AppButton>
-            <AppButton variant="danger" onPress={onDelete} loading={deleteStudent.isPending}>
+            <AppButton
+              variant="danger"
+              onPress={() => setConfirmStudentDelete(true)}
+              loading={deleteStudent.isPending}
+              fullWidth
+            >
               Delete
             </AppButton>
           </View>
@@ -96,40 +222,122 @@ export default function StudentDetailScreen() {
           <InfoRow label="Seat" value={student.seatNumber ? String(student.seatNumber) : 'Unallocated'} />
           <InfoRow label="Joined" value={formatDate(student.joiningDate)} />
           <InfoRow label="Shift" value={student.shift} />
-          <InfoRow label="Payment Status" value={student.paymentStatus} />
+          <InfoRow label="Payment Status" value={student.paymentStatus || '—'} />
         </AppCard>
 
-        <AppCard style={{ gap: spacing.xs }}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Payments</Text>
-          {paymentsQuery.data?.length ? (
-            paymentsQuery.data.map((payment) => (
-              <View key={payment._id} style={styles.paymentRow}>
-                <Text style={[styles.meta, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
+        <AppCard style={{ gap: spacing.sm }}>
+          <View style={styles.paymentsHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Payments</Text>
+            <AppBadge style={{ backgroundColor: theme.surfaceAlt }}>
+              {paymentsQuery.data?.pages?.[0]?.pagination?.total
+                ? `${paymentsQuery.data.pages[0].pagination?.total} record(s)`
+                : paymentsQuery.data?.pages?.[0]?.payments?.length
+                  ? `${paymentsQuery.data.pages[0].payments.length} record(s)`
+                  : 'No records'}
+            </AppBadge>
+          </View>
+          {paymentsQuery.data?.pages?.length ? (
+            paymentsQuery.data.pages.flatMap((page) => page.payments).map((payment) => (
+              <View
+                key={payment._id}
+                style={[styles.paymentRow, { borderColor: theme.border, backgroundColor: theme.surface }]}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={[styles.paymentAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
+                  <AppBadge tone="success">Paid</AppBadge>
+                </View>
                 <Text style={[styles.meta, { color: theme.muted }]}>
                   {formatDate(payment.startDate)} - {formatDate(payment.endDate)}
                 </Text>
-                <Text style={[styles.meta, { color: theme.muted }]}>Paid: {formatDate(payment.paymentDate)}</Text>
+                <Text style={[styles.meta, { color: theme.muted }]}>On {formatDate(payment.paymentDate)}</Text>
+                <Text style={[styles.meta, { color: theme.muted }]}>Mode: {payment.paymentMode?.toUpperCase() ?? '—'}</Text>
+                <View style={styles.paymentActions}>
+                  <View style={styles.paymentActionItem}>
+                    <AppButton variant="outline" tone="info" onPress={() => startEditPayment(payment)} fullWidth>
+                      Edit
+                    </AppButton>
+                  </View>
+                  <View style={styles.paymentActionItem}>
+                    <AppButton
+                      variant="outline"
+                      tone="danger"
+                      onPress={() => setDeleteTarget(payment._id)}
+                      loading={deletePaymentMutation.isPending && deleteTarget === payment._id}
+                      fullWidth
+                    >
+                      Delete
+                    </AppButton>
+                  </View>
+                </View>
               </View>
             ))
           ) : (
             <Text style={{ color: theme.muted }}>No payments yet.</Text>
           )}
+          {paymentsQuery.isFetchingNextPage ? (
+            <Text style={{ color: theme.muted, textAlign: 'center' }}>Loading more payments…</Text>
+          ) : null}
         </AppCard>
-
-        <View style={styles.linkRow}>
-          <Link href="/(tabs)/payments" asChild>
-            <Text style={[styles.link, { color: theme.primary }]}>View all payments</Text>
-          </Link>
-        </View>
       </ScrollView>
+
+      {paymentDefaults ? (
+        <PaymentFormModal
+          visible={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          initialValues={paymentDefaults}
+          resetValues={basePaymentValues}
+          theme={theme}
+          isSubmitting={isPaymentSaving}
+          onSubmit={submitPayment}
+          studentName={student.name}
+          title="Record Payment"
+        />
+      ) : null}
+      <ConfirmDialog
+        visible={Boolean(deleteTarget)}
+        title="Delete payment?"
+        description="Are you sure you want to delete this payment?"
+        confirmText="Delete"
+        destructive
+        loading={deletePaymentMutation.isPending}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await deletePaymentMutation.mutateAsync(deleteTarget);
+          setDeleteTarget(null);
+        }}
+      />
+      <ConfirmDialog
+        visible={confirmStudentDelete}
+        title="Delete student?"
+        description="This will remove the student and related records."
+        confirmText="Delete"
+        destructive
+        loading={deleteStudent.isPending}
+        onCancel={() => setConfirmStudentDelete(false)}
+        onConfirm={confirmDeleteStudent}
+      />
     </SafeScreen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.lg,
     gap: spacing.md,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerCard: {
     gap: spacing.md,
@@ -138,6 +346,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
     alignItems: 'center',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  inlineMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   avatar: {
     width: 64,
@@ -162,19 +386,42 @@ const styles = StyleSheet.create({
   meta: {
     fontSize: typography.size.sm,
   },
-  actionRow: {
-    flexDirection: 'row',
+  metaStrong: {
+    fontSize: typography.size.md,
+    fontWeight: '700',
+  },
+  actionColumn: {
+    flexDirection: 'column',
     gap: spacing.sm,
-    flexWrap: 'wrap',
   },
   sectionTitle: {
     fontSize: typography.size.lg,
     fontWeight: '700',
   },
+  paymentsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   paymentRow: {
     paddingVertical: spacing.xs,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.3)',
+    borderWidth: 1,
+    borderRadius: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: 'rgba(148, 163, 184, 0.05)',
+    gap: spacing.xs / 2,
+  },
+  paymentActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  paymentActionItem: {
+    flex: 1,
+  },
+  paymentAmount: {
+    fontSize: typography.size.md,
+    fontWeight: '700',
   },
   linkRow: {
     alignItems: 'flex-start',
@@ -182,5 +429,31 @@ const styles = StyleSheet.create({
   link: {
     fontSize: typography.size.md,
     fontWeight: '700',
+  },
+  pill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  pillLabel: {
+    fontSize: typography.size.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  pillValue: {
+    fontSize: typography.size.sm,
+    fontWeight: '700',
+  },
+  idBlock: {
+    borderWidth: 1,
+    borderRadius: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    alignItems: 'flex-start',
+    gap: spacing.xs / 2,
   },
 });

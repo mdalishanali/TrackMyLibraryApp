@@ -239,6 +239,7 @@ export default function StudentsScreen() {
         disabled={!paymentStudent?._id}
         isSubmitting={createPayment.isPending}
         onSubmit={savePayment}
+        studentName={paymentStudent?.name}
       />
       <ConfirmDialog
         visible={Boolean(pendingDelete)}

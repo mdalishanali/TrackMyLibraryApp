@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "track-my-library",
-    "slug": "track-my-library",
+    "name": "TrackMyLibrary",
+    "slug": "trackmylibrary",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.alishandev.trackmylibrary"
+      "bundleIdentifier": "com.librarymanager.trackmylibrary",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.alishandev.trackmylibrary"
+      "package": "com.librarymanager.trackmylibrary"
     },
     "web": {
       "output": "static",
@@ -45,6 +48,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7d8f13fd-143a-4b90-9372-90694dba6562"
+      }
     }
   }
 }
