@@ -13,7 +13,20 @@ export default function StudentList({
     onLoadMore,
     refreshing,
     onRefresh,
-    loadingMore
+    loadingMore,
+    headerComponent,
+}: {
+    students: any[];
+    theme: any;
+    onView: (id: string) => void;
+    onEdit: (id: string) => void;
+    onDelete: (id: string) => void;
+    onPay: (student: any) => void;
+    onLoadMore: () => void;
+    refreshing: boolean;
+    onRefresh: () => void;
+    loadingMore: boolean;
+    headerComponent?: React.ReactElement | null;
 }) {
     const insets = useSafeAreaInsets();
     return (
@@ -41,6 +54,7 @@ export default function StudentList({
             onEndReachedThreshold={0.4}
             refreshing={refreshing}
             onRefresh={onRefresh}
+            ListHeaderComponent={headerComponent ? <View style={{ marginBottom: spacing.md }}>{headerComponent}</View> : null}
             ListFooterComponent={
                 loadingMore ? (
                     <View style={{ paddingVertical: spacing.md, alignItems: 'center' }}>

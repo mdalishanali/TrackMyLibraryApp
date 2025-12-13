@@ -181,26 +181,31 @@ export default function StudentsScreen() {
     [editingStudent, isStudentFormOpen]
   );
 
+  const listHeader = (
+    <View style={styles.heroShadow}>
+      <LinearGradient
+        colors={[theme.surfaceAlt, theme.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.heroCard, { borderColor: theme.border }]}
+      >
+        <View style={styles.heroHeader}>
+          <SectionHeader>Students</SectionHeader>
+          <Text style={[styles.heroSub, { color: theme.muted }]}>Search, filter, and manage students.</Text>
+        </View>
+        <StudentSearchBar search={search} setSearch={setSearch} onAdd={openCreateForm} theme={theme} />
+        <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
+      </LinearGradient>
+    </View>
+  );
+
   return (
     <SafeScreen>
-      <View style={styles.heroShadow}>
-        <LinearGradient
-          colors={[theme.surfaceAlt, theme.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.heroCard, { borderColor: theme.border }]}
-        >
-          <View style={styles.heroHeader}>
-            <SectionHeader>Students</SectionHeader>
-            <Text style={[styles.heroSub, { color: theme.muted }]}>Search, filter, and manage students.</Text>
-          </View>
-          <StudentSearchBar search={search} setSearch={setSearch} onAdd={openCreateForm} theme={theme} />
-          <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
-        </LinearGradient>
-      </View>
-
       {studentsQuery.isFetching && students.length === 0 ? (
-        <StudentSkeletonList />
+        <>
+          {listHeader}
+          <StudentSkeletonList />
+        </>
       ) : (
         <StudentList
           students={students}
@@ -209,6 +214,7 @@ export default function StudentsScreen() {
           onEdit={openEditForm}
           onDelete={removeStudent}
           onPay={openPayment}
+          headerComponent={listHeader}
           onLoadMore={() => {
             if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
               studentsQuery.fetchNextPage();
