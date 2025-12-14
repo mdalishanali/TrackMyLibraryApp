@@ -51,13 +51,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="sparkles" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="seats"
         options={{
           title: 'Seats',
@@ -72,10 +65,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="settings"
         options={{
-          title: 'More',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="line.3.horizontal" color={color} />,
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="gearshape.fill" color={color} />,
         }}
       />
     </Tabs>

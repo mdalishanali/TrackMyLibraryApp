@@ -12,11 +12,6 @@ type ProfilePayload = {
   businessAddress?: string;
 };
 
-type ChangePasswordPayload = {
-  currentPassword: string;
-  newPassword: string;
-};
-
 export const useUpdateProfile = () => {
   const { setAuth } = useAuth();
 
@@ -34,10 +29,17 @@ export const useUpdateProfile = () => {
   });
 };
 
-export const useChangePassword = () =>
-  useMutation({
-    mutationFn: async (payload: ChangePasswordPayload) => {
-      const { data } = await api.put('/user/change-password', payload);
+export const useDeleteAccount = () => {
+  const { logout } = useAuth();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.delete('/user/account');
       return data;
     },
+    onSuccess: () => {
+      logout();
+      queryClient.clear();
+    },
   });
+};
