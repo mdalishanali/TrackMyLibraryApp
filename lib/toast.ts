@@ -1,9 +1,11 @@
-import { toast } from 'react-native-hot-toast';
+import Toast from 'react-native-toast-message';
 
 type ToastType = 'success' | 'error' | 'info';
 
 export function showToast(message: string, type: ToastType = 'info') {
-  if (type === 'success') return toast.success(message);
-  if (type === 'error') return toast.error(message);
-  return toast(message);
+  const toastType = type === 'info' ? 'info' : type;
+  Toast.show({
+    type: toastType,
+    text1: message
+  });
 }

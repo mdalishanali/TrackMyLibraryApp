@@ -64,17 +64,19 @@ export const useInfinitePaymentsQuery = (params?: PaymentFilters) =>
     },
   });
 
+const invalidatePaymentRelatedQueries = () => {
+  queryClient.invalidateQueries({ queryKey: ['payments'] });
+  queryClient.invalidateQueries({ queryKey: ['students'] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+};
+
 export const useCreatePayment = () =>
   useMutation({
     mutationFn: async (payload: PaymentPayload) => {
       const { data } = await api.post('/payments', payload);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
-    },
+    onSuccess: invalidatePaymentRelatedQueries,
   });
 
 export const useUpdatePayment = () =>
@@ -83,11 +85,7 @@ export const useUpdatePayment = () =>
       const { data } = await api.put(`/payments/${id}`, payload);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
-    },
+    onSuccess: invalidatePaymentRelatedQueries,
   });
 
 export const useDeletePayment = () =>
@@ -96,9 +94,5 @@ export const useDeletePayment = () =>
       const { data } = await api.delete(`/payments/${id}`);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.students() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
-    },
+    onSuccess: invalidatePaymentRelatedQueries,
   });

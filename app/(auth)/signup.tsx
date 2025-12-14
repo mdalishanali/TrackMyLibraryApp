@@ -4,26 +4,30 @@ import { useForm, Controller } from 'react-hook-form';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { useRef, useState } from 'react';
 
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { getErrorMessage, useSignupMutation } from '@/hooks/use-auth-mutations';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SignupFormValues, signupSchema } from '@/schemas/auth';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Signup() {
   const colorScheme = useColorScheme() ?? 'light';
   const { isAuthenticated } = useAuth();
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const {
     control,
@@ -42,11 +46,17 @@ export default function Signup() {
   });
 
   const signupMutation = useSignupMutation();
-  const surface = colorScheme === 'dark' ? '#0f172a' : '#f8fafc';
-  const inputBackground = colorScheme === 'dark' ? '#111827' : '#fff';
-  const borderColor = colorScheme === 'dark' ? '#334155' : '#d4d4d8';
-  const mutedText = colorScheme === 'dark' ? '#cbd5e1' : '#475569';
+
+  // Enhanced color scheme
+  const isDark = colorScheme === 'dark';
+  const surface = isDark ? '#1e293b' : '#ffffff';
+  const background = isDark ? '#0f172a' : '#f8fafc';
+  const inputBackground = isDark ? '#334155' : '#f1f5f9';
+  const borderColor = isDark ? '#475569' : '#e2e8f0';
+  const focusBorderColor = isDark ? '#10b981' : '#0d9488';
+  const mutedText = isDark ? '#94a3b8' : '#64748b';
   const textColor = Colors[colorScheme].text;
+  const accentColor = isDark ? '#10b981' : '#0d9488';
 
   const onSubmit = async (values: SignupFormValues) => {
     try {
@@ -57,186 +67,117 @@ export default function Signup() {
     }
   };
 
+  const renderField = (
+    name: keyof SignupFormValues,
+    label: string,
+    placeholder: string,
+    options?: {
+      keyboardType?: 'default' | 'email-address' | 'phone-pad';
+      autoCapitalize?: 'none' | 'words';
+      secureTextEntry?: boolean;
+      textContentType?: any;
+      returnKeyType?: 'next' | 'done';
+    }
+  ) => (
+    <View style={styles.field}>
+      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <View>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  borderColor: errors[name]
+                    ? '#ef4444'
+                    : focusedField === name
+                      ? focusBorderColor
+                      : borderColor,
+                  color: textColor,
+                  backgroundColor: inputBackground,
+                  borderWidth: focusedField === name ? 2 : 1,
+                },
+              ]}
+              placeholder={placeholder}
+              placeholderTextColor={mutedText}
+              onFocus={() => setFocusedField(name)}
+              onBlur={() => {
+                setFocusedField(null);
+                onBlur();
+              }}
+              onChangeText={onChange}
+              value={value}
+              {...options}
+            />
+          </View>
+        )}
+      />
+      {errors[name]?.message && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>⚠️ {errors[name]?.message}</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors[colorScheme].background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: background }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
-        keyboardVerticalOffset={32}>
-        <ScrollView contentContainerStyle={styles.contentContainer} bounces={false} keyboardShouldPersistTaps="handled">
-          <View style={[styles.card, { backgroundColor: surface }]}>
-            <Text style={[styles.kicker, { color: textColor }]}>Track My Library</Text>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}>
+          <View style={styles.header}>
+            <View style={[styles.logoContainer, { backgroundColor: accentColor }]}>
+              <Text style={styles.logoText}>📚</Text>
+            </View>
+            <Text style={[styles.kicker, { color: accentColor }]}>TRACK MY LIBRARY</Text>
             <Text style={[styles.title, { color: textColor }]}>Create your account</Text>
             <Text style={[styles.subtitle, { color: mutedText }]}>
-              We set up your workspace, company, and the default unallocated seat.
+              Set up your workspace in just a few steps
             </Text>
+          </View>
 
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Business name</Text>
-              <Controller
-                control={control}
-                name="businessName"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.businessName ? '#ef4444' : borderColor,
-                        color: textColor,
-                        backgroundColor: inputBackground,
-                      },
-                    ]}
-                    placeholder="Track My Library"
-                    placeholderTextColor="#9ca3af"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    returnKeyType="next"
-                  />
-                )}
-              />
-              {errors.businessName?.message && <Text style={styles.error}>{errors.businessName.message}</Text>}
+          <View style={[styles.card, { backgroundColor: surface }]}>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Business Details</Text>
+              {renderField('businessName', 'Business name', 'Acme Library Inc.', {
+                returnKeyType: 'next',
+              })}
+              {renderField('businessAddress', 'Business address', '123 Main Street, City', {
+                returnKeyType: 'next',
+              })}
             </View>
 
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Business address</Text>
-              <Controller
-                control={control}
-                name="businessAddress"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.businessAddress ? '#ef4444' : borderColor,
-                        color: textColor,
-                        backgroundColor: inputBackground,
-                      },
-                    ]}
-                    placeholder="123 Main Street"
-                    placeholderTextColor="#9ca3af"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    returnKeyType="next"
-                  />
-                )}
-              />
-              {errors.businessAddress?.message && <Text style={styles.error}>{errors.businessAddress.message}</Text>}
-            </View>
+            <View style={styles.divider} />
 
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Your name</Text>
-              <Controller
-                control={control}
-                name="name"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.name ? '#ef4444' : borderColor,
-                        color: textColor,
-                        backgroundColor: inputBackground,
-                      },
-                    ]}
-                    placeholder="Alex Manager"
-                    placeholderTextColor="#9ca3af"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    autoCapitalize="words"
-                    returnKeyType="next"
-                  />
-                )}
-              />
-              {errors.name?.message && <Text style={styles.error}>{errors.name.message}</Text>}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Email</Text>
-              <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.email ? '#ef4444' : borderColor,
-                        color: textColor,
-                        backgroundColor: inputBackground,
-                      },
-                    ]}
-                    placeholder="you@example.com"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    returnKeyType="next"
-                  />
-                )}
-              />
-              {errors.email?.message && <Text style={styles.error}>{errors.email.message}</Text>}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Password</Text>
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.password ? '#ef4444' : borderColor,
-                        color: textColor,
-                        backgroundColor: inputBackground,
-                      },
-                    ]}
-                    placeholder="At least 6 characters"
-                    placeholderTextColor="#9ca3af"
-                    secureTextEntry
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    textContentType="newPassword"
-                    returnKeyType="next"
-                  />
-                )}
-              />
-              {errors.password?.message && <Text style={styles.error}>{errors.password.message}</Text>}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Contact number</Text>
-              <Controller
-                control={control}
-                name="contactNumber"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: errors.contactNumber ? '#ef4444' : borderColor,
-                        color: textColor,
-                        backgroundColor: inputBackground,
-                      },
-                    ]}
-                    placeholder="+1 555 123 4567"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="phone-pad"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    returnKeyType="done"
-                  />
-                )}
-              />
-              {errors.contactNumber?.message && <Text style={styles.error}>{errors.contactNumber.message}</Text>}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Information</Text>
+              {renderField('name', 'Your name', 'Alex Morgan', {
+                autoCapitalize: 'words',
+                returnKeyType: 'next',
+              })}
+              {renderField('email', 'Email address', 'alex@example.com', {
+                keyboardType: 'email-address',
+                autoCapitalize: 'none',
+                returnKeyType: 'next',
+              })}
+              {renderField('password', 'Password', 'At least 6 characters', {
+                secureTextEntry: true,
+                textContentType: 'newPassword',
+                returnKeyType: 'next',
+              })}
+              {renderField('contactNumber', 'Contact number', '+1 (555) 123-4567', {
+                keyboardType: 'phone-pad',
+                returnKeyType: 'done',
+              })}
             </View>
 
             <Pressable
@@ -245,26 +186,46 @@ export default function Signup() {
               disabled={signupMutation.isPending}
               style={({ pressed }) => [
                 styles.button,
-                { opacity: signupMutation.isPending || pressed ? 0.85 : 1 },
+                {
+                  backgroundColor: accentColor,
+                  opacity: signupMutation.isPending ? 0.7 : pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                },
               ]}>
               {signupMutation.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.buttonText}>Creating account...</Text>
+                </View>
               ) : (
-                <Text style={styles.buttonText}>Create account</Text>
+                <Text style={styles.buttonText}>Create account →</Text>
               )}
             </Pressable>
 
-            <View style={styles.footerRow}>
-              <Text style={[styles.footerText, { color: mutedText }]}>Already onboard?</Text>
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: mutedText }]}>Already have an account?</Text>
               <Link href="/(auth)/login" replace={isAuthenticated} asChild>
                 <Pressable>
-                  <Text style={[styles.footerLink, { color: colorScheme === 'dark' ? '#34d399' : '#0f766e' }]}>
-                    Sign in
-                  </Text>
+                  {({ pressed }) => (
+                    <Text
+                      style={[
+                        styles.footerLink,
+                        {
+                          color: accentColor,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}>
+                      Sign in
+                    </Text>
+                  )}
                 </Pressable>
               </Link>
             </View>
           </View>
+
+          <Text style={[styles.disclaimer, { color: mutedText }]}>
+            By creating an account, you agree to our Terms of Service and Privacy Policy
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -276,33 +237,70 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   contentContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
-  card: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 18,
-    padding: 20,
-    gap: 18,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 12,
+  },
+  logoContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  logoText: {
+    fontSize: 32,
   },
   kicker: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#475569',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    gap: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+  section: {
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 4,
   },
   field: {
     gap: 8,
@@ -310,41 +308,69 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    marginLeft: 4,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    backgroundColor: '#fff',
   },
-  error: {
-    fontSize: 12,
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  errorText: {
+    fontSize: 13,
     color: '#ef4444',
+    fontWeight: '500',
   },
   button: {
-    backgroundColor: '#0f766e',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  footerRow: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    paddingTop: 8,
   },
   footerText: {
-    color: '#475569',
+    fontSize: 15,
   },
   footerLink: {
-    color: '#0f766e',
+    fontSize: 15,
     fontWeight: '700',
+  },
+  disclaimer: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 24,
+    lineHeight: 18,
+    paddingHorizontal: 20,
   },
 });

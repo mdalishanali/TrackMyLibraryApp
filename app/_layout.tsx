@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { QueryProvider } from '@/providers/query-provider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Toasts } from 'react-native-hot-toast';
+import Toast from 'react-native-toast-message';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -29,7 +29,7 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style="auto" />
           </ThemeProvider>
-          <Toasts />
+          <Toast />
         </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

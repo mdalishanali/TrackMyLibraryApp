@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
-import { formatCurrency, formatDate } from '@/utils/format';
+import { formatCurrency, formatDate, formatTime } from '@/utils/format';
 
 type StudentTime = { start?: string; end?: string };
 
@@ -160,7 +160,7 @@ export function TimeSlots({ student, theme }: { student: Student; theme: Theme }
         <View key={`${slot.start}-${slot.end}-${idx}`} style={[styles.timeChip, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
           <Ionicons name="time-outline" size={12} color={theme.text} />
           <Text style={[styles.timeText, { color: theme.text }]}>
-            {slot.start ?? '--:--'} - {slot.end ?? '--:--'}
+            {formatTime(slot.start)} - {formatTime(slot.end)}
           </Text>
         </View>
       ))}
