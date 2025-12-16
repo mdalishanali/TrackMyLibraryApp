@@ -8,16 +8,17 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { gradientFor, spacing, themeFor, typography } from '@/constants/design';
+import { gradientFor, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useDeleteAccount } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { getErrorMessage } from '@/hooks/use-auth-mutations';
 import { showToast } from '@/lib/toast';
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
   const deleteAccount = useDeleteAccount();
@@ -174,8 +175,7 @@ type ActionRowProps = {
 };
 
 function ActionRow({ icon, label, description, onPress, trailing, themeTint, toneBackground }: ActionRowProps) {
-  const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
 
   return (
     <Pressable

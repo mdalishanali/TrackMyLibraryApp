@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { gradientFor, themeFor } from '@/constants/design';
+import { gradientFor } from '@/constants/design';
 
 import {
   useCreateStudent,
@@ -17,6 +17,7 @@ import {
 import { useCreatePayment } from '@/hooks/use-payments';
   import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
@@ -32,7 +33,7 @@ import { showToast } from '@/lib/toast';
 export default function StudentsScreen() {
   const router = useRouter();
   const color = useColorScheme();
-  const theme = themeFor(color);
+  const theme = useTheme();
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');

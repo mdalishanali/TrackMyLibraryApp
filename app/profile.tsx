@@ -7,15 +7,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
-import { gradientFor, spacing, themeFor, typography } from '@/constants/design';
+import { gradientFor, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { showToast } from '@/lib/toast';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const { user } = useAuth();
   const updateProfile = useUpdateProfile();
   const router = useRouter();
@@ -141,7 +142,7 @@ type FieldProps = {
   label: string;
   value: string;
   onChangeText: (val: string) => void;
-  theme: ReturnType<typeof themeFor>;
+  theme: ReturnType<typeof useTheme>;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   placeholder?: string;

@@ -20,16 +20,15 @@ import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { SectionHeader } from '@/components/ui/section-header';
-import { radius, spacing, themeFor, typography } from '@/constants/design';
+import { radius, spacing, typography } from '@/constants/design';
 import { useCreateSeats, useSeatsQuery } from '@/hooks/use-seats';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCreateStudent, useStudentsQuery } from '@/hooks/use-students';
+import { useTheme } from '@/hooks/use-theme';
 import { Link, useRouter } from 'expo-router';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 
 export default function SeatsScreen() {
-  const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const seatsQuery = useSeatsQuery();
   const createSeats = useCreateSeats();
   const studentsQuery = useStudentsQuery();

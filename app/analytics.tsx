@@ -3,13 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppCard } from '@/components/ui/app-card';
 import { SectionHeader } from '@/components/ui/section-header';
-import { spacing, themeFor, typography } from '@/constants/design';
+import { spacing, typography } from '@/constants/design';
 import { useDashboardQuery } from '@/hooks/use-dashboard';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function AnalyticsScreen() {
-  const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const dashboardQuery = useDashboardQuery();
 
   return (

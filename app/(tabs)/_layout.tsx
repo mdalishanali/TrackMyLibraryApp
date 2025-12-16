@@ -5,13 +5,13 @@ import { HapticTab } from '@/components/haptic-tab';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { themeFor } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const designTheme = themeFor(colorScheme);
+  const designTheme = useTheme();
   const { hydrated, isAuthenticated } = useAuth();
 
   if (!hydrated) {

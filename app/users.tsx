@@ -5,13 +5,12 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { SectionHeader } from '@/components/ui/section-header';
-import { spacing, themeFor, typography } from '@/constants/design';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { spacing, typography } from '@/constants/design';
+import { useTheme } from '@/hooks/use-theme';
 import { useCreateUser, useDeleteUser, useUsersQuery } from '@/hooks/use-users';
 
 export default function UsersScreen() {
-  const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const usersQuery = useUsersQuery();
   const createUser = useCreateUser();
   const deleteUser = useDeleteUser();

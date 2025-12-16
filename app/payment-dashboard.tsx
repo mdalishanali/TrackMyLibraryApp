@@ -5,14 +5,13 @@ import { AppCard } from '@/components/ui/app-card';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { MiniBarChart } from '@/components/ui/mini-bar-chart';
 import { SectionHeader } from '@/components/ui/section-header';
-import { spacing, themeFor, typography } from '@/constants/design';
+import { spacing, typography } from '@/constants/design';
 import { useRevenueDashboard } from '@/hooks/use-revenue';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency } from '@/utils/format';
 
 export default function PaymentDashboardScreen() {
-  const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const revenueQuery = useRevenueDashboard();
 
   if (revenueQuery.isLoading) {

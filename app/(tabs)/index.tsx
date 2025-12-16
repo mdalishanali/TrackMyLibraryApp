@@ -5,10 +5,11 @@ import { AppCard } from '@/components/ui/app-card';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { typography, spacing, themeFor, gradientFor } from '@/constants/design';
+import { typography, spacing, gradientFor } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardQuery } from '@/hooks/use-dashboard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -104,7 +105,7 @@ function getGreeting() {
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const { user } = useAuth();
 
   const dashboardQuery = useDashboardQuery();

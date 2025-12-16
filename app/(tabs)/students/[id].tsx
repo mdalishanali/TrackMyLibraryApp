@@ -12,18 +12,17 @@ import { PaymentFormModal, PaymentFormValues } from '@/components/students/payme
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { InfoRow } from '@/components/ui/info-row';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { spacing, themeFor, typography } from '@/constants/design';
+import { spacing, typography } from '@/constants/design';
 import { useDeleteStudent } from '@/hooks/use-students';
 import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Image } from 'expo-image';
 
 export default function StudentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const colorScheme = useColorScheme();
-  const theme = themeFor(colorScheme);
+  const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const createPayment = useCreatePayment();
