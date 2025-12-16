@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { themeFor } from '@/constants/design';
+import { gradientFor, themeFor } from '@/constants/design';
 
 import {
   useCreateStudent,
@@ -184,7 +184,7 @@ export default function StudentsScreen() {
   const listHeader = (
     <View style={styles.heroShadow}>
       <LinearGradient
-        colors={[theme.surfaceAlt, theme.surface]}
+        colors={gradientFor(color, 'panel')}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.heroCard, { borderColor: theme.border }]}

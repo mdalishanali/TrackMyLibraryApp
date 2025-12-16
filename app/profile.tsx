@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
-import { spacing, themeFor, typography } from '@/constants/design';
+import { gradientFor, spacing, themeFor, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -52,7 +52,7 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={[theme.surfaceAlt, theme.surface]}
+            colors={gradientFor(colorScheme, 'panel')}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.hero, { borderColor: theme.border }]}

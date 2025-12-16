@@ -48,7 +48,7 @@ export default function PaymentDashboardScreen() {
             <AppCard key={card.label} padded style={styles.card}>
               <Text style={[styles.cardLabel, { color: theme.muted }]}>{card.label}</Text>
               <Text style={[styles.cardValue, { color: theme.text }]}>{formatCurrency(card.value)}</Text>
-              <Text style={[styles.cardChange, { color: card.change >= 0 ? '#16a34a' : '#ef4444' }]}>
+              <Text style={[styles.cardChange, { color: card.change >= 0 ? theme.success : theme.danger }]}>
                 {card.change >= 0 ? '↑' : '↓'} {Math.abs(card.change)}% from last period
               </Text>
             </AppCard>
@@ -66,7 +66,7 @@ export default function PaymentDashboardScreen() {
                 }))}
               />
               {revenueQuery.data.monthlyTrend.map((item) => (
-                <View key={`${item.month}-row`} style={styles.trendRow}>
+                <View key={`${item.month}-row`} style={[styles.trendRow, { borderColor: theme.border }]}>
                   <Text style={[styles.trendLabel, { color: theme.text }]}>{item.month}</Text>
                   <Text style={[styles.trendValue, { color: theme.text }]}>{formatCurrency(item.revenue)}</Text>
                 </View>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.3)',
+    borderColor: 'transparent',
     paddingVertical: spacing.xs,
   },
   trendLabel: {

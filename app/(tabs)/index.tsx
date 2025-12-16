@@ -5,7 +5,7 @@ import { AppCard } from '@/components/ui/app-card';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { typography, spacing, themeFor } from '@/constants/design';
+import { typography, spacing, themeFor, gradientFor } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardQuery } from '@/hooks/use-dashboard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -117,25 +117,25 @@ export default function DashboardScreen() {
     {
       label: 'Active Students',
       value: dashboardQuery.data?.activeStudentsCount ?? 0,
-      colors: ['#10b981', '#059669'],
+      colors: gradientFor(colorScheme, 'metricGreen'),
       icon: '👥'
     },
     {
       label: 'Total Students',
       value: dashboardQuery.data?.totalStudents ?? 0,
-      colors: ['#3b82f6', '#2563eb'],
+      colors: gradientFor(colorScheme, 'metricBlue'),
       icon: '📊'
     },
     {
       label: 'This Month',
       value: dashboardQuery.data?.studentsEnrolledThisMonth ?? 0,
-      colors: ['#8b5cf6', '#7c3aed'],
+      colors: gradientFor(colorScheme, 'metricPurple'),
       icon: '📈'
     },
     {
       label: 'Earnings',
       value: formatCurrency(dashboardQuery.data?.earnings ?? 0),
-      colors: ['#f59e0b', '#d97706'],
+      colors: gradientFor(colorScheme, 'metricAmber'),
       icon: '💰'
     },
   ];
@@ -153,7 +153,7 @@ export default function DashboardScreen() {
         {/* Modern Header with Gradient */}
         <View style={styles.headerWrapper}>
           <LinearGradient
-            colors={colorScheme === 'dark' ? ['#1e293b', '#0f172a'] : ['#ffffff', '#f8fafc']}
+            colors={gradientFor(colorScheme, 'header')}
             style={[styles.header, { borderColor: theme.border }]}>
             <View style={styles.greetingSection}>
               <Text style={[styles.greeting, { color: theme.muted }]}>

@@ -8,7 +8,7 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { spacing, themeFor, typography } from '@/constants/design';
+import { gradientFor, spacing, themeFor, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useDeleteAccount } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -23,8 +23,7 @@ export default function SettingsScreen() {
   const deleteAccount = useDeleteAccount();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const gradientColors =
-    colorScheme === 'dark' ? [theme.background, theme.surfaceAlt] : ['#f2f7ff', '#f7f4ff'];
+  const gradientColors = gradientFor(colorScheme);
 
   const confirmLogout = () => {
     setShowLogoutConfirm(true);

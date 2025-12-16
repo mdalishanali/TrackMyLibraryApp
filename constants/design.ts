@@ -33,6 +33,39 @@ export const palette = {
   },
 };
 
+const normalizeScheme = (scheme: ColorSchemeName) => (scheme === 'dark' ? 'dark' : 'light');
+
+export const gradients = {
+  screen: {
+    light: ['#f2f7ff', '#f7f4ff'],
+    dark: [palette.dark.background, palette.dark.surfaceAlt],
+  },
+  header: {
+    light: ['#ffffff', '#f8fafc'],
+    dark: ['#1e293b', '#0f172a'],
+  },
+  panel: {
+    light: [palette.light.surfaceAlt, palette.light.surface],
+    dark: [palette.dark.surfaceAlt, palette.dark.surface],
+  },
+  metricGreen: {
+    light: ['#10b981', '#059669'],
+    dark: ['#34d399', '#059669'],
+  },
+  metricBlue: {
+    light: ['#3b82f6', '#2563eb'],
+    dark: ['#60a5fa', '#2563eb'],
+  },
+  metricPurple: {
+    light: ['#8b5cf6', '#7c3aed'],
+    dark: ['#a78bfa', '#7c3aed'],
+  },
+  metricAmber: {
+    light: ['#f59e0b', '#d97706'],
+    dark: ['#fbbf24', '#d97706'],
+  },
+} as const;
+
 export const typography = {
   family: {
     regular: 'System',
@@ -78,4 +111,6 @@ export const shadows = {
   },
 };
 
-export const themeFor = (scheme: ColorSchemeName) => palette[scheme ?? 'light'];
+export const themeFor = (scheme: ColorSchemeName) => palette[normalizeScheme(scheme)];
+export const gradientFor = (scheme: ColorSchemeName, variant: keyof typeof gradients = 'screen') =>
+  gradients[variant][normalizeScheme(scheme)];
