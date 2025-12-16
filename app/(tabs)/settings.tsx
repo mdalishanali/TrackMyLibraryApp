@@ -23,6 +23,8 @@ export default function SettingsScreen() {
   const deleteAccount = useDeleteAccount();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const gradientColors =
+    colorScheme === 'dark' ? [theme.background, theme.surfaceAlt] : ['#f2f7ff', '#f7f4ff'];
 
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
@@ -35,14 +37,19 @@ export default function SettingsScreen() {
   return (
     <SafeScreen>
       <LinearGradient
-        colors={['#f2f7ff', '#f7f4ff']}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}>
         <View style={[styles.container]}>
-          <AppCard style={[styles.card, styles.heroCard, { backgroundColor: '#ffffffdd' }]}>
+          <AppCard
+            style={[
+              styles.card,
+              styles.heroCard,
+              { backgroundColor: colorScheme === 'dark' ? theme.surfaceAlt : '#ffffffee', borderColor: theme.border },
+            ]}>
             <View style={styles.heroRow}>
-              <View style={[styles.avatar, { backgroundColor: theme.primary + '14', borderColor: '#ffffff' }]}>
+              <View style={[styles.avatar, { backgroundColor: theme.primary + '14', borderColor: theme.border }]}>
                 <Text style={[styles.avatarText, { color: theme.primary }]}>
                   {(user?.name ?? 'U').slice(0, 1).toUpperCase()}
                 </Text>
@@ -63,7 +70,7 @@ export default function SettingsScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.push('/profile')}
-                style={[styles.iconPill, { backgroundColor: theme.primary + '15', borderColor: '#ffffff' }]}>
+                style={[styles.iconPill, { backgroundColor: theme.primary + '15', borderColor: theme.border }]}>
                 <Ionicons name="pencil" size={18} color={theme.primary} />
               </Pressable>
             </View>
@@ -97,7 +104,16 @@ export default function SettingsScreen() {
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Privacy & Safety</Text>
             <Text style={[styles.sectionSub, { color: theme.muted }]}>You can leave anytime</Text>
           </View>
-          <AppCard style={[styles.card, styles.deleteCard]} padded>
+          <AppCard
+            style={[
+              styles.card,
+              styles.deleteCard,
+              {
+                borderColor: theme.danger + '40',
+                backgroundColor: colorScheme === 'dark' ? theme.danger + '12' : theme.danger + '10',
+              },
+            ]}
+            padded>
             <Text style={[styles.helper, { color: theme.text }]}>
               Remove your account and associated data at any time to meet platform requirements.
             </Text>
@@ -199,8 +215,6 @@ const styles = StyleSheet.create({
   },
   deleteCard: {
     gap: spacing.md,
-    borderColor: '#fca5a5',
-    backgroundColor: '#fff5f5',
   },
   heroCard: {
     padding: spacing.md,
