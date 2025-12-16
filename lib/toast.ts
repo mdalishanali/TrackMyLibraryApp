@@ -1,11 +1,22 @@
-import Toast from 'react-native-toast-message';
+import React from 'react';
+import Toast, { ToastConfig } from 'react-native-toast-message';
 
-type ToastType = 'success' | 'error' | 'info';
+import { AppToast } from '@/components/ui/app-toast';
 
-export function showToast(message: string, type: ToastType = 'info') {
-  const toastType = type === 'info' ? 'info' : type;
+export type ToastType = 'success' | 'error' | 'info';
+
+export const toastConfig: ToastConfig = {
+  success: props => React.createElement(AppToast, { ...props, variant: 'success' }),
+  error: props => React.createElement(AppToast, { ...props, variant: 'error' }),
+  info: props => React.createElement(AppToast, { ...props, variant: 'info' }),
+};
+
+export function showToast(message: string, type: ToastType = 'info', description?: string) {
   Toast.show({
-    type: toastType,
-    text1: message
+    type,
+    text1: message,
+    text2: description,
+    position: 'top',
+    visibilityTime: 3500,
   });
 }

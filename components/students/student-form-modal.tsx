@@ -22,9 +22,8 @@ const studentSchema = z.object({
     shift: z.string().optional(),
     startTime: z.string().min(1, 'Start time is required'),
     endTime: z.string().min(1, 'End time is required'),
-    fees: z
-        .preprocess((val) => (val === '' || val === null || val === undefined ? undefined : Number(val)), z.number().optional())
-        .refine((val) => val === undefined || !Number.isNaN(val), { message: 'Enter a valid number' }),
+    fees: z.
+        string().optional(),
     notes: z.string().optional(),
     status: z.string().min(1, 'Status is required'),
     gender: z.string().min(1, 'Gender is required'),
@@ -72,7 +71,7 @@ export function StudentFormModal({
         shift: 'Morning',
         startTime: '09:00',
         endTime: '18:00',
-        fees: undefined,
+        fees: '',
         notes: '',
         status: 'Active',
         gender: 'Male',
@@ -127,7 +126,7 @@ export function StudentFormModal({
 
     const steps = useMemo(() => [
         { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'gender'] as (keyof StudentFormValues)[] },
-        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'fees', 'status'] as (keyof StudentFormValues)[] },
+        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'status'] as (keyof StudentFormValues)[] },
         { key: 'review', title: 'Review', fields: [] as (keyof StudentFormValues)[] },
     ], []);
 
@@ -247,69 +246,69 @@ export function StudentFormModal({
             <SafeScreen>
                 <ScrollView
                     style={[styles.modalContainer, { backgroundColor: theme.background }]}
-                contentContainerStyle={{
-                    padding: spacing.lg,
-                    paddingTop: spacing.lg + insets.top,
-                    gap: spacing.lg,
-                }}
-            >
-                <View style={styles.modalTopBar}>
-                    <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
-                    <TouchableOpacity
-                        onPress={handleClose}
-                        style={[styles.iconButton, { borderColor: theme.border, backgroundColor: theme.surface }]}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                        <Ionicons name="close" size={18} color={theme.text} />
-                    </TouchableOpacity>
-                </View>
+                    contentContainerStyle={{
+                        padding: spacing.lg,
+                        paddingTop: spacing.lg + insets.top,
+                        gap: spacing.lg,
+                    }}
+                >
+                    <View style={styles.modalTopBar}>
+                        <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
+                        <TouchableOpacity
+                            onPress={handleClose}
+                            style={[styles.iconButton, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Ionicons name="close" size={18} color={theme.text} />
+                        </TouchableOpacity>
+                    </View>
 
-                <AppCard padded style={[styles.heroCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                    <View style={styles.heroTop}>
-                        <View>
-                            <Text style={[styles.stepTitle, { color: theme.text }]}>Step {currentStep + 1}</Text>
-                            <Text style={{ color: theme.muted, fontSize: typography.size.sm }}>{steps[currentStep]?.title}</Text>
+                    <AppCard padded style={[styles.heroCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+                        <View style={styles.heroTop}>
+                            <View>
+                                <Text style={[styles.stepTitle, { color: theme.text }]}>Step {currentStep + 1}</Text>
+                                <Text style={{ color: theme.muted, fontSize: typography.size.sm }}>{steps[currentStep]?.title}</Text>
+                            </View>
+                            <AppBadge tone="info">{Math.round(progress)}% done</AppBadge>
                         </View>
-                        <AppBadge tone="info">{Math.round(progress)}% done</AppBadge>
-                    </View>
-                    <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
-                        <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.text }]} />
-                    </View>
-                    <View style={styles.stepHeader}>
-                        {steps.map((step, idx) => {
-                            const active = idx === currentStep;
-                            const completed = idx < currentStep;
-                            return (
-                                <TouchableOpacity
-                                    key={step.key}
-                                    style={[
-                                        styles.stepItem,
-                                        { borderColor: theme.border, backgroundColor: theme.surfaceAlt },
-                                        active && { borderColor: theme.text },
-                                    ]}
-                                    onPress={() => handleStepTap(idx)}
-                                >
-                                    <View
+                        <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+                            <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.text }]} />
+                        </View>
+                        <View style={styles.stepHeader}>
+                            {steps.map((step, idx) => {
+                                const active = idx === currentStep;
+                                const completed = idx < currentStep;
+                                return (
+                                    <TouchableOpacity
+                                        key={step.key}
                                         style={[
-                                            styles.stepCircle,
-                                            {
-                                                backgroundColor: active || completed ? theme.text : theme.surface,
-                                                borderColor: active ? theme.text : theme.border,
-                                            },
+                                            styles.stepItem,
+                                            { borderColor: theme.border, backgroundColor: theme.surfaceAlt },
+                                            active && { borderColor: theme.text },
                                         ]}
+                                        onPress={() => handleStepTap(idx)}
                                     >
-                                        <Text style={{ color: active || completed ? theme.surface : theme.muted, fontWeight: '800' }}>
-                                            {idx + 1}
+                                        <View
+                                            style={[
+                                                styles.stepCircle,
+                                                {
+                                                    backgroundColor: active || completed ? theme.text : theme.surface,
+                                                    borderColor: active ? theme.text : theme.border,
+                                                },
+                                            ]}
+                                        >
+                                            <Text style={{ color: active || completed ? theme.surface : theme.muted, fontWeight: '800' }}>
+                                                {idx + 1}
+                                            </Text>
+                                        </View>
+                                        <Text style={[styles.stepLabel, { color: active ? theme.text : theme.muted }]} numberOfLines={1}>
+                                            {step.title}
                                         </Text>
-                                    </View>
-                                    <Text style={[styles.stepLabel, { color: active ? theme.text : theme.muted }]} numberOfLines={1}>
-                                        {step.title}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                </AppCard>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </AppCard>
 
                     <AppCard padded style={[styles.sectionCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
                         {currentStep === 0 && (
@@ -321,15 +320,15 @@ export function StudentFormModal({
                                     errors={errors}
                                     theme={theme}
                                 />
-                <FormField
-                    label="Phone"
-                    name="number"
-                    control={control}
-                    errors={errors}
-                    theme={theme}
-                    keyboardType="phone-pad"
-                    placeholder="Enter phone"
-                />
+                                <FormField
+                                    label="Phone"
+                                    name="number"
+                                    control={control}
+                                    errors={errors}
+                                    theme={theme}
+                                    keyboardType="phone-pad"
+                                    placeholder="Enter phone"
+                                />
                                 <FormField
                                     label="Joining Date (YYYY-MM-DD)"
                                     name="joiningDate"
@@ -361,26 +360,26 @@ export function StudentFormModal({
                                     control={control}
                                     name="gender"
                                     render={({ field: { onChange, value } }) => (
-                <Dropdown
-                    data={genderOptions}
-                    labelField="label"
-                    valueField="value"
-                    value={value || ''}
-                    onChange={(item) => onChange(item.value)}
-                    placeholder="Select gender"
-                    placeholderStyle={{ color: theme.muted }}
-                    selectedTextStyle={{ color: theme.text }}
-                    itemTextStyle={{ color: theme.text }}
-                    style={[
-                        styles.dropdown,
-                        {
-                            backgroundColor: theme.surface,
-                            borderColor: errors.gender ? '#ef4444' : theme.border,
-                        },
-                    ]}
-                    containerStyle={{ backgroundColor: theme.surface }}
-                    activeColor={theme.primarySoft}
-                />
+                                        <Dropdown
+                                            data={genderOptions}
+                                            labelField="label"
+                                            valueField="value"
+                                            value={value || ''}
+                                            onChange={(item) => onChange(item.value)}
+                                            placeholder="Select gender"
+                                            placeholderStyle={{ color: theme.muted }}
+                                            selectedTextStyle={{ color: theme.text }}
+                                            itemTextStyle={{ color: theme.text }}
+                                            style={[
+                                                styles.dropdown,
+                                                {
+                                                    backgroundColor: theme.surface,
+                                                    borderColor: errors.gender ? '#ef4444' : theme.border,
+                                                },
+                                            ]}
+                                            containerStyle={{ backgroundColor: theme.surface }}
+                                            activeColor={theme.primarySoft}
+                                        />
                                     )}
                                 />
                                 {errors.gender?.message ? (
@@ -398,7 +397,6 @@ export function StudentFormModal({
 
                         {currentStep === 1 && (
                             <>
-                                {renderSeatChips()}
                                 <FormField
                                     label="Start Time (HH:mm)"
                                     name="startTime"
@@ -451,6 +449,9 @@ export function StudentFormModal({
                                 {errors.endTime?.message ? (
                                     <Text style={styles.errorText}>{String(errors.endTime.message)}</Text>
                                 ) : null}
+
+                                {renderSeatChips()}
+
                                 <View style={{ gap: spacing.xs }}>
                                     <Text style={[styles.label, { color: theme.text }]}>Status</Text>
                                     <Dropdown
@@ -595,8 +596,8 @@ function FormField({
         typeof errorEntry?.message === 'string'
             ? errorEntry.message
             : errorEntry?.types
-              ? String(Object.values(errorEntry.types)[0])
-              : undefined;
+                ? String(Object.values(errorEntry.types)[0])
+                : undefined;
     const hasError = Boolean(errorMessage);
     return (
         <View style={{ marginBottom: spacing.md }}>
