@@ -73,7 +73,7 @@ const invalidatePaymentRelatedQueries = () => {
 export const useCreatePayment = () =>
   useMutation({
     mutationFn: async (payload: PaymentPayload) => {
-      const { data } = await api.post('/payments', payload);
+      const { data } = await api.post('/payments', payload, { successToastMessage: 'Payment recorded' });
       return data;
     },
     onSuccess: invalidatePaymentRelatedQueries,

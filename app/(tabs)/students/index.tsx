@@ -141,7 +141,9 @@ export default function StudentsScreen() {
     setIsStudentFormOpen(false);
     setEditingStudent(null);
     setFilter('recent');
-    showToast(editingStudent ? 'Student updated' : 'Student created', 'success');
+    if (editingStudent) {
+      showToast('Student updated', 'success');
+    }
   };
 
   const openPayment = student => {
@@ -166,7 +168,7 @@ export default function StudentsScreen() {
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
-    showToast('Payment recorded', 'success');
+    // Success toast handled globally for POST calls
   };
 
   const confirmDelete = async () => {

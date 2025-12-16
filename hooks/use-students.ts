@@ -58,7 +58,7 @@ export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: stri
 export const useCreateStudent = () =>
   useMutation({
     mutationFn: async (payload: StudentPayload) => {
-      const { data } = await api.post('/students', payload);
+      const { data } = await api.post('/students', payload, { successToastMessage: 'Student created' });
       return data;
     },
     onSuccess: () => {

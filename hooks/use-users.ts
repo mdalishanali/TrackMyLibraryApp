@@ -29,7 +29,7 @@ export const useUsersQuery = () =>
 export const useCreateUser = () =>
   useMutation({
     mutationFn: async (payload: UserPayload) => {
-      const { data } = await api.post('/users', payload);
+      const { data } = await api.post('/users', payload, { successToastMessage: 'User created' });
       return data;
     },
     onSuccess: () => {

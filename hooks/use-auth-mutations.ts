@@ -39,7 +39,7 @@ export const useLoginMutation = () => {
 
   return useMutation<AuthResponse, AxiosError<ApiError>, LoginPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post('/auth/login', payload);
+      const { data } = await api.post('/auth/login', payload, { successToastMessage: 'Logged in' });
       return data;
     },
     onSuccess: ({ user, token }) => {
@@ -53,7 +53,7 @@ export const useSignupMutation = () => {
 
   return useMutation<AuthResponse, AxiosError<ApiError>, SignupPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post('/auth/signup', payload);
+      const { data } = await api.post('/auth/signup', payload, { successToastMessage: 'Account created' });
       return data;
     },
     onSuccess: ({ user, token }) => {

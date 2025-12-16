@@ -36,7 +36,7 @@ export function AppButton({
         : tone === 'danger'
           ? theme.danger
           : tone === 'neutral'
-            ? theme.text
+            ? theme.surfaceAlt
             : theme.primary;
 
   const background =
@@ -48,8 +48,13 @@ export function AppButton({
           ? 'transparent'
           : toneColor;
 
-  const borderColor = variant === 'outline' ? theme.border : 'transparent';
-  const textColor = variant === 'primary' || variant === 'danger' ? '#fff' : theme.text;
+  const borderColor = variant === 'outline' ? theme.border : tone === 'neutral' ? theme.border : 'transparent';
+  const textColor =
+    variant === 'primary' || variant === 'danger'
+      ? tone === 'neutral'
+        ? theme.text
+        : '#fff'
+      : theme.text;
 
   return (
     <Pressable

@@ -23,7 +23,7 @@ export const useSeatsQuery = () =>
 export const useCreateSeats = () =>
   useMutation({
     mutationFn: async (payload: SeatRangePayload) => {
-      const { data } = await api.post('/seats', payload);
+      const { data } = await api.post('/seats', payload, { successToastMessage: 'Seats created' });
       return data;
     },
     onSuccess: () => {
