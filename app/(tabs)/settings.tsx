@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import { AppCard } from '@/components/ui/app-card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { gradientFor, spacing, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
+import { useSubscription } from '@/providers/subscription-provider';
 import { useDeleteAccount } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { isPro, presentPaywall, restorePurchases, presentCustomerCenter, isExpiringSoon, daysRemainingText } = useSubscription();
   const deleteAccount = useDeleteAccount();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -41,7 +43,7 @@ export default function SettingsScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ flex: 1 }}>
-        <View style={[styles.container]}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
           <AppCard
             style={[
               styles.card,
@@ -74,6 +76,61 @@ export default function SettingsScreen() {
                 <Ionicons name="pencil" size={18} color={theme.primary} />
               </Pressable>
             </View>
+          </AppCard>
+
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Subscription</Text>
+            <Text style={[styles.sectionSub, { color: theme.muted }]}>Manage your premium features</Text>
+          </View>
+
+          {isExpiringSoon && (
+            <Pressable
+              onPress={isPro ? presentCustomerCenter : presentPaywall}
+              style={[styles.smallExpiryBanner, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '20' }]}>
+              <Ionicons name="alert-circle" size={18} color={theme.danger} />
+              <Text style={[styles.smallExpiryText, { color: theme.danger }]}>
+                {isPro ? 'Subscription' : 'Trial'} expires {daysRemainingText === 'Today' ? 'TODAY' : `in ${daysRemainingText}`}. Renew soon!
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.danger} />
+            </Pressable>
+          )}
+
+          <AppCard style={[styles.card, styles.rowCard]}>
+            {!isPro ? (
+              <ActionRow
+                icon="star-outline"
+                label="Upgrade to PRO"
+                description="Get full access to all features"
+                onPress={presentPaywall}
+                themeTint={theme.primary}
+                toneBackground
+              />
+            ) : (
+              <ActionRow
+                icon="settings-outline"
+                label="Manage Subscription"
+                description="View plans or cancel"
+                onPress={presentCustomerCenter}
+                themeTint={theme.primary}
+                toneBackground
+              />
+            )}
+            <ActionRow
+              icon="receipt-outline"
+              label="Billing History"
+              description="View transaction and plan updates"
+              onPress={() => router.push('/subscription-history')}
+              themeTint={theme.info || theme.primary}
+              toneBackground
+            />
+            <ActionRow
+              icon="refresh"
+              label="Restore Purchases"
+              description="Already paid? Restore here"
+              onPress={restorePurchases}
+              themeTint={theme.info || theme.primary}
+              toneBackground
+            />
           </AppCard>
 
           <View style={styles.sectionHeader}>
@@ -126,7 +183,7 @@ export default function SettingsScreen() {
               Delete Account
             </AppButton>
           </AppCard>
-        </View>
+        </ScrollView>
       </LinearGradient>
       <ConfirmDialog
         visible={showLogoutConfirm}
@@ -201,8 +258,8 @@ function ActionRow({ icon, label, description, onPress, trailing, themeTint, ton
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: spacing.lg,
+    paddingBottom: 100, // Extra padding for bottom tabs and clear space
     gap: spacing.md,
   },
   card: {
@@ -303,5 +360,19 @@ const styles = StyleSheet.create({
   },
   rowDesc: {
     fontSize: typography.size.sm,
+  },
+  smallExpiryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: spacing.sm,
+    marginHorizontal: spacing.xs,
+  },
+  smallExpiryText: {
+    flex: 1,
+    fontSize: typography.size.sm,
+    fontWeight: '700',
   },
 });

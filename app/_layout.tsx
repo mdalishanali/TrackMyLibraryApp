@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { QueryProvider } from '@/providers/query-provider';
+import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
@@ -22,16 +23,18 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="profile" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-          <Toast config={toastConfig} />
+          <SubscriptionProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="profile" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+            <Toast config={toastConfig} />
+          </SubscriptionProvider>
         </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,4 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppCard } from '@/components/ui/app-card';
@@ -12,6 +13,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useSubscription } from '@/providers/subscription-provider';
 
 // Reusable Student Card Component
 function StudentCard({ student, theme }: { student: any; theme: any }) {
@@ -45,6 +48,7 @@ function StudentCard({ student, theme }: { student: any; theme: any }) {
             </Text>
           </View>
           <View style={[styles.metaDivider, { backgroundColor: theme.border }]} />
+          <View style={styles.metricDividerVertical} />
           <View style={styles.metaItem}>
             <Text style={[styles.metaLabel, { color: theme.muted }]}>SEAT</Text>
             <Text style={[styles.metaValue, { color: theme.text }]}>
@@ -106,7 +110,9 @@ function getGreeting() {
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const theme = useTheme();
+  const router = useRouter();
   const { user } = useAuth();
+  const { isPro, daysRemaining, isExpiringSoon } = useSubscription();
 
   const dashboardQuery = useDashboardQuery();
 
@@ -160,9 +166,16 @@ export default function DashboardScreen() {
               <Text style={[styles.greeting, { color: theme.muted }]}>
                 {getGreeting()} 👋
               </Text>
-              <Text style={[styles.userName, { color: theme.text }]}>
-                {user?.name || 'User'}
-              </Text>
+              <View style={styles.nameRow}>
+                <Text style={[styles.userName, { color: theme.text }]}>
+                  {user?.name || 'User'}
+                </Text>
+                {isPro && (
+                  <View style={styles.proBadge}>
+                    <Text style={styles.proBadgeText}>PRO</Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.subtitle, { color: theme.muted }]}>
                 Here's what's happening today
               </Text>
@@ -174,6 +187,8 @@ export default function DashboardScreen() {
             </View>
           </LinearGradient>
         </View>
+
+
 
         {/* Metrics Grid with Gradient Cards */}
         <View style={styles.metricsSection}>
@@ -279,7 +294,25 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '900',
     letterSpacing: -1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  proBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'center',
+  },
+  proBadgeText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '900',
   },
   subtitle: {
     fontSize: typography.size.sm,
@@ -436,6 +469,12 @@ const styles = StyleSheet.create({
     height: 32,
     marginHorizontal: spacing.sm,
   },
+  metricDividerVertical: {
+    width: 1,
+    height: '60%',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginHorizontal: spacing.sm,
+  },
 
   // Payment Card Styles
   paymentCardWrapper: {
@@ -496,5 +535,26 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.98 }],
+  },
+  expiryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.lg,
+    padding: spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: spacing.md,
+  },
+  expiryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  expiryText: {
+    fontSize: typography.size.sm,
+    fontWeight: '700',
+    flex: 1,
   },
 });
