@@ -1,6 +1,7 @@
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import StudentCard from './StudentCard';
+import StudentSkeletonList from './StudentSkeletonList';
 import { spacing } from '@/constants/design';
 
 export default function StudentList({
@@ -14,6 +15,7 @@ export default function StudentList({
     refreshing,
     onRefresh,
     loadingMore,
+    isLoading,
     headerComponent,
 }: {
     students: any[];
@@ -26,13 +28,14 @@ export default function StudentList({
     refreshing: boolean;
     onRefresh: () => void;
     loadingMore: boolean;
+        isLoading?: boolean;
     headerComponent?: React.ReactElement | null;
 }) {
     const insets = useSafeAreaInsets();
     return (
         <FlatList
             data={students}
-            keyExtractor={(item) => item._id}
+            keyExtractor={(item) => (item._id?.toString() || item.id?.toString() || Math.random().toString())}
             renderItem={({ item }) => (
                 <StudentCard
                     student={item}
@@ -64,10 +67,14 @@ export default function StudentList({
                 ) : null
             }
             ListEmptyComponent={
-                <View style={{ paddingTop: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
-                    <Text style={{ color: theme.muted, fontWeight: '600' }}>No students found</Text>
-                    <Text style={{ color: theme.muted }}>Try adjusting search or filters.</Text>
-                </View>
+                isLoading ? (
+                    <StudentSkeletonList />
+                ) : (
+                        <View style={{ paddingTop: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
+                            <Text style={{ color: theme.muted, fontWeight: '600' }}>No students found</Text>
+                            <Text style={{ color: theme.muted }}>Try adjusting search or filters.</Text>
+                        </View>
+                    )
             }
         />
     );

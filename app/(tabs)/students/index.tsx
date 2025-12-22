@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,7 +63,7 @@ export default function StudentsScreen() {
   const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
 
-  const students = studentsQuery.data?.pages.flatMap(p => p.students) ?? [];
+  const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
 
   const seats = useMemo(
     () =>
@@ -75,21 +75,40 @@ export default function StudentsScreen() {
     [seatsQuery.data]
   );
 
-  const openCreateForm = () => {
+  const openCreateForm = useCallback(() => {
     setEditingStudent(null);
     setIsStudentFormOpen(true);
-  };
+  }, []);
 
-  const openEditForm = id => {
+  const openEditForm = useCallback((id: string) => {
     const s = students.find(u => u._id === id);
     setEditingStudent(s);
     setIsStudentFormOpen(true);
-  };
+  }, [students]);
 
-  const removeStudent = id => {
+  const removeStudent = useCallback((id: string) => {
     const s = students.find(u => u._id === id);
     setPendingDelete(s ?? null);
-  };
+  }, [students]);
+
+  const openPayment = useCallback((student: any) => {
+    setPaymentStudent(student);
+    setIsPaymentFormOpen(true);
+  }, []);
+
+  const handleViewStudent = useCallback((id: string) => {
+    router.push({ pathname: '/(tabs)/students/[id]', params: { id } });
+  }, [router]);
+
+  const handleLoadMore = useCallback(() => {
+    if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
+      studentsQuery.fetchNextPage();
+    }
+  }, [studentsQuery.hasNextPage, studentsQuery.isFetchingNextPage, studentsQuery.fetchNextPage]);
+
+  const handleRefresh = useCallback(() => {
+    studentsQuery.refetch();
+  }, [studentsQuery.refetch]);
 
   const mapToForm = s => {
     const d = new Date().toISOString().slice(0, 10);
@@ -147,10 +166,7 @@ export default function StudentsScreen() {
     }
   };
 
-  const openPayment = student => {
-    setPaymentStudent(student);
-    setIsPaymentFormOpen(true);
-  };
+
 
   const buildPaymentDefaults = s => {
     const d = new Date().toISOString().slice(0, 10);
@@ -184,7 +200,7 @@ export default function StudentsScreen() {
     [editingStudent, isStudentFormOpen]
   );
 
-  const listHeader = (
+  const listHeader = useMemo(() => (
     <View style={styles.heroShadow}>
       <LinearGradient
         colors={gradientFor(color, 'panel')}
@@ -200,34 +216,24 @@ export default function StudentsScreen() {
         <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
       </LinearGradient>
     </View>
-  );
+  ), [color, theme, search, filter, openCreateForm]);
 
   return (
     <SafeScreen>
-      {studentsQuery.isFetching && students.length === 0 ? (
-        <>
-          {listHeader}
-          <StudentSkeletonList />
-        </>
-      ) : (
-        <StudentList
-          students={students}
-          theme={theme}
-          onView={id => router.push({ pathname: '/(tabs)/students/[id]', params: { id } })}
-          onEdit={openEditForm}
-          onDelete={removeStudent}
-          onPay={openPayment}
-          headerComponent={listHeader}
-          onLoadMore={() => {
-            if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
-              studentsQuery.fetchNextPage();
-            }
-          }}
-          refreshing={studentsQuery.isRefetching}
-          onRefresh={studentsQuery.refetch}
-          loadingMore={studentsQuery.isFetchingNextPage}
-        />
-      )}
+      <StudentList
+        students={students}
+        theme={theme}
+        onView={handleViewStudent}
+        onEdit={openEditForm}
+        onDelete={removeStudent}
+        onPay={openPayment}
+        headerComponent={listHeader}
+        onLoadMore={handleLoadMore}
+        refreshing={studentsQuery.isRefetching}
+        onRefresh={handleRefresh}
+        loadingMore={studentsQuery.isFetchingNextPage}
+        isLoading={studentsQuery.isFetching && students.length === 0}
+      />
 
       <StudentFormModal
         visible={isStudentFormOpen}

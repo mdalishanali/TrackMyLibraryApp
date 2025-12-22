@@ -32,13 +32,31 @@ export default function SubscriptionHistoryScreen() {
     const isExpiration = item.revenueCatType === 'EXPIRATION';
     const isRenewal = item.revenueCatType === 'RENEWAL' || item.revenueCatType === 'INITIAL_PURCHASE';
     
-    const formattedDate = new Date(item.subscriptionStart).toLocaleString(undefined, {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const formatDate = (dateString: string) => {
+      if (!dateString) return '';
+      const d = new Date(dateString);
+      return d.toLocaleDateString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    };
+
+    const formatTime = (dateString: string) => {
+      if (!dateString) return '';
+      const d = new Date(dateString);
+      return d.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    };
+
+    const dateRange = item.subscriptionEnd
+      ? `${formatDate(item.subscriptionStart)} — ${formatDate(item.subscriptionEnd)}`
+      : `Since ${formatDate(item.subscriptionStart)}`;
+
+    const transactionTime = `${formatDate(item.subscriptionStart)} at ${formatTime(item.subscriptionStart)}`;
 
     return (
       <View style={[styles.historyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -59,8 +77,11 @@ export default function SubscriptionHistoryScreen() {
           <Text style={[styles.typeText, { color: theme.muted }]}>
             {item.revenueCatType?.replace(/_/g, ' ') || 'Subscription Update'}
           </Text>
-          <Text style={[styles.dateText, { color: theme.muted }]}>
-            {formattedDate}
+          <Text style={[styles.dateText, { color: theme.text }]}>
+            {dateRange}
+          </Text>
+          <Text style={[styles.timeText, { color: theme.muted }]}>
+            {transactionTime}
           </Text>
         </View>
 
@@ -164,7 +185,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dateText: {
+    fontSize: typography.size.sm,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  timeText: {
     fontSize: typography.size.xs,
+    opacity: 0.7,
   },
   priceText: {
     fontSize: typography.size.md,

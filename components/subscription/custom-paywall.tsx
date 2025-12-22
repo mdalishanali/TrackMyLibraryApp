@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -126,11 +127,28 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
     setIsPurchasing(true);
     try {
       const { customerInfo } = await Purchases.purchasePackage(selectedPackage);
-      if (typeof customerInfo.entitlements.active['Library Manager TrackMyLibrary Pro'] !== 'undefined') {
+
+      // Check if the expected entitlement is active, or if ANY entitlement is active
+      // This is safer in case of slight delays or ID mismatches
+      const entitlementId = 'Library Manager TrackMyLibrary Pro';
+      const isEntitled = customerInfo.entitlements.active[entitlementId] !== undefined;
+      const hasAnyEntitlement = Object.keys(customerInfo.entitlements.active).length > 0;
+
+      if (isEntitled || hasAnyEntitlement) {
+        onPurchaseSuccess();
+      } else {
+        // Successful purchase but entitlement not found yet - still call success to refresh
+        console.warn('Purchase successful but entitlement not active yet');
         onPurchaseSuccess();
       }
     } catch (e: any) {
-      if (!e.userCancelled) console.error('Purchase error', e);
+      if (!e.userCancelled) {
+        console.error('Purchase error', e);
+        Alert.alert(
+          'Purchase Error',
+          e.message || 'There was an issue processing your purchase. Please try again or contact support.'
+        );
+      }
     } finally {
       setIsPurchasing(false);
     }
@@ -301,7 +319,10 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
               style={styles.ctaGradient}
             >
               {isPurchasing ? (
-                <ActivityIndicator color="#fff" />
+                <View style={styles.ctaInner}>
+                  <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.ctaText}>Processing...</Text>
+                </View>
               ) : (
                   <View style={styles.ctaInner}>
                     <Text style={styles.ctaText}>

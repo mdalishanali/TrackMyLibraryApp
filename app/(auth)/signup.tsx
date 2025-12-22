@@ -60,7 +60,7 @@ export default function Signup() {
 
   const onSubmit = async (values: SignupFormValues) => {
     try {
-      await signupMutation.mutateAsync(values);
+      await signupMutation.mutateAsync({ ...values, platform: Platform.OS });
       router.replace('/(tabs)');
     } catch (error) {
       Alert.alert('Signup failed', getErrorMessage(error));

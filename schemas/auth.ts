@@ -16,6 +16,7 @@ export const signupSchema = z.object({
     .min(10, 'Contact number must be at least 10 digits')
     .max(15, 'Contact number must be less than 15 digits')
     .regex(/^[0-9+()-\s]+$/, 'Enter a valid phone number'),
+  platform: z.string().optional(),
 });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;

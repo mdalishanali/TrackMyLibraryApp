@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { AppCard } from '@/components/ui/app-card';
 import { radius, spacing } from '@/constants/design';
@@ -9,7 +10,7 @@ import {
   TimeSlots,
 } from './StudentSummary';
 
-export default function StudentCard({ student, theme, onView, onEdit, onDelete, onPay }) {
+const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay }: any) => {
   return (
     <AppCard style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={{ gap: spacing.md }}>
@@ -36,7 +37,9 @@ export default function StudentCard({ student, theme, onView, onEdit, onDelete, 
       />
     </AppCard>
   );
-}
+});
+
+export default StudentCard;
 
 const styles = StyleSheet.create({
   card: {

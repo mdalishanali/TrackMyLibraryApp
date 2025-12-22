@@ -132,7 +132,7 @@ export default function PaymentsScreen() {
     <SafeScreen>
       <FlatList
         data={payments}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => (item._id?.toString() || item.id?.toString() || Math.random().toString())}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
         ListHeaderComponent={
           <View style={styles.listHeader}>

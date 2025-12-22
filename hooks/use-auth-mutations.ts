@@ -23,6 +23,7 @@ export type SignupPayload = {
   businessName: string;
   businessAddress: string;
   contactNumber: string;
+  platform?: string;
 };
 
 export type ApiError = {

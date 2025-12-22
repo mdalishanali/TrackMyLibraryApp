@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,7 +15,7 @@ const FILTERS = [
   { value: 'unallocated', label: 'Unallocated', icon: 'cube-outline' },
 ];
 
-export default function StudentFilters({ selected, setSelected, theme }) {
+const StudentFilters = memo(({ selected, setSelected, theme }: { selected: string; setSelected: (v: string) => void; theme: any }) => {
   return (
     <View style={styles.wrapper}>
       <ScrollView
@@ -62,7 +63,9 @@ export default function StudentFilters({ selected, setSelected, theme }) {
       </ScrollView>
     </View>
   );
-}
+});
+
+export default StudentFilters;
 
 const styles = StyleSheet.create({
   wrapper: {

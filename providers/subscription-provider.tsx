@@ -30,6 +30,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState(true);
   const [showPaywall, setShowPaywall] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [justPurchased, setJustPurchased] = useState(false);
 
   const refreshBackendStatus = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -160,7 +161,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3,
     [daysRemaining]);
 
-  const isBlocked = isAuthenticated && !isProActive && !isTrialActive;
+  const isBlocked = isAuthenticated && !isProActive && !isTrialActive && !justPurchased;
 
   const value = useMemo(() => ({
     isPro: isProActive,
@@ -192,8 +193,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isBlocked={isBlocked}
         onClose={() => setShowPaywall(false)}
         onPurchaseSuccess={() => {
+          setJustPurchased(true);
           setShowPaywall(false);
           checkSubscriptionStatus();
+          // Keep it unblocked for a few seconds to allow backend/RC to sync
+          setTimeout(() => setJustPurchased(false), 5000);
         }}
       />
     </SubscriptionContext.Provider>

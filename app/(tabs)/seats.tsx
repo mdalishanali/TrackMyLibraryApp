@@ -130,7 +130,7 @@ export default function SeatsScreen() {
     <SafeScreen>
       <SectionList
         sections={sections}
-        keyExtractor={(item) => `${item.floor}-${item.seatNumber}`}
+        keyExtractor={(item) => (item._id?.toString() || `${item.floor}-${item.seatNumber}`)}
         refreshControl={<RefreshControl refreshing={seatsQuery.isRefetching} onRefresh={seatsQuery.refetch} />}
         ListHeaderComponent={
           <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm }}>
