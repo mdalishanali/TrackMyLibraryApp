@@ -1,7 +1,9 @@
+import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
+import { pickAndOptimizeImage, takeAndOptimizePhoto } from '@/utils/image';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { z } from 'zod';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -22,11 +24,11 @@ const studentSchema = z.object({
     shift: z.string().optional(),
     startTime: z.string().min(1, 'Start time is required'),
     endTime: z.string().min(1, 'End time is required'),
-    fees: z.
-        string().optional(),
+    fees: z.string().optional(),
     notes: z.string().optional(),
     status: z.string().min(1, 'Status is required'),
     gender: z.string().min(1, 'Gender is required'),
+    profilePicture: z.string().optional(),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
@@ -75,6 +77,7 @@ export function StudentFormModal({
         notes: '',
         status: 'Active',
         gender: 'Male',
+        profilePicture: '',
     },
     seats,
     theme,
@@ -100,7 +103,22 @@ export function StudentFormModal({
     const [currentStep, setCurrentStep] = useState(0);
     const values = watch();
     const [datePickerOpen, setDatePickerOpen] = useState(false);
-    const [timePickerType, setTimePickerType] = useState<'start' | 'end' | null>(null);
+    const [timePickerType, setTimePickerType] = useState<'startTime' | 'endTime' | null>(null);
+    const [isImageProcessing, setIsImageProcessing] = useState(false);
+
+    const handleImagePick = async (source: 'gallery' | 'camera') => {
+        setIsImageProcessing(true);
+        try {
+            const result = source === 'gallery' ? await pickAndOptimizeImage() : await takeAndOptimizePhoto();
+            if (result) {
+                setValue('profilePicture', result.uri);
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to process image');
+        } finally {
+            setIsImageProcessing(false);
+        }
+    };
 
     useEffect(() => {
         if (visible) {
@@ -225,11 +243,11 @@ export function StudentFormModal({
             </View>
             <View style={styles.reviewRow}>
                 <InfoPill label="Joining" value={values.joiningDate || '—'} theme={theme} />
-                <InfoPill label="Seat" value={values.seat ? seats.find(s => s._id === values.seat)?.seatNumber : 'Unallocated'} theme={theme} />
+                <InfoPill label="Seat" value={values.seat ? String(seats.find(s => s._id === values.seat)?.seatNumber || '') : 'Unallocated'} theme={theme} />
             </View>
             <View style={styles.reviewRow}>
                 <InfoPill label="Time" value={`${values.startTime} - ${values.endTime}`} theme={theme} />
-                <InfoPill label="Fees" value={values.fees ?? '—'} theme={theme} />
+                <InfoPill label="Fees" value={String(values.fees ?? '—')} theme={theme} />
             </View>
             <InfoPill label="Notes" value={values.notes || '—'} theme={theme} />
         </AppCard>
@@ -313,6 +331,50 @@ export function StudentFormModal({
                     <AppCard padded style={[styles.sectionCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
                         {currentStep === 0 && (
                             <>
+                                <View style={styles.imageSection}>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            Alert.alert('Student Photo', 'Choose photo source', [
+                                                { text: 'Camera', onPress: () => handleImagePick('camera') },
+                                                { text: 'Gallery', onPress: () => handleImagePick('gallery') },
+                                                { text: 'Cancel', style: 'cancel' },
+                                            ]);
+                                        }}
+                                        style={[styles.imagePicker, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
+                                    >
+                                        {values.profilePicture ? (
+                                            <Image
+                                                source={{ uri: values.profilePicture }}
+                                                style={styles.previewImage}
+                                                contentFit="cover"
+                                            />
+                                        ) : (
+                                            <View style={styles.imagePlaceholder}>
+                                                <Ionicons name="camera" size={32} color={theme.muted} />
+                                                <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>Add Photo</Text>
+                                            </View>
+                                        )}
+                                        {isImageProcessing && (
+                                            <View style={[styles.imageOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                                                <ActivityIndicator color="#fff" />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                    {values.profilePicture ? (
+                                        <TouchableOpacity
+                                            onPress={() => setValue('profilePicture', '')}
+                                            style={styles.removeImageBtn}
+                                        >
+                                            <Ionicons name="trash" size={16} color="#ef4444" />
+                                            <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '600' }}>Remove</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <Text style={[styles.imageHint, { color: theme.muted }]}>
+                                            Passport size photo helps in quick student recognition.
+                                        </Text>
+                                    )}
+                                </View>
+
                                 <FormField
                                     label="Name"
                                     name="name"
@@ -405,7 +467,7 @@ export function StudentFormModal({
                                     theme={theme}
                                     renderInput={({ value, hasError }) => (
                                         <TouchableOpacity
-                                            onPress={() => setTimePickerType('start')}
+                                            onPress={() => setTimePickerType('startTime')}
                                             style={[
                                                 styles.input,
                                                 {
@@ -415,7 +477,7 @@ export function StudentFormModal({
                                             ]}
                                         >
                                             <Text style={{ color: value ? theme.text : theme.muted }}>
-                                                {toDisplayTime(value) || 'Select time'}
+                                                {toDisplayTime(String(value)) || 'Select time'}
                                             </Text>
                                         </TouchableOpacity>
                                     )}
@@ -431,7 +493,7 @@ export function StudentFormModal({
                                     theme={theme}
                                     renderInput={({ value, hasError }) => (
                                         <TouchableOpacity
-                                            onPress={() => setTimePickerType('end')}
+                                            onPress={() => setTimePickerType('endTime')}
                                             style={[
                                                 styles.input,
                                                 {
@@ -441,7 +503,7 @@ export function StudentFormModal({
                                             ]}
                                         >
                                             <Text style={{ color: value ? theme.text : theme.muted }}>
-                                                {toDisplayTime(value) || 'Select time'}
+                                                {toDisplayTime(String(value)) || 'Select time'}
                                             </Text>
                                         </TouchableOpacity>
                                     )}
@@ -549,13 +611,13 @@ export function StudentFormModal({
                                 <DateTimePicker
                                     mode="time"
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    value={parseTime(values[timePickerType])}
+                                    value={parseTime(values[timePickerType as keyof StudentFormValues] as string)}
                                     onChange={(e, d) => {
                                         if (d) {
                                             const h = String(d.getHours()).padStart(2, '0');
                                             const m = String(d.getMinutes()).padStart(2, '0');
                                             const v = `${h}:${m}`;
-                                            setValue(timePickerType, v);
+                                            setValue(timePickerType as keyof StudentFormValues, v);
                                         }
                                         setTimePickerType(null);
                                     }}
@@ -576,9 +638,9 @@ type FormFieldProps = {
     control: any;
     errors: any;
     theme: ReturnType<typeof themeFor>;
-    keyboardType?: 'default' | 'numeric';
+    keyboardType?: 'default' | 'numeric' | 'phone-pad';
     placeholder?: string;
-    renderInput?: ({ value, onPress, hasError }: { value: string | number | undefined; onPress?: () => void; hasError: boolean }) => JSX.Element;
+    renderInput?: ({ value, onPress, hasError }: { value: string | number | undefined; onPress?: () => void; hasError: boolean }) => any;
 };
 
 function FormField({
@@ -595,8 +657,8 @@ function FormField({
     const errorMessage =
         typeof errorEntry?.message === 'string'
             ? errorEntry.message
-            : errorEntry?.types
-                ? String(Object.values(errorEntry.types)[0])
+            : (errorEntry as any)?.types
+                ? String(Object.values((errorEntry as any).types)[0])
                 : undefined;
     const hasError = Boolean(errorMessage);
     return (
@@ -645,10 +707,13 @@ const InfoPill = ({ label, value, theme }: { label: string; value: string | numb
 );
 
 const parseTime = (t?: string | null) => {
-    const [h, m] = (t || '09:00').split(':');
+    const val = t || '09:00';
+    const parts = val.split(':');
+    const h = Number(parts[0]) || 9;
+    const m = Number(parts[1]) || 0;
     const d = new Date();
-    d.setHours(Number(h) || 9);
-    d.setMinutes(Number(m) || 0);
+    d.setHours(h);
+    d.setMinutes(m);
     d.setSeconds(0);
     d.setMilliseconds(0);
     return d;
@@ -823,5 +888,43 @@ const styles = StyleSheet.create({
     },
     hintText: {
         fontSize: typography.size.xs,
+    },
+    imageSection: {
+        alignItems: 'center',
+        gap: spacing.sm,
+        marginBottom: spacing.md,
+    },
+    imagePicker: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    removeImageBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    imageHint: {
+        fontSize: typography.size.xs,
+        textAlign: 'center',
+        paddingHorizontal: spacing.xl,
     },
 });

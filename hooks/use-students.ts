@@ -4,6 +4,7 @@ import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
 import { queryKeys } from '@/lib/query-keys';
 import { Student } from '@/types/api';
+import { uploadToS3 } from '@/utils/image';
 
 export type StudentPayload = {
   name: string;
@@ -16,6 +17,7 @@ export type StudentPayload = {
   notes?: string;
   status?: string;
   gender?: string;
+  profilePicture?: string;
 };
 
 type StudentsPage = {
@@ -58,7 +60,25 @@ export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: stri
 export const useCreateStudent = () =>
   useMutation({
     mutationFn: async (payload: StudentPayload) => {
-      const { data } = await api.post('/students', payload, { successToastMessage: 'Student created' });
+      let finalProfilePicture = payload.profilePicture;
+
+      // If we have a local URI, we need to upload it first
+      if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
+        const fileExtension = payload.profilePicture.split('.').pop() || 'jpg';
+        const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+
+        // 1. Get presigned URL
+        const { data: s3Data } = await api.get('/students/presigned-url', {
+          params: { fileName: `student-${Date.now()}.${fileExtension}`, fileType }
+        });
+
+        // 2. Upload to S3
+        await uploadToS3(payload.profilePicture, s3Data.uploadUrl, fileType);
+
+        finalProfilePicture = s3Data.fileUrl;
+      }
+
+      const { data } = await api.post('/students', { ...payload, profilePicture: finalProfilePicture }, { successToastMessage: 'Student created' });
       return data;
     },
     onSuccess: () => {
@@ -71,7 +91,26 @@ export const useUpdateStudent = (id?: string) =>
   useMutation({
     mutationFn: async (payload: Partial<StudentPayload>) => {
       if (!id) throw new Error('Missing student id');
-      const { data } = await api.put(`/students/${id}`, payload);
+
+      let finalProfilePicture = payload.profilePicture;
+
+      // If we have a local URI, we need to upload it first
+      if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
+        const fileExtension = payload.profilePicture.split('.').pop() || 'jpg';
+        const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+
+        // 1. Get presigned URL
+        const { data: s3Data } = await api.get('/students/presigned-url', {
+          params: { fileName: `student-${Date.now()}.${fileExtension}`, fileType }
+        });
+
+        // 2. Upload to S3
+        await uploadToS3(payload.profilePicture, s3Data.uploadUrl, fileType);
+
+        finalProfilePicture = s3Data.fileUrl;
+      }
+
+      const { data } = await api.put(`/students/${id}`, { ...payload, profilePicture: finalProfilePicture });
       return data;
     },
     onSuccess: () => {
