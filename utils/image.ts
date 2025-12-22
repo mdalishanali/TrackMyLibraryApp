@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform, Alert } from 'react-native';
 import { api } from '@/lib/api-client';
 
@@ -35,10 +35,9 @@ export const pickOrCaptureImage = async (source: 'gallery' | 'camera'): Promise<
       : ImagePicker.launchCameraAsync;
 
     const result = await launchMethod({
-      mediaTypes: ['images'],
-      allowsEditing: true, // Try enabling again with plugin in app.json
-      aspect: [1, 1],
-      quality: 1, // Start with high quality, we will compress in next step
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false, // Disabling this as it's a common cause of crashes on Android + New Architecture
+      quality: 0.8, 
     });
 
     if (!result || result.canceled || !result.assets || result.assets.length === 0) {
@@ -46,6 +45,8 @@ export const pickOrCaptureImage = async (source: 'gallery' | 'camera'): Promise<
     }
 
     const asset = result.assets[0];
+    if (!asset || !asset.uri) return null;
+
     return await compressAndResize(asset.uri);
   } catch (error) {
     console.error('Error during image selection:', error);

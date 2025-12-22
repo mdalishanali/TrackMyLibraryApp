@@ -1,6 +1,7 @@
 import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { pickOrCaptureImage } from '@/utils/image';
+import { ImagePickerSheet } from '../ui/image-picker-sheet';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -105,6 +106,7 @@ export function StudentFormModal({
     const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [timePickerType, setTimePickerType] = useState<'startTime' | 'endTime' | null>(null);
     const [isImageProcessing, setIsImageProcessing] = useState(false);
+    const [pickerSheetVisible, setPickerSheetVisible] = useState(false);
 
     const handleImagePick = async (source: 'gallery' | 'camera') => {
         setIsImageProcessing(true);
@@ -333,13 +335,7 @@ export function StudentFormModal({
                             <>
                                 <View style={styles.imageSection}>
                                     <TouchableOpacity
-                                        onPress={() => {
-                                            Alert.alert('Student Photo', 'Choose photo source', [
-                                                { text: 'Camera', onPress: () => handleImagePick('camera') },
-                                                { text: 'Gallery', onPress: () => handleImagePick('gallery') },
-                                                { text: 'Cancel', style: 'cancel' },
-                                            ]);
-                                        }}
+                                        onPress={() => setPickerSheetVisible(true)}
                                         style={[styles.imagePicker, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
                                     >
                                         {values.profilePicture ? (
@@ -581,6 +577,13 @@ export function StudentFormModal({
                         )}
                     </View>
                 </ScrollView>
+
+                <ImagePickerSheet
+                    visible={pickerSheetVisible}
+                    onClose={() => setPickerSheetVisible(false)}
+                    onSelect={handleImagePick}
+                    theme={theme}
+                />
 
                 {datePickerOpen && (
                     <Modal transparent visible={datePickerOpen} animationType="fade">
