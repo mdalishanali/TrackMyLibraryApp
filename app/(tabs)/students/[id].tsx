@@ -19,6 +19,7 @@ import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfi
 import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Image } from 'expo-image';
+import ImageViewing from 'react-native-image-viewing';
 
 export default function StudentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,6 +35,7 @@ export default function StudentDetailScreen() {
   const isPaymentSaving = createPayment.isPending || updatePayment.isPending;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   const studentQuery = useStudentQuery(id);
   const paymentsQuery = useInfinitePaymentsQuery({ student: id, limit: 4 });
@@ -156,13 +158,22 @@ export default function StudentDetailScreen() {
 
         <AppCard style={[styles.headerCard, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
           <View style={styles.heroRow}>
-            <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
+            <TouchableOpacity
+              onPress={() => student.profilePicture && setPreviewVisible(true)}
+              activeOpacity={student.profilePicture ? 0.8 : 1}
+              style={[styles.avatar, { backgroundColor: theme.surface }]}
+            >
               {student.profilePicture ? (
-                <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} contentFit="cover" />
+                <>
+                  <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} contentFit="cover" />
+                  <View style={[styles.imageActionOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                    <Ionicons name="expand" size={16} color="#fff" />
+                  </View>
+                </>
               ) : (
                 <Text style={[styles.avatarText, { color: theme.text }]}>{student.name?.[0]?.toUpperCase() || 'S'}</Text>
               )}
-            </View>
+            </TouchableOpacity>
             <View style={{ flex: 1, gap: spacing.xs }}>
               <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                 {student.name}
@@ -316,6 +327,13 @@ export default function StudentDetailScreen() {
         onCancel={() => setConfirmStudentDelete(false)}
         onConfirm={confirmDeleteStudent}
       />
+      <ImageViewing
+        images={student.profilePicture ? [{ uri: student.profilePicture }] : []}
+        imageIndex={0}
+        visible={previewVisible}
+        onRequestClose={() => setPreviewVisible(false)}
+        swipeToCloseEnabled
+      />
     </SafeScreen>
   );
 }
@@ -373,6 +391,18 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: '100%',
     height: '100%',
+  },
+  imageActionOverlay: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   avatarText: {
     fontSize: typography.size.xl,

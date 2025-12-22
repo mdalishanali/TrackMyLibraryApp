@@ -36,8 +36,9 @@ export const pickOrCaptureImage = async (source: 'gallery' | 'camera'): Promise<
 
     const result = await launchMethod({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false, // Disabling this as it's a common cause of crashes on Android + New Architecture
-      quality: 0.8, 
+      allowsEditing: true, // Re-enabling as per request
+      aspect: [1, 1], // Square crop for passport photos
+      quality: 0.4, 
     });
 
     if (!result || result.canceled || !result.assets || result.assets.length === 0) {
@@ -85,40 +86,58 @@ export const compressAndResize = async (uri: string): Promise<OptimizedImage> =>
 
 /**
  * Complete flow: Compress -> S3 Upload -> Return CloudFront URL.
+ * Supports progress tracking via callback.
  */
-export const uploadImageToCloud = async (localUri: string): Promise<string> => {
-  try {
-    // 1. Optimization already happened in pickOrCaptureImage, but we ensure it's JPEG
-    const fileExtension = localUri.split('.').pop() || 'jpg';
-    const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
-    const fileName = `student-${Date.now()}.${fileExtension}`;
+export const uploadImageToCloud = async (
+  localUri: string,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // 1. Prepare file details
+      const fileExtension = localUri.split('.').pop() || 'jpg';
+      const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+      const fileName = `student-${Date.now()}.${fileExtension}`;
 
-    // 2. Get Presigned URL from Backend
-    const { data: s3Data } = await api.get('/students/presigned-url', {
-      params: { fileName, fileType }
-    });
+      // 2. Get Presigned URL from Backend
+      const { data: s3Data } = await api.get('/students/presigned-url', {
+        params: { fileName, fileType }
+      });
 
-    // 3. Convert Local URI to Blob for Upload
-    const response = await fetch(localUri);
-    const blob = await response.blob();
+      // 3. Upload to S3 using XMLHttpRequest for progress support
+      const xhr = new XMLHttpRequest();
 
-    // 4. Upload directly to S3
-    const uploadResponse = await fetch(s3Data.uploadUrl, {
-      method: 'PUT',
-      body: blob,
-      headers: {
-        'Content-Type': fileType,
-      },
-    });
+      xhr.open('PUT', s3Data.uploadUrl);
+      xhr.setRequestHeader('Content-Type', fileType);
 
-    if (!uploadResponse.ok) {
-      throw new Error('Upload to S3 failed');
+      if (onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = event.loaded / event.total;
+            onProgress(progress);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 201) {
+          resolve(s3Data.fileUrl);
+        } else {
+          reject(new Error(`S3 Upload failed with status: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('S3 Upload failed due to a network error'));
+
+      // Axios or fetch blobs can be tricky with XHR in React Native, 
+      // but reading file as base64 or using Blob directly works.
+      const response = await fetch(localUri);
+      const blob = await response.blob();
+      xhr.send(blob);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      reject(error);
     }
-
-    // 5. Return the CloudFront URL
-    return s3Data.fileUrl;
-  } catch (error) {
-    console.error('Upload error:', error);
-    throw new Error('Failed to upload image. Please check your connection.');
-  }
+  });
 };

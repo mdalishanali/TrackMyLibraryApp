@@ -110,7 +110,7 @@ export default function StudentsScreen() {
     studentsQuery.refetch();
   }, [studentsQuery.refetch]);
 
-  const mapToForm = s => {
+  const mapToForm = (s: any) => {
     const d = new Date().toISOString().slice(0, 10);
     if (!s)
       return {
@@ -124,7 +124,8 @@ export default function StudentsScreen() {
         status: 'Active',
         fees: undefined,
         gender: 'Male',
-        notes: ''
+        notes: '',
+        profilePicture: ''
       };
     return {
       name: s.name,
@@ -137,11 +138,12 @@ export default function StudentsScreen() {
       status: s.status ?? 'Active',
       fees: s.fees,
       gender: s.gender ?? 'Male',
-      notes: s.notes ?? ''
+      notes: s.notes ?? '',
+      profilePicture: s.profilePicture || ''
     };
   };
 
-  const saveStudent = async values => {
+  const saveStudent = async (values: any, onProgress?: (p: number) => void) => {
     const payload = {
       name: values.name,
       number: values.number,
@@ -150,13 +152,17 @@ export default function StudentsScreen() {
       shift: values.shift,
       time: [{ start: values.startTime, end: values.endTime }],
       status: values.status,
-      fees: values.fees,
+      fees: Number(values.fees) || 0,
       notes: values.notes,
-      gender: values.gender
+      gender: values.gender,
+      profilePicture: values.profilePicture,
     };
 
-    if (editingStudent) await updateStudent.mutateAsync(payload);
-    else await createStudent.mutateAsync(payload);
+    if (editingStudent) {
+      await updateStudent.mutateAsync({ payload, onProgress });
+    } else {
+      await createStudent.mutateAsync({ payload, onProgress });
+    }
 
     setIsStudentFormOpen(false);
     setEditingStudent(null);

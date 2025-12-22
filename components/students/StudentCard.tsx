@@ -10,13 +10,14 @@ import {
   TimeSlots,
 } from './StudentSummary';
 
-const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay }: any) => {
+const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onAvatarPress }: any) => {
   return (
     <AppCard style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={{ gap: spacing.md }}>
         <StudentHeader
           student={student}
           theme={theme}
+          onAvatarPress={onAvatarPress}
         />
 
         <StudentMeta student={student} theme={theme} />

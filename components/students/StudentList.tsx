@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ImageViewing from 'react-native-image-viewing';
 import StudentCard from './StudentCard';
 import StudentSkeletonList from './StudentSkeletonList';
 import { spacing } from '@/constants/design';
@@ -32,7 +34,17 @@ export default function StudentList({
     headerComponent?: React.ReactElement | null;
 }) {
     const insets = useSafeAreaInsets();
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewImages, setPreviewImages] = useState<{ uri: string }[]>([]);
+
+    const handleAvatarPress = (uri?: string) => {
+        if (!uri) return;
+        setPreviewImages([{ uri }]);
+        setPreviewVisible(true);
+    };
+
     return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
         <FlatList
             data={students}
             keyExtractor={(item) => (item._id?.toString() || item.id?.toString() || Math.random().toString())}
@@ -44,6 +56,7 @@ export default function StudentList({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onPay={onPay}
+                    onAvatarPress={() => handleAvatarPress(item.profilePicture)}
                 />
             )}
             style={{ backgroundColor: theme.background }}
@@ -77,5 +90,13 @@ export default function StudentList({
                     )
             }
         />
+            <ImageViewing
+                images={previewImages}
+                imageIndex={0}
+                visible={previewVisible}
+                onRequestClose={() => setPreviewVisible(false)}
+                swipeToCloseEnabled
+            />
+        </View>
     );
 }

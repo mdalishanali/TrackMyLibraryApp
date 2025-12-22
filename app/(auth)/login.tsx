@@ -7,27 +7,43 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  Dimensions,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  FadeInUp,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withSequence,
+  withDelay
+} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors } from '@/constants/theme';
+import { spacing, radius, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { getErrorMessage, useLoginMutation } from '@/hooks/use-auth-mutations';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { LoginFormValues, loginSchema } from '@/schemas/auth';
 
+const { width } = Dimensions.get('window');
+
 export default function Login() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Setup form
   const {
     control,
     handleSubmit,
@@ -39,16 +55,16 @@ export default function Login() {
 
   const loginMutation = useLoginMutation();
 
-  // Enhanced color scheme
-  const isDark = colorScheme === 'dark';
-  const surface = isDark ? '#1e293b' : '#ffffff';
-  const background = isDark ? '#0f172a' : '#f8fafc';
-  const inputBackground = isDark ? '#334155' : '#f1f5f9';
-  const borderColor = isDark ? '#475569' : '#e2e8f0';
-  const focusBorderColor = isDark ? '#10b981' : '#0d9488';
-  const mutedText = isDark ? '#94a3b8' : '#64748b';
-  const textColor = Colors[colorScheme].text;
-  const accentColor = isDark ? '#10b981' : '#0d9488';
+  // Animation values
+  const logoScale = useSharedValue(0);
+
+  useEffect(() => {
+    logoScale.value = withDelay(300, withSpring(1, { damping: 12 }));
+  }, []);
+
+  const logoAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: logoScale.value }]
+  }));
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
@@ -60,255 +76,279 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: background }]}>
+    <View style={styles.container}>
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={[theme.primary, theme.primary, theme.background]}
+        locations={[0, 0.3, 0.8]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <LinearGradient
+        colors={['rgba(255,255,255,0.1)', 'transparent']}
+        style={[StyleSheet.absoluteFill, { height: '40%' }]}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+      >
         <ScrollView
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl }
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          bounces={false}>
-
+        >
+          {/* Header Section */}
           <View style={styles.header}>
-            <View style={[styles.logoContainer, { backgroundColor: accentColor }]}>
-              <Text style={styles.logoText}>📚</Text>
-            </View>
-            <Text style={[styles.kicker, { color: accentColor }]}>TRACK MY LIBRARY</Text>
-            <Text style={[styles.title, { color: textColor }]}>Welcome back</Text>
-            <Text style={[styles.subtitle, { color: mutedText }]}>
-              Sign in to access your dashboard and manage your library
-            </Text>
+            <Animated.View style={[styles.logoBadge, logoAnimatedStyle]}>
+              <LinearGradient
+                colors={['#fff', '#f0f0f0']}
+                style={styles.logoGradient}
+              >
+                <Ionicons name="library" size={32} color={theme.primary} />
+              </LinearGradient>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.delay(500).duration(800)}>
+              <Text style={styles.kicker}>SECURE ACCESS</Text>
+              <Text style={styles.title}>Track My Library</Text>
+              <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
+                Experience the next generation of library management.
+              </Text>
+            </Animated.View>
           </View>
 
-          <View style={[styles.card, { backgroundColor: surface }]}>
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: textColor }]}>Email or phone number</Text>
-              <Controller
-                control={control}
-                name="identifier"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <View>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          borderColor: errors.identifier
-                            ? '#ef4444'
-                            : focusedField === 'identifier'
-                              ? focusBorderColor
-                              : borderColor,
-                          color: textColor,
-                          backgroundColor: inputBackground,
-                          borderWidth: focusedField === 'identifier' ? 2 : 1,
-                        },
-                      ]}
-                      placeholder="you@example.com or 5551234567"
-                      placeholderTextColor={mutedText}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      onFocus={() => setFocusedField('identifier')}
-                      onBlur={() => {
-                        setFocusedField(null);
-                        onBlur();
-                      }}
-                      onChangeText={onChange}
-                      value={value}
-                      textContentType="username"
-                      returnKeyType="next"
-                    />
-                  </View>
-                )}
-              />
-              {errors.identifier?.message && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>⚠️ {errors.identifier.message}</Text>
-                </View>
-              )}
-            </View>
+          {/* Login Card */}
+          <Animated.View
+            entering={FadeInDown.delay(700).duration(800)}
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.surface === '#ffffff' ? 'rgba(255,255,255,0.92)' : 'rgba(30,41,59,0.95)',
+                borderColor: 'rgba(255,255,255,0.2)'
+              }
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Welcome Back</Text>
 
-            <View style={styles.field}>
-              <View style={styles.labelRow}>
-                <Text style={[styles.label, { color: textColor }]}>Password</Text>
-                {/* <Pressable onPress={() => Alert.alert('Forgot Password', 'Password reset feature coming soon!')}>
-                  {({ pressed }) => (
-                    <Text style={[styles.forgotLink, { color: accentColor, opacity: pressed ? 0.7 : 1 }]}>
-                      Forgot?
-                    </Text>
+            <View style={styles.form}>
+              {/* Identifier Input */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.muted }]}>Identifier</Text>
+                <Controller
+                  control={control}
+                  name="identifier"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: theme.surfaceAlt,
+                        borderColor: errors.identifier ? '#ef4444' : focusedField === 'identifier' ? theme.primary : 'transparent',
+                        borderWidth: 1.5
+                      }
+                    ]}>
+                      <Ionicons name="mail-outline" size={20} color={focusedField === 'identifier' ? theme.primary : theme.muted} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: theme.text }]}
+                        placeholder="Email or phone number"
+                        placeholderTextColor={theme.muted}
+                        autoCapitalize="none"
+                        onFocus={() => setFocusedField('identifier')}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          onBlur();
+                        }}
+                        onChangeText={onChange}
+                        value={value}
+                      />
+                    </View>
                   )}
-                </Pressable> */}
+                />
+                {errors.identifier && (
+                  <Text style={styles.errorText}>{errors.identifier.message}</Text>
+                )}
               </View>
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <View style={styles.passwordContainer}>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        styles.passwordInput,
-                        {
-                          borderColor: errors.password
-                            ? '#ef4444'
-                            : focusedField === 'password'
-                              ? focusBorderColor
-                              : borderColor,
-                          color: textColor,
-                          backgroundColor: inputBackground,
-                          borderWidth: focusedField === 'password' ? 2 : 1,
-                        },
-                      ]}
-                      placeholder="••••••••"
-                      placeholderTextColor={mutedText}
-                      secureTextEntry={!showPassword}
-                      onFocus={() => setFocusedField('password')}
-                      onBlur={() => {
-                        setFocusedField(null);
-                        onBlur();
-                      }}
-                      onChangeText={onChange}
-                      value={value}
-                      textContentType="password"
-                      returnKeyType="done"
-                      onSubmitEditing={handleSubmit(onSubmit)}
-                    />
-                    <Pressable
-                      onPress={() => setShowPassword(!showPassword)}
-                      style={styles.eyeButton}
-                      hitSlop={8}>
-                      <Text style={[styles.eyeText, { color: accentColor }]}>
-                        {showPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </Pressable>
-                  </View>
-                )}
-              />
-              {errors.password?.message && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>⚠️ {errors.password.message}</Text>
+
+              {/* Password Input */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={[styles.label, { color: theme.muted }]}>Password</Text>
+                  <Pressable>
+                    <Text style={[styles.forgotLabel, { color: theme.primary }]}>Forgot?</Text>
+                  </Pressable>
                 </View>
-              )}
-            </View>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleSubmit(onSubmit)}
-              disabled={loginMutation.isPending}
-              style={({ pressed }) => [
-                styles.button,
-                {
-                  backgroundColor: accentColor,
-                  opacity: loginMutation.isPending ? 0.7 : pressed ? 0.9 : 1,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                },
-              ]}>
-              {loginMutation.isPending ? (
-                <View style={styles.buttonContent}>
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.buttonText}>Signing in...</Text>
-                </View>
-              ) : (
-                <Text style={styles.buttonText}>Sign in →</Text>
-              )}
-            </Pressable>
-
-            <View style={styles.dividerContainer}>
-              <View style={[styles.divider, { backgroundColor: borderColor }]} />
-              <Text style={[styles.dividerText, { color: mutedText }]}>or</Text>
-              <View style={[styles.divider, { backgroundColor: borderColor }]} />
-            </View>
-
-            <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: mutedText }]}>Don't have an account?</Text>
-              <Link href="/(auth)/signup" replace={isAuthenticated} asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <Text
-                      style={[
-                        styles.footerLink,
-                        {
-                          color: accentColor,
-                          opacity: pressed ? 0.7 : 1,
-                        },
-                      ]}>
-                      Create account
-                    </Text>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: theme.surfaceAlt,
+                        borderColor: errors.password ? '#ef4444' : focusedField === 'password' ? theme.primary : 'transparent',
+                        borderWidth: 1.5
+                      }
+                    ]}>
+                      <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? theme.primary : theme.muted} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: theme.text }]}
+                        placeholder="Enter password"
+                        placeholderTextColor={theme.muted}
+                        secureTextEntry={!showPassword}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          onBlur();
+                        }}
+                        onChangeText={onChange}
+                        value={value}
+                        onSubmitEditing={handleSubmit(onSubmit)}
+                      />
+                      <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                        <Ionicons
+                          name={showPassword ? "eye-off-outline" : "eye-outline"}
+                          size={20}
+                          color={theme.muted}
+                        />
+                      </Pressable>
+                    </View>
                   )}
-                </Pressable>
-              </Link>
-            </View>
-          </View>
+                />
+                {errors.password && (
+                  <Text style={styles.errorText}>{errors.password.message}</Text>
+                )}
+              </View>
 
-          <Text style={[styles.disclaimer, { color: mutedText }]}>
-            Protected by industry-standard encryption
-          </Text>
+              {/* Submit Button */}
+              <Pressable
+                onPress={handleSubmit(onSubmit)}
+                disabled={loginMutation.isPending}
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  { 
+                    backgroundColor: theme.primary,
+                    opacity: loginMutation.isPending ? 0.7 : 1,
+                    transform: [{ scale: pressed ? 0.98 : 1 }]
+                  }
+                ]}
+              >
+                {loginMutation.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.submitBtnText}>Sign In</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                  </>
+                )}
+              </Pressable>
+
+              {/* Signup Link */}
+              <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: theme.muted }]}>New here?</Text>
+                <Link href="/(auth)/signup" replace={isAuthenticated} asChild>
+                  <Pressable>
+                    <Text style={[styles.signUpLink, { color: theme.primary }]}>Create Account</Text>
+                  </Pressable>
+                </Link>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Security Indicator */}
+          <Animated.View
+            entering={FadeInDown.delay(1000).duration(800)}
+            style={styles.securityInfo}
+          >
+            <Ionicons name="shield-checkmark" size={14} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.securityText}>AES-256 Bit Encrypted Connection</Text>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safeArea: { flex: 1 },
-  contentContainer: {
+  container: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: spacing.xl,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
-    gap: 12,
+    marginBottom: spacing.xxl,
   },
-  logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
+  logoBadge: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    marginBottom: spacing.lg,
+    padding: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoGradient: {
+    flex: 1,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  logoText: {
-    fontSize: 36,
   },
   kicker: {
+    color: '#fff',
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    fontWeight: '800',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 4,
+    opacity: 0.8,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '800',
+    color: '#fff',
+    fontSize: 34,
+    fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     textAlign: 'center',
+    marginTop: 8,
     lineHeight: 22,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   card: {
-    borderRadius: 24,
-    padding: 24,
-    gap: 20,
+    padding: spacing.xl,
+    borderRadius: radius.xxl,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 20,
   },
-  field: {
-    gap: 8,
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: spacing.xl,
+  },
+  form: {
+    gap: spacing.lg,
+  },
+  inputGroup: {
+    gap: 6,
   },
   labelRow: {
     flexDirection: 'row',
@@ -316,103 +356,85 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  forgotLink: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  forgotLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    paddingHorizontal: 14,
+    height: 56,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    flex: 1,
     fontSize: 16,
+    fontWeight: '500',
   },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    paddingRight: 50,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: 14,
-    top: 14,
-    padding: 4,
-  },
-  eyeText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-    marginLeft: 4,
+  eyeBtn: {
+    padding: 10,
   },
   errorText: {
-    fontSize: 13,
     color: '#ef4444',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+    marginLeft: 4,
   },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 14,
+  submitBtn: {
+    height: 58,
+    borderRadius: radius.lg,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: spacing.md,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  buttonText: {
+  submitBtnText: {
     color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 4,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: spacing.sm,
     gap: 6,
   },
   footerText: {
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: '500',
   },
-  footerLink: {
-    fontSize: 15,
-    fontWeight: '700',
+  signUpLink: {
+    fontSize: 14,
+    fontWeight: '800',
   },
-  disclaimer: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 24,
-    lineHeight: 18,
+  securityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xl,
+    gap: 6,
+  },
+  securityText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });

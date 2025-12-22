@@ -1,6 +1,6 @@
 import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { pickOrCaptureImage } from '@/utils/image';
+import { pickOrCaptureImage, uploadImageToCloud } from '@/utils/image';
 import { ImagePickerSheet } from '../ui/image-picker-sheet';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
@@ -43,7 +43,7 @@ type SeatOption = {
 type Props = {
     visible: boolean;
     onClose: () => void;
-    onSubmit: (values: StudentFormValues) => void | Promise<void>;
+    onSubmit: (values: StudentFormValues, onProgress?: (p: number) => void) => void | Promise<void>;
     initialValues: StudentFormValues;
     seats: SeatOption[];
     theme: ReturnType<typeof themeFor>;
@@ -107,13 +107,32 @@ export function StudentFormModal({
     const [timePickerType, setTimePickerType] = useState<'startTime' | 'endTime' | null>(null);
     const [isImageProcessing, setIsImageProcessing] = useState(false);
     const [pickerSheetVisible, setPickerSheetVisible] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0); // For final submit if needed
+    const [isUploading, setIsUploading] = useState(false);
+    const [backgroundProgress, setBackgroundProgress] = useState(0);
 
     const handleImagePick = async (source: 'gallery' | 'camera') => {
         setIsImageProcessing(true);
+        setPickerSheetVisible(false);
         try {
             const result = await pickOrCaptureImage(source);
             if (result) {
-                setValue('profilePicture', result.uri);
+                // Show local preview immediately if possible, but we need the cloud URL for the form
+                // Let's start uploading in background
+                setIsUploading(true);
+                setBackgroundProgress(0.1);
+
+                try {
+                    const cloudUrl = await uploadImageToCloud(result.uri, (p) => {
+                        setBackgroundProgress(p);
+                    });
+                    setValue('profilePicture', cloudUrl);
+                } catch (err) {
+                    Alert.alert('Upload Failed', 'Could not upload image to server.');
+                } finally {
+                    setIsUploading(false);
+                    setBackgroundProgress(0);
+                }
             }
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to process image');
@@ -256,9 +275,15 @@ export function StudentFormModal({
     );
 
     const handleFinalSubmit = handleSubmit(async (vals) => {
-        await onSubmit(vals);
-        reset(initialValues);
-        setCurrentStep(0);
+        try {
+            await onSubmit(vals, (p) => setUploadProgress(p));
+            reset(initialValues);
+            setCurrentStep(0);
+        } catch (error) {
+            console.error('Submission failed:', error);
+        } finally {
+            setUploadProgress(0);
+        }
     });
 
     return (
@@ -350,9 +375,16 @@ export function StudentFormModal({
                                                 <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>Add Photo</Text>
                                             </View>
                                         )}
-                                        {isImageProcessing && (
-                                            <View style={[styles.imageOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
-                                                <ActivityIndicator color="#fff" />
+                                        {(isImageProcessing || isUploading) && (
+                                            <View style={[styles.imageOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+                                                {isUploading ? (
+                                                    <View style={styles.miniProgressContainer}>
+                                                        <ActivityIndicator color="#fff" size="small" />
+                                                        <Text style={styles.miniProgressText}>{Math.round(backgroundProgress * 100)}%</Text>
+                                                    </View>
+                                                ) : (
+                                                    <ActivityIndicator color="#fff" />
+                                                )}
                                             </View>
                                         )}
                                     </TouchableOpacity>
@@ -598,10 +630,37 @@ export function StudentFormModal({
                                             const iso = d.toISOString().split('T')[0];
                                             setValue('joiningDate', iso);
                                         }
-                                        setDatePickerOpen(false);
+                                        if (Platform.OS === 'android') setDatePickerOpen(false);
                                     }}
                                 />
-                                <AppButton variant="outline" onPress={() => setDatePickerOpen(false)}>Done</AppButton>
+                                {Platform.OS === 'ios' && (
+                                    <AppButton variant="outline" onPress={() => setDatePickerOpen(false)}>Done</AppButton>
+                                )}
+                            </View>
+                        </View>
+                    </Modal>
+                )}
+
+                {isSubmitting && uploadProgress > 0 && uploadProgress < 1 && (
+                    <Modal transparent visible={true} animationType="fade">
+                        <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+                            <View style={[styles.uploadProgressCard, { backgroundColor: theme.surface }]}>
+                                <ActivityIndicator size="large" color={theme.primary} />
+                                <Text style={[styles.uploadTitle, { color: theme.text }]}>Uploading Photo...</Text>
+                                <View style={[styles.progressBarBg, { backgroundColor: theme.border }]}>
+                                    <View
+                                        style={[
+                                            styles.progressBarFill,
+                                            {
+                                                backgroundColor: theme.primary,
+                                                width: `${Math.round(uploadProgress * 100)}%`
+                                            }
+                                        ]}
+                                    />
+                                </View>
+                                <Text style={[styles.uploadPercent, { color: theme.muted }]}>
+                                    {Math.round(uploadProgress * 100)}%
+                                </Text>
                             </View>
                         </View>
                     </Modal>
@@ -929,5 +988,38 @@ const styles = StyleSheet.create({
         fontSize: typography.size.xs,
         textAlign: 'center',
         paddingHorizontal: spacing.xl,
+    },
+    uploadProgressCard: {
+        width: '80%',
+        padding: spacing.xl,
+        borderRadius: radius.lg,
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    uploadTitle: {
+        fontSize: typography.size.md,
+        fontWeight: '700',
+    },
+    progressBarBg: {
+        width: '100%',
+        height: 8,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+    },
+    uploadPercent: {
+        fontSize: typography.size.sm,
+        fontWeight: '600',
+    },
+    miniProgressContainer: {
+        alignItems: 'center',
+        gap: 2,
+    },
+    miniProgressText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '800',
     },
 });

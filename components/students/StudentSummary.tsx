@@ -64,7 +64,12 @@ export function StudentHeader({
         style={[styles.avatar, { backgroundColor: theme.surfaceAlt }]}
       >
         {student.profilePicture ? (
-          <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} />
+          <>
+            <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} />
+            <View style={[styles.imageActionOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+              <Ionicons name="expand" size={12} color="#fff" />
+            </View>
+          </>
         ) : (
           <Text style={[styles.avatarText, { color: theme.text }]}>
             {student.name?.[0]?.toUpperCase() ?? '?'}
@@ -218,6 +223,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImg: { width: '100%', height: '100%' },
+  imageActionOverlay: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
   avatarText: { fontSize: typography.size.lg, fontWeight: '800' },
   nameRow: {
     flexDirection: 'row',
