@@ -1,7 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
+import { api } from '@/lib/api-client';
 
 export type OptimizedImage = {
   uri: string;
@@ -11,112 +12,112 @@ export type OptimizedImage = {
   fileSize?: number;
 };
 
-const MAX_FILE_SIZE = 500 * 1024; // 500KB
-const TARGET_WIDTH = 800;
+const TARGET_WIDTH = 1024; // Standard HD-ish width for profile photos
 
-export const pickAndOptimizeImage = async (): Promise<OptimizedImage | null> => {
+/**
+ * Picks an image from gallery or camera and optimizes it.
+ */
+export const pickOrCaptureImage = async (source: 'gallery' | 'camera'): Promise<OptimizedImage | null> => {
   try {
-    // Request permissions
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionMethod = source === 'gallery'
+      ? ImagePicker.requestMediaLibraryPermissionsAsync
+      : ImagePicker.requestCameraPermissionsAsync;
+
+    const { status } = await permissionMethod();
+
     if (status !== 'granted') {
-      throw new Error('Permission to access gallery was denied');
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (result.canceled || !result.assets[0]) {
+      Alert.alert('Permission needed', `Please allow ${source} access to set a student photo.`);
       return null;
     }
 
-    return await optimizeImage(result.assets[0].uri);
-  } catch (error) {
-    console.error('Error picking image:', error);
-    throw error;
-  }
-};
+    const launchMethod = source === 'gallery'
+      ? ImagePicker.launchImageLibraryAsync
+      : ImagePicker.launchCameraAsync;
 
-export const takeAndOptimizePhoto = async (): Promise<OptimizedImage | null> => {
-  try {
-    // Request permissions
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      throw new Error('Permission to access camera was denied');
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
+    const result = await launchMethod({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: true, // Try enabling again with plugin in app.json
       aspect: [1, 1],
-      quality: 1,
+      quality: 1, // Start with high quality, we will compress in next step
     });
 
-    if (result.canceled || !result.assets[0]) {
+    if (!result || result.canceled || !result.assets || result.assets.length === 0) {
       return null;
     }
 
-    return await optimizeImage(result.assets[0].uri);
+    const asset = result.assets[0];
+    return await compressAndResize(asset.uri);
   } catch (error) {
-    console.error('Error taking photo:', error);
-    throw error;
+    console.error('Error during image selection:', error);
+    Alert.alert('Error', 'Failed to pick or capture image.');
+    return null;
   }
 };
 
-export const optimizeImage = async (uri: string): Promise<OptimizedImage> => {
-  let currentUri = uri;
-  let currentQualty = 0.8;
-  let optimized = null;
-
-  // Step 1: Resize to max width
-  const manipulateResult = await ImageManipulator.manipulateAsync(
-    currentUri,
-    [{ resize: { width: TARGET_WIDTH } }],
-    { compress: currentQualty, format: ImageManipulator.SaveFormat.JPEG }
-  );
-
-  currentUri = manipulateResult.uri;
-
-  // Step 2: Check size and re-compress if needed
-  let fileInfo = await FileSystem.getInfoAsync(currentUri);
-  let size = fileInfo.exists ? fileInfo.size : 0;
-
-  // If still too big, aggressive compression
-  if (size > MAX_FILE_SIZE) {
-    const furtherManipulate = await ImageManipulator.manipulateAsync(
-      currentUri,
-      [],
-      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+/**
+ * Compresses and resizes image to meet PRD requirements (70% quality, JPEG).
+ */
+export const compressAndResize = async (uri: string): Promise<OptimizedImage> => {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: TARGET_WIDTH } }],
+      {
+        compress: 0.7, // 70% quality as requested
+        format: ImageManipulator.SaveFormat.JPEG
+      }
     );
-    currentUri = furtherManipulate.uri;
-    fileInfo = await FileSystem.getInfoAsync(currentUri);
-    size = fileInfo.exists ? fileInfo.size : 0;
-  }
 
-  return {
-    uri: currentUri,
-    width: manipulateResult.width,
-    height: manipulateResult.height,
-    fileSize: size,
-  };
+    const fileInfo = await FileSystem.getInfoAsync(result.uri);
+
+    return {
+      uri: result.uri,
+      width: result.width,
+      height: result.height,
+      fileSize: fileInfo.exists ? fileInfo.size : 0,
+    };
+  } catch (error) {
+    console.error('Error optimizing image:', error);
+    throw new Error('Failed to optimize image');
+  }
 };
 
-export const uploadToS3 = async (localUri: string, uploadUrl: string, fileType: string) => {
-  const response = await fetch(localUri);
-  const blob = await response.blob();
+/**
+ * Complete flow: Compress -> S3 Upload -> Return CloudFront URL.
+ */
+export const uploadImageToCloud = async (localUri: string): Promise<string> => {
+  try {
+    // 1. Optimization already happened in pickOrCaptureImage, but we ensure it's JPEG
+    const fileExtension = localUri.split('.').pop() || 'jpg';
+    const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+    const fileName = `student-${Date.now()}.${fileExtension}`;
 
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: blob,
-    headers: {
-      'Content-Type': fileType,
-    },
-  });
+    // 2. Get Presigned URL from Backend
+    const { data: s3Data } = await api.get('/students/presigned-url', {
+      params: { fileName, fileType }
+    });
 
-  if (!uploadResponse.ok) {
-    throw new Error('Failed to upload image to S3');
+    // 3. Convert Local URI to Blob for Upload
+    const response = await fetch(localUri);
+    const blob = await response.blob();
+
+    // 4. Upload directly to S3
+    const uploadResponse = await fetch(s3Data.uploadUrl, {
+      method: 'PUT',
+      body: blob,
+      headers: {
+        'Content-Type': fileType,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Upload to S3 failed');
+    }
+
+    // 5. Return the CloudFront URL
+    return s3Data.fileUrl;
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw new Error('Failed to upload image. Please check your connection.');
   }
 };

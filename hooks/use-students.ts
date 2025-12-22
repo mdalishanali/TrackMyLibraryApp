@@ -4,7 +4,7 @@ import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
 import { queryKeys } from '@/lib/query-keys';
 import { Student } from '@/types/api';
-import { uploadToS3 } from '@/utils/image';
+import { uploadImageToCloud } from '@/utils/image';
 
 export type StudentPayload = {
   name: string;
@@ -64,18 +64,7 @@ export const useCreateStudent = () =>
 
       // If we have a local URI, we need to upload it first
       if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
-        const fileExtension = payload.profilePicture.split('.').pop() || 'jpg';
-        const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
-
-        // 1. Get presigned URL
-        const { data: s3Data } = await api.get('/students/presigned-url', {
-          params: { fileName: `student-${Date.now()}.${fileExtension}`, fileType }
-        });
-
-        // 2. Upload to S3
-        await uploadToS3(payload.profilePicture, s3Data.uploadUrl, fileType);
-
-        finalProfilePicture = s3Data.fileUrl;
+        finalProfilePicture = await uploadImageToCloud(payload.profilePicture);
       }
 
       const { data } = await api.post('/students', { ...payload, profilePicture: finalProfilePicture }, { successToastMessage: 'Student created' });
@@ -96,18 +85,7 @@ export const useUpdateStudent = (id?: string) =>
 
       // If we have a local URI, we need to upload it first
       if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
-        const fileExtension = payload.profilePicture.split('.').pop() || 'jpg';
-        const fileType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
-
-        // 1. Get presigned URL
-        const { data: s3Data } = await api.get('/students/presigned-url', {
-          params: { fileName: `student-${Date.now()}.${fileExtension}`, fileType }
-        });
-
-        // 2. Upload to S3
-        await uploadToS3(payload.profilePicture, s3Data.uploadUrl, fileType);
-
-        finalProfilePicture = s3Data.fileUrl;
+        finalProfilePicture = await uploadImageToCloud(payload.profilePicture);
       }
 
       const { data } = await api.put(`/students/${id}`, { ...payload, profilePicture: finalProfilePicture });

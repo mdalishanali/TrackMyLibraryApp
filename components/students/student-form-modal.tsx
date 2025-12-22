@@ -1,6 +1,6 @@
 import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { pickAndOptimizeImage, takeAndOptimizePhoto } from '@/utils/image';
+import { pickOrCaptureImage } from '@/utils/image';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -109,7 +109,7 @@ export function StudentFormModal({
     const handleImagePick = async (source: 'gallery' | 'camera') => {
         setIsImageProcessing(true);
         try {
-            const result = source === 'gallery' ? await pickAndOptimizeImage() : await takeAndOptimizePhoto();
+            const result = await pickOrCaptureImage(source);
             if (result) {
                 setValue('profilePicture', result.uri);
             }
