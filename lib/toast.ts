@@ -17,6 +17,7 @@ export function showToast(message: string, type: ToastType = 'info', description
     text1: message,
     text2: description,
     position: 'top',
-    visibilityTime: 3500,
+    topOffset: 65,
+    visibilityTime: 4000,
   });
 }

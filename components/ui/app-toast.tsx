@@ -1,15 +1,19 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Dimensions, Platform } from 'react-native';
 import Toast, { BaseToastProps } from 'react-native-toast-message';
+import Animated, { FadeInUp, MoveIn } from 'react-native-reanimated';
 
 import { radius, spacing, themeFor } from '@/constants/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fontFamily } from '@/themes/fontFamily';
 
+const { width } = Dimensions.get('window');
+
 type ToastVariant = 'success' | 'error' | 'info';
 
 type ToastColors = {
+  bg: string;
   gradient: string[];
   accent: string;
   iconBg: string;
@@ -24,12 +28,12 @@ const getColors = (
 ): ToastColors => {
   if (variant === 'success') {
     return {
-      gradient: [
-        isDark ? 'rgba(74, 222, 128, 0.18)' : 'rgba(52, 211, 153, 0.22)',
-        isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(34, 197, 94, 0.14)',
-      ],
-      accent: palette.success,
-      iconBg: isDark ? 'rgba(74, 222, 128, 0.15)' : 'rgba(34, 197, 94, 0.12)',
+      bg: isDark ? 'rgba(20, 25, 20, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      gradient: isDark
+        ? ['rgba(16, 185, 129, 0.15)', 'rgba(5, 150, 105, 0.05)']
+        : ['rgba(209, 250, 229, 0.8)', 'rgba(255, 255, 255, 0.9)'],
+      accent: '#10b981',
+      iconBg: 'rgba(16, 185, 129, 0.15)',
       text: palette.text,
       muted: palette.muted,
     };
@@ -37,33 +41,33 @@ const getColors = (
 
   if (variant === 'error') {
     return {
-      gradient: [
-        isDark ? 'rgba(248, 113, 113, 0.22)' : 'rgba(248, 113, 113, 0.18)',
-        isDark ? 'rgba(220, 38, 38, 0.12)' : 'rgba(248, 113, 113, 0.12)',
-      ],
-      accent: palette.danger,
-      iconBg: isDark ? 'rgba(248, 113, 113, 0.16)' : 'rgba(248, 113, 113, 0.14)',
+      bg: isDark ? 'rgba(25, 20, 20, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      gradient: isDark
+        ? ['rgba(239, 68, 68, 0.15)', 'rgba(220, 38, 38, 0.05)']
+        : ['rgba(254, 226, 226, 0.8)', 'rgba(255, 255, 255, 0.9)'],
+      accent: '#ef4444',
+      iconBg: 'rgba(239, 68, 68, 0.15)',
       text: palette.text,
       muted: palette.muted,
     };
   }
 
   return {
-    gradient: [
-      isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(59, 130, 246, 0.18)',
-      isDark ? 'rgba(2, 132, 199, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-    ],
-    accent: palette.info,
-    iconBg: isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(59, 130, 246, 0.12)',
+    bg: isDark ? 'rgba(20, 22, 28, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    gradient: isDark
+      ? ['rgba(59, 130, 246, 0.15)', 'rgba(37, 99, 235, 0.05)']
+      : ['rgba(219, 234, 254, 0.8)', 'rgba(255, 255, 255, 0.9)'],
+    accent: '#3b82f6',
+    iconBg: 'rgba(59, 130, 246, 0.15)',
     text: palette.text,
     muted: palette.muted,
   };
 };
 
 const iconMap: Record<ToastVariant, keyof typeof Ionicons.glyphMap> = {
-  success: 'checkmark-circle',
-  error: 'alert-circle',
-  info: 'information-circle',
+  success: 'checkmark-circle-outline',
+  error: 'alert-circle-outline',
+  info: 'information-circle-outline',
 };
 
 export function AppToast({
@@ -79,74 +83,116 @@ export function AppToast({
   const colors = getColors(variant, theme, isDark);
 
   return (
-    <View style={styles.shadowWrapper}>
-      <LinearGradient
-        colors={colors.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.container, { borderColor: colors.accent }]}>
-        <View style={[styles.iconWrapper, { backgroundColor: colors.iconBg }]}>
-          <Ionicons name={iconMap[variant]} size={22} color={colors.accent} />
-        </View>
-        <View style={styles.textWrapper}>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-            {text1}
-          </Text>
-          {text2 ? (
-            <Text style={[styles.subtitle, { color: colors.muted }]} numberOfLines={3}>
-              {text2}
+    <Animated.View
+      entering={FadeInUp.springify().damping(15)}
+      style={styles.outerContainer}
+    >
+      <View style={[styles.innerCard, { backgroundColor: colors.bg, borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+        <LinearGradient
+          colors={colors.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientFill}
+        />
+
+        <View style={[styles.accentBar, { backgroundColor: colors.accent }]} />
+
+        <View style={styles.content}>
+          <View style={[styles.iconBox, { backgroundColor: colors.iconBg }]}>
+            <Ionicons name={iconMap[variant]} size={20} color={colors.accent} />
+          </View>
+
+          <View style={styles.textContainer}>
+            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+              {text1}
             </Text>
-          ) : null}
+            {text2 ? (
+              <Text style={[styles.subtitle, { color: theme.muted }]} numberOfLines={2}>
+                {text2}
+              </Text>
+            ) : null}
+          </View>
+
+          <Pressable
+            onPress={() => Toast.hide()}
+            style={({ pressed }) => [
+              styles.closeBtn,
+              { opacity: pressed ? 0.5 : 1 }
+            ]}
+          >
+            <Ionicons name="close-circle" size={20} color={theme.muted} />
+          </Pressable>
         </View>
-        <Pressable onPress={() => Toast.hide()} hitSlop={10} style={styles.closeBtn}>
-          <Ionicons name="close" size={16} color={colors.muted} />
-        </Pressable>
-      </LinearGradient>
-    </View>
+      </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  shadowWrapper: {
-    width: '100%',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 6,
+  outerContainer: {
+    width: width,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      }
+    })
   },
-  container: {
+  innerCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  gradientFill: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.6,
+  },
+  accentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+  },
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: 14,
+    paddingLeft: 18,
+    gap: 12,
   },
-  iconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textWrapper: {
+  textContainer: {
     flex: 1,
-    gap: 2,
+    justifyContent: 'center',
   },
   title: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 1,
   },
   closeBtn: {
-    padding: spacing.xs,
-    marginLeft: spacing.xs,
+    padding: 4,
   },
 });

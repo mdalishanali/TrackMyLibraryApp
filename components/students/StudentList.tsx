@@ -48,7 +48,7 @@ export default function StudentList({
         <FlatList
             data={students}
             keyExtractor={(item) => (item._id?.toString() || item.id?.toString() || Math.random().toString())}
-            renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                 <StudentCard
                     student={item}
                     theme={theme}
@@ -57,6 +57,7 @@ export default function StudentList({
                     onDelete={onDelete}
                     onPay={onPay}
                     onAvatarPress={() => handleAvatarPress(item.profilePicture)}
+                    index={index}
                 />
             )}
             style={{ backgroundColor: theme.background }}

@@ -262,8 +262,17 @@ export default function Login() {
             entering={FadeInDown.delay(1000).duration(800)}
             style={styles.securityInfo}
           >
-            <Ionicons name="shield-checkmark" size={14} color="rgba(255,255,255,0.6)" />
-            <Text style={styles.securityText}>AES-256 Bit Encrypted Connection</Text>
+            <Ionicons
+              name="shield-checkmark"
+              size={14}
+              color={theme.surface === '#ffffff' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+            />
+            <Text style={[
+              styles.securityText,
+              { color: theme.surface === '#ffffff' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.5)' }
+            ]}>
+              AES-256 Bit Encrypted Connection
+            </Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -432,7 +441,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   securityText: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.3,

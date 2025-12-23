@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
-import { SectionHeader } from '@/components/ui/section-header';
-import { gradientFor } from '@/constants/design';
+import { spacing } from '@/constants/design';
+import { Student } from '@/types/api';
 
 import {
   useCreateStudent,
@@ -15,7 +18,7 @@ import {
 } from '@/hooks/use-students';
 
 import { useCreatePayment } from '@/hooks/use-payments';
-  import { useSeatsQuery } from '@/hooks/use-seats';
+import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,11 +27,11 @@ import StudentFilters from '@/components/students/StudentFilters';
 import StudentList from '@/components/students/StudentList';
 
 import { PaymentFormModal } from '@/components/students/payment-form-modal';
-
-import { StudentFormModal } from '@/components/students/student-form-modal';
-import StudentSkeletonList from '@/components/students/StudentSkeletonList';
+import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
+
+const { width } = Dimensions.get('window');
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -39,12 +42,12 @@ export default function StudentsScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState('recent');
 
-  const [editingStudent, setEditingStudent] = useState(null);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
 
-  const [paymentStudent, setPaymentStudent] = useState(null);
+  const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 400);
@@ -57,32 +60,35 @@ export default function StudentsScreen() {
   });
 
   const seatsQuery = useSeatsQuery();
-
   const createStudent = useCreateStudent();
   const deleteStudent = useDeleteStudent();
   const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
+  const totalCount = useMemo(() => {
+    const firstPage: any = studentsQuery.data?.pages[0];
+    return firstPage?.totalCount ?? firstPage?.total ?? students.length;
+  }, [studentsQuery.data, students.length]);
 
   const seats = useMemo(
-    () =>
-      (seatsQuery.data ?? []).map(s => ({
-        _id: s._id,
-        seatNumber: s.seatNumber,
-        floor: s.floor
-      })),
+    () => (seatsQuery.data ?? []).map(s => ({
+      _id: s._id as string,
+      seatNumber: String(s.seatNumber),
+      floor: s.floor
+    })),
     [seatsQuery.data]
   );
 
   const openCreateForm = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditingStudent(null);
     setIsStudentFormOpen(true);
   }, []);
 
   const openEditForm = useCallback((id: string) => {
     const s = students.find(u => u._id === id);
-    setEditingStudent(s);
+    setEditingStudent(s ?? null);
     setIsStudentFormOpen(true);
   }, [students]);
 
@@ -104,25 +110,25 @@ export default function StudentsScreen() {
     if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
       studentsQuery.fetchNextPage();
     }
-  }, [studentsQuery.hasNextPage, studentsQuery.isFetchingNextPage, studentsQuery.fetchNextPage]);
+  }, [studentsQuery.hasNextPage, studentsQuery.isFetchingNextPage]);
 
   const handleRefresh = useCallback(() => {
     studentsQuery.refetch();
   }, [studentsQuery.refetch]);
 
-  const mapToForm = (s: any) => {
+  const mapToForm = (s: Student | null): StudentFormValues => {
     const d = new Date().toISOString().slice(0, 10);
     if (!s)
       return {
         name: '',
         number: '',
         joiningDate: d,
-        seat: undefined,
+        seat: '',
         shift: 'Morning',
         startTime: '09:00',
         endTime: '18:00',
         status: 'Active',
-        fees: undefined,
+        fees: '',
         gender: 'Male',
         notes: '',
         profilePicture: ''
@@ -131,12 +137,12 @@ export default function StudentsScreen() {
       name: s.name,
       number: s.number,
       joiningDate: s.joiningDate?.slice(0, 10) || d,
-      seat: s.seat ?? undefined,
+      seat: s.seat ?? '',
       shift: s.shift ?? 'Morning',
       startTime: s.time?.[0]?.start ?? '09:00',
       endTime: s.time?.[0]?.end ?? '18:00',
       status: s.status ?? 'Active',
-      fees: s.fees,
+      fees: s.fees ? String(s.fees) : '',
       gender: s.gender ?? 'Male',
       notes: s.notes ?? '',
       profilePicture: s.profilePicture || ''
@@ -172,9 +178,7 @@ export default function StudentsScreen() {
     }
   };
 
-
-
-  const buildPaymentDefaults = s => {
+  const buildPaymentDefaults = (s: Student | null) => {
     const d = new Date().toISOString().slice(0, 10);
     return {
       student: s?._id || '',
@@ -182,16 +186,15 @@ export default function StudentsScreen() {
       startDate: d,
       endDate: d,
       paymentDate: d,
-      paymentMode: 'cash',
+      paymentMode: 'cash' as const,
       notes: ''
     };
   };
 
-  const savePayment = async values => {
+  const savePayment = async (values: any) => {
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
-    // Success toast handled globally for POST calls
   };
 
   const confirmDelete = async () => {
@@ -201,28 +204,30 @@ export default function StudentsScreen() {
     setPendingDelete(null);
   };
 
-  const initialFormValues = useMemo(
-    () => mapToForm(editingStudent),
-    [editingStudent, isStudentFormOpen]
-  );
+  const initialFormValues = useMemo(() => mapToForm(editingStudent), [editingStudent]);
 
   const listHeader = useMemo(() => (
-    <View style={styles.heroShadow}>
-      <LinearGradient
-        colors={gradientFor(color, 'panel')}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.heroCard, { borderColor: theme.border }]}
-      >
-        <View style={styles.heroHeader}>
-          <SectionHeader>Students</SectionHeader>
-          <Text style={[styles.heroSub, { color: theme.muted }]}>Search, filter, and manage students.</Text>
+    <Animated.View entering={FadeInDown.duration(800)} style={styles.headerContainer}>
+      <View style={styles.headerTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryPill, { backgroundColor: theme.primary + '15' }]}>
+              <Text style={[styles.summaryText, { color: theme.primary }]}>{totalCount} Members</Text>
+            </View>
+            <Text style={[styles.subtitle, { color: theme.muted }]}>Manage your library database</Text>
+          </View>
         </View>
-        <StudentSearchBar search={search} setSearch={setSearch} onAdd={openCreateForm} theme={theme} />
-        <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
-      </LinearGradient>
-    </View>
-  ), [color, theme, search, filter, openCreateForm]);
+      </View>
+
+      <View style={styles.searchLayer}>
+        <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
+        <View style={{ marginTop: 12 }}>
+          <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
+        </View>
+      </View>
+    </Animated.View>
+  ), [theme, search, filter, totalCount]);
 
   return (
     <SafeScreen>
@@ -240,6 +245,27 @@ export default function StudentsScreen() {
         loadingMore={studentsQuery.isFetchingNextPage}
         isLoading={studentsQuery.isFetching && students.length === 0}
       />
+
+      <Animated.View
+        entering={FadeInUp.delay(1000).duration(800)}
+        style={styles.fabContainer}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={openCreateForm}
+          style={styles.fabTouch}
+        >
+          <LinearGradient
+            colors={[theme.primary, theme.primary + 'CC']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <Ionicons name="add" size={30} color="#fff" />
+            <Text style={styles.fabText}>New Member</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
       <StudentFormModal
         visible={isStudentFormOpen}
@@ -262,6 +288,7 @@ export default function StudentsScreen() {
         onSubmit={savePayment}
         studentName={paymentStudent?.name}
       />
+
       <ConfirmDialog
         visible={Boolean(pendingDelete)}
         title="Delete student?"
@@ -277,22 +304,69 @@ export default function StudentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroShadow: {
-    paddingHorizontal: 4,
-    paddingVertical: 6,
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  heroCard: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
-    gap: 12,
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 20,
   },
-  heroHeader: {
-    gap: 4,
-    marginBottom: 4,
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -1,
   },
-  heroSub: {
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+  },
+  summaryPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  summaryText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  subtitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  searchLayer: {
+    marginBottom: 12,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    borderRadius: 30,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  fabTouch: {
+    borderRadius: 30,
+    overflow: 'hidden',
+  },
+  fabGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    height: 60,
+    gap: 8,
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
   },
 });

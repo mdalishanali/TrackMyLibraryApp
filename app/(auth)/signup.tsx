@@ -4,7 +4,6 @@ import { useForm, Controller } from 'react-hook-form';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,22 +12,37 @@ import {
   Text,
   TextInput,
   View,
+  Dimensions,
 } from 'react-native';
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  FadeInUp,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withDelay
+} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors } from '@/constants/theme';
+import { spacing, radius } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { getErrorMessage, useSignupMutation } from '@/hooks/use-auth-mutations';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import { SignupFormValues, signupSchema } from '@/schemas/auth';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function Signup() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
+  // Setup form
   const {
     control,
     handleSubmit,
@@ -47,16 +61,16 @@ export default function Signup() {
 
   const signupMutation = useSignupMutation();
 
-  // Enhanced color scheme
-  const isDark = colorScheme === 'dark';
-  const surface = isDark ? '#1e293b' : '#ffffff';
-  const background = isDark ? '#0f172a' : '#f8fafc';
-  const inputBackground = isDark ? '#334155' : '#f1f5f9';
-  const borderColor = isDark ? '#475569' : '#e2e8f0';
-  const focusBorderColor = isDark ? '#10b981' : '#0d9488';
-  const mutedText = isDark ? '#94a3b8' : '#64748b';
-  const textColor = Colors[colorScheme].text;
-  const accentColor = isDark ? '#10b981' : '#0d9488';
+  // Animation values
+  const logoScale = useSharedValue(0);
+
+  useEffect(() => {
+    logoScale.value = withDelay(300, withSpring(1, { damping: 12 }));
+  }, []);
+
+  const logoAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: logoScale.value }]
+  }));
 
   const onSubmit = async (values: SignupFormValues) => {
     try {
@@ -67,41 +81,32 @@ export default function Signup() {
     }
   };
 
-  const renderField = (
+  const renderInputField = (
     name: keyof SignupFormValues,
     label: string,
     placeholder: string,
-    options?: {
-      keyboardType?: 'default' | 'email-address' | 'phone-pad';
-      autoCapitalize?: 'none' | 'words';
-      secureTextEntry?: boolean;
-      textContentType?: any;
-      returnKeyType?: 'next' | 'done';
-    }
+    icon: keyof typeof Ionicons.glyphMap,
+    options?: any
   ) => (
-    <View style={styles.field}>
-      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+    <View style={styles.inputGroup}>
+      <Text style={[styles.label, { color: theme.muted }]}>{label}</Text>
       <Controller
         control={control}
         name={name}
         render={({ field: { onChange, onBlur, value } }) => (
-          <View>
+          <View style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: theme.surfaceAlt,
+              borderColor: errors[name] ? '#ef4444' : focusedField === name ? theme.primary : 'transparent',
+              borderWidth: 1.5
+            }
+          ]}>
+            <Ionicons name={icon as any} size={20} color={focusedField === name ? theme.primary : theme.muted} style={styles.inputIcon} />
             <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: errors[name]
-                    ? '#ef4444'
-                    : focusedField === name
-                      ? focusBorderColor
-                      : borderColor,
-                  color: textColor,
-                  backgroundColor: inputBackground,
-                  borderWidth: focusedField === name ? 2 : 1,
-                },
-              ]}
+              style={[styles.input, { color: theme.text }]}
               placeholder={placeholder}
-              placeholderTextColor={mutedText}
+              placeholderTextColor={theme.muted}
               onFocus={() => setFocusedField(name)}
               onBlur={() => {
                 setFocusedField(null);
@@ -111,266 +116,343 @@ export default function Signup() {
               value={value}
               {...options}
             />
+            {name === 'password' && (
+              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={theme.muted}
+                />
+              </Pressable>
+            )}
           </View>
         )}
       />
-      {errors[name]?.message && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>⚠️ {errors[name]?.message}</Text>
-        </View>
+      {errors[name] && (
+        <Text style={styles.errorText}>{errors[name]?.message}</Text>
       )}
     </View>
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: background }]}>
+    <View style={styles.container}>
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={[theme.primary, theme.primary, theme.background]}
+        locations={[0, 0.3, 0.8]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <LinearGradient
+        colors={['rgba(255,255,255,0.1)', 'transparent']}
+        style={[StyleSheet.absoluteFill, { height: '30%' }]}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+      >
         <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }
+          ]}
           keyboardShouldPersistTaps="handled"
-          bounces={false}>
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header Section */}
           <View style={styles.header}>
-            <View style={[styles.logoContainer, { backgroundColor: accentColor }]}>
-              <Text style={styles.logoText}>📚</Text>
-            </View>
-            <Text style={[styles.kicker, { color: accentColor }]}>TRACK MY LIBRARY</Text>
-            <Text style={[styles.title, { color: textColor }]}>Create your account</Text>
-            <Text style={[styles.subtitle, { color: mutedText }]}>
-              Set up your workspace in just a few steps
-            </Text>
+            <Animated.View style={[styles.logoBadge, logoAnimatedStyle]}>
+              <LinearGradient
+                colors={['#fff', '#f0f0f0']}
+                style={styles.logoGradient}
+              >
+                <Ionicons name="library" size={32} color={theme.primary} />
+              </LinearGradient>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.delay(500).duration(800)}>
+              <Text style={styles.kicker}>JOIN THE EXPERTS</Text>
+              <Text style={styles.title}>Get Started</Text>
+              <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
+                Set up your library workspace in seconds.
+              </Text>
+            </Animated.View>
           </View>
 
-          <View style={[styles.card, { backgroundColor: surface }]}>
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Business Details</Text>
-              {renderField('businessName', 'Business name', 'Acme Library Inc.', {
-                returnKeyType: 'next',
-              })}
-              {renderField('businessAddress', 'Business address', '123 Main Street, City', {
-                returnKeyType: 'next',
-              })}
-            </View>
+          {/* Signup Card */}
+          <Animated.View
+            entering={FadeInDown.delay(700).duration(800)}
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.surface === '#ffffff' ? 'rgba(255,255,255,0.92)' : 'rgba(30,41,59,0.95)',
+                borderColor: 'rgba(255,255,255,0.2)'
+              }
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Create Account</Text>
 
-            <View style={styles.divider} />
+            <View style={styles.form}>
+              <Text style={[styles.sectionTitle, { color: theme.primary }]}>Business Details</Text>
 
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Information</Text>
-              {renderField('name', 'Your name', 'Alex Morgan', {
+              {renderInputField('businessName', 'Library Name', 'Golden Square Library', 'business-outline', {
                 autoCapitalize: 'words',
                 returnKeyType: 'next',
               })}
-              {renderField('email', 'Email address', 'alex@example.com', {
-                keyboardType: 'email-address',
+
+              {renderInputField('businessAddress', 'Location', 'City Center, Main St', 'location-outline', {
+                autoCapitalize: 'words',
+                returnKeyType: 'next',
+              })}
+
+              <View style={[styles.divider, { backgroundColor: theme.border, opacity: 0.3 }]} />
+
+              <Text style={[styles.sectionTitle, { color: theme.primary }]}>Personal Info</Text>
+
+              {renderInputField('name', 'Full Name', 'John Doe', 'person-outline', {
+                autoCapitalize: 'words',
+                returnKeyType: 'next',
+              })}
+
+              {renderInputField('email', 'Email Address', 'john@example.com', 'mail-outline', {
                 autoCapitalize: 'none',
+                keyboardType: 'email-address',
                 returnKeyType: 'next',
               })}
-              {renderField('password', 'Password', 'At least 6 characters', {
-                secureTextEntry: true,
-                textContentType: 'newPassword',
-                returnKeyType: 'next',
-              })}
-              {renderField('contactNumber', 'Contact number', '+1 (555) 123-4567', {
+
+              {renderInputField('contactNumber', 'Phone Number', '+91 98765 43210', 'call-outline', {
                 keyboardType: 'phone-pad',
+                returnKeyType: 'next',
+              })}
+
+              {renderInputField('password', 'Password', 'Min. 6 characters', 'lock-closed-outline', {
+                secureTextEntry: !showPassword,
                 returnKeyType: 'done',
               })}
+
+              {/* Submit Button */}
+              <Pressable
+                onPress={handleSubmit(onSubmit)}
+                disabled={signupMutation.isPending}
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  { 
+                    backgroundColor: theme.primary,
+                    opacity: signupMutation.isPending ? 0.7 : 1,
+                    transform: [{ scale: pressed ? 0.98 : 1 }]
+                  }
+                ]}
+              >
+                {signupMutation.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.submitBtnText}>Create My Workspace</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                  </>
+                )}
+              </Pressable>
+
+              {/* Login Link */}
+              <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: theme.muted }]}>Have an account?</Text>
+                <Link href="/(auth)/login" replace={isAuthenticated} asChild>
+                  <Pressable>
+                    <Text style={[styles.signInLink, { color: theme.primary }]}>Sign In</Text>
+                  </Pressable>
+                </Link>
+              </View>
             </View>
+          </Animated.View>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleSubmit(onSubmit)}
-              disabled={signupMutation.isPending}
-              style={({ pressed }) => [
-                styles.button,
-                {
-                  backgroundColor: accentColor,
-                  opacity: signupMutation.isPending ? 0.7 : pressed ? 0.9 : 1,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                },
-              ]}>
-              {signupMutation.isPending ? (
-                <View style={styles.buttonContent}>
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.buttonText}>Creating account...</Text>
-                </View>
-              ) : (
-                <Text style={styles.buttonText}>Create account →</Text>
-              )}
-            </Pressable>
-
-            <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: mutedText }]}>Already have an account?</Text>
-              <Link href="/(auth)/login" replace={isAuthenticated} asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <Text
-                      style={[
-                        styles.footerLink,
-                        {
-                          color: accentColor,
-                          opacity: pressed ? 0.7 : 1,
-                        },
-                      ]}>
-                      Sign in
-                    </Text>
-                  )}
-                </Pressable>
-              </Link>
-            </View>
-          </View>
-
-          <Text style={[styles.disclaimer, { color: mutedText }]}>
-            By creating an account, you agree to our Terms of Service and Privacy Policy
-          </Text>
+          {/* Security Indicator */}
+          <Animated.View
+            entering={FadeInDown.delay(1000).duration(800)}
+            style={styles.securityInfo}
+          >
+            <Ionicons
+              name="shield-checkmark"
+              size={14}
+              color={theme.surface === '#ffffff' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
+            />
+            <Text style={[
+              styles.securityText,
+              { color: theme.surface === '#ffffff' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.5)' }
+            ]}>
+              AES-256 Bit Encrypted Connection
+            </Text>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safeArea: { flex: 1 },
-  contentContainer: {
+  container: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
-    gap: 12,
+    marginBottom: spacing.xl,
   },
-  logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+  logoBadge: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    marginBottom: spacing.lg,
+    padding: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoGradient: {
+    flex: 1,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  logoText: {
-    fontSize: 32,
   },
   kicker: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 4,
+    opacity: 0.8,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
+    color: '#fff',
+    fontSize: 34,
+    fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 15,
     textAlign: 'center',
-    lineHeight: 22,
+    marginTop: 8,
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
   card: {
-    borderRadius: 24,
-    padding: 24,
-    gap: 24,
+    padding: spacing.xl,
+    borderRadius: radius.xxl,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 20,
   },
-  section: {
-    gap: 16,
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: spacing.xl,
+  },
+  form: {
+    gap: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: -4,
   },
   divider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
-    marginVertical: 4,
+    marginVertical: spacing.xs,
   },
-  field: {
-    gap: 8,
+  inputGroup: {
+    gap: 6,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    paddingHorizontal: 14,
+    height: 56,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    flex: 1,
     fontSize: 16,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-    marginLeft: 4,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#ef4444',
     fontWeight: '500',
   },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+  eyeBtn: {
+    padding: 10,
   },
-  buttonContent: {
+  errorText: {
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+    marginLeft: 4,
+  },
+  submitBtn: {
+    height: 58,
+    borderRadius: radius.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  buttonText: {
+  submitBtnText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: spacing.sm,
     gap: 6,
-    paddingTop: 8,
   },
   footerText: {
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: '500',
   },
-  footerLink: {
-    fontSize: 15,
-    fontWeight: '700',
+  signInLink: {
+    fontSize: 14,
+    fontWeight: '800',
   },
-  disclaimer: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 24,
-    lineHeight: 18,
-    paddingHorizontal: 20,
+  securityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xl,
+    gap: 6,
+  },
+  securityText: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });
