@@ -1,18 +1,32 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useCallback } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInUp, FadeInDown, Layout } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
-import { AppCard } from '@/components/ui/app-card';
-import { gradientFor, spacing, typography } from '@/constants/design';
+import { spacing, radius, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { showToast } from '@/lib/toast';
+
+const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -33,107 +47,149 @@ export default function ProfileScreen() {
 
   const onSaveProfile = async () => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await updateProfile.mutateAsync({ name, email, contactNumber, businessName, businessAddress });
       showToast('Profile updated', 'success');
     } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showToast((error as Error).message || 'Unable to update profile', 'error');
     }
   };
 
   return (
     <SafeScreen>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
-      >
-        <ScrollView
-          contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <LinearGradient
-            colors={gradientFor(colorScheme, 'panel')}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.hero, { borderColor: theme.border }]}
-          >
-            <View style={styles.heroTop}>
-              <Pressable
-                onPress={() => router.back()}
-                accessibilityRole="button"
-                style={[styles.iconButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              >
-                <Ionicons name="chevron-back" size={18} color={theme.text} />
-              </Pressable>
-              <Text style={[styles.heroTitle, { color: theme.text }]}>Profile</Text>
-              <View style={[styles.iconButton, { opacity: 0 }]} />
-            </View>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <LinearGradient
+          colors={[theme.primary + '10', 'transparent']}
+          style={StyleSheet.absoluteFill}
+        />
 
-            <View style={styles.profileRow}>
-              <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
-                <Text style={[styles.avatarText, { color: theme.text }]}>
-                  {(name || user?.name || 'A').slice(0, 2).toUpperCase()}
-                </Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header */}
+            <Animated.View entering={FadeInUp.duration(600)} style={styles.header}>
+              <View style={styles.headerTop}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.back();
+                  }}
+                  style={({ pressed }) => [
+                    styles.backBtn,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                    pressed && { opacity: 0.7, transform: [{ scale: 0.9 }] }
+                  ]}
+                >
+                  <Ionicons name="chevron-back" size={20} color={theme.text} />
+                </Pressable>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
+                <View style={{ width: 44 }} />
               </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-                  {name || 'Your Name'}
-                </Text>
-                <Text style={[styles.subText, { color: theme.muted }]} numberOfLines={1}>
-                  {email || user?.email || 'Add an email to receive receipts'}
-                </Text>
-                <View style={[styles.badge, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                  <Ionicons name="shield-checkmark-outline" size={14} color={theme.text} />
-                  <Text style={{ color: theme.text, fontWeight: '700' }}>Account Owner</Text>
+
+              {/* Premium Hero Card */}
+              <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <LinearGradient
+                  colors={[theme.primary + '15', 'transparent']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.heroContent}>
+                  <View style={[styles.avatarBox, { backgroundColor: theme.primary + '20', borderColor: theme.border }]}>
+                    <Text style={[styles.avatarText, { color: theme.primary }]}>
+                      {(name || user?.name || 'A').slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.heroMeta}>
+                    <Text style={[styles.heroName, { color: theme.text }]} numberOfLines={1}>
+                      {name || 'Add Name'}
+                    </Text>
+                    <Text style={[styles.heroEmail, { color: theme.muted }]} numberOfLines={1}>
+                      {email || user?.email || 'No email provided'}
+                    </Text>
+                    <View style={[styles.badge, { backgroundColor: theme.surfaceAlt }]}>
+                      <Ionicons name="shield-checkmark" size={12} color={theme.primary} />
+                      <Text style={[styles.badgeText, { color: theme.primary }]}>Account Owner</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
+            </Animated.View>
+
+            <View style={styles.form}>
+              <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Basic Info</Text>
+              </Animated.View>
+
+              <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.inputGroup}>
+                <Field label="Full Name" value={name} onChangeText={setName} theme={theme} placeholder="Enter your name" icon="person-outline" />
+                <Field
+                  label="Email Address"
+                  value={email}
+                  onChangeText={setEmail}
+                  theme={theme}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholder="you@company.com"
+                  icon="mail-outline"
+                />
+                <Field
+                  label="Phone Number"
+                  value={contactNumber}
+                  onChangeText={setContactNumber}
+                  theme={theme}
+                  keyboardType="phone-pad"
+                  placeholder="Contact number"
+                  icon="call-outline"
+                />
+              </Animated.View>
+
+              <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Business Details</Text>
+              </Animated.View>
+
+              <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.inputGroup}>
+                <Field
+                  label="Library Name"
+                  value={businessName}
+                  onChangeText={setBusinessName}
+                  theme={theme}
+                  placeholder="Library / Institution name"
+                  icon="business-outline"
+                />
+                <Field
+                  label="Full Address"
+                  value={businessAddress}
+                  onChangeText={setBusinessAddress}
+                  theme={theme}
+                  placeholder="Street, City, State"
+                  icon="location-outline"
+                  multiline
+                />
+              </Animated.View>
+
+              <Animated.View
+                entering={FadeInDown.delay(600).duration(600)}
+                style={{ marginTop: spacing.xl, marginBottom: 40 }}
+              >
+                <AppButton
+                  onPress={onSaveProfile}
+                  loading={updateProfile.isPending}
+                  fullWidth
+                >
+                  Save Profile Changes
+                </AppButton>
+              </Animated.View>
             </View>
-          </LinearGradient>
-
-          <AppCard style={[styles.card, { borderColor: theme.border }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Basic Info</Text>
-            <Field label="Name" value={name} onChangeText={setName} theme={theme} placeholder="Enter your name" />
-            <Field
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              theme={theme}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholder="you@company.com"
-            />
-            <Field
-              label="Phone"
-              value={contactNumber}
-              onChangeText={setContactNumber}
-              theme={theme}
-              keyboardType="phone-pad"
-              placeholder="Contact number"
-            />
-
-            <Text style={[styles.sectionTitle, { color: theme.text, marginTop: spacing.md }]}>Business</Text>
-            <Field
-              label="Business Name"
-              value={businessName}
-              onChangeText={setBusinessName}
-              theme={theme}
-              placeholder="Library / Institution name"
-            />
-            <Field
-              label="Business Address"
-              value={businessAddress}
-              onChangeText={setBusinessAddress}
-              theme={theme}
-              placeholder="Street, City"
-            />
-
-            <AppButton onPress={onSaveProfile} loading={updateProfile.isPending} style={{ marginTop: spacing.lg }}>
-              Save Profile
-            </AppButton>
-          </AppCard>
         </ScrollView>
       </KeyboardAvoidingView>
+      </View>
     </SafeScreen>
   );
 }
@@ -146,116 +202,169 @@ type FieldProps = {
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   placeholder?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  multiline?: boolean;
 };
 
-const Field = ({ label, value, onChangeText, theme, keyboardType = 'default', autoCapitalize, placeholder }: FieldProps) => (
-  <View style={{ gap: spacing.xs }}>
-    <Text style={[styles.label, { color: theme.muted }]}>{label}</Text>
-    <TextInput
-      value={value}
-      onChangeText={onChangeText}
-      keyboardType={keyboardType}
-      autoCapitalize={autoCapitalize}
-      placeholder={placeholder}
-      placeholderTextColor={theme.muted}
-      style={[
-        styles.input,
+const Field = ({ label, value, onChangeText, theme, keyboardType = 'default', autoCapitalize, placeholder, icon, multiline }: FieldProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  return (
+    <View style={{ gap: 8, marginBottom: 4 }}>
+      <Text style={[styles.label, { color: theme.muted }]}>{label.toUpperCase()}</Text>
+      <View style={[
+        styles.inputContainer,
         {
-          borderColor: theme.border,
-          color: theme.text,
           backgroundColor: theme.surface,
-        },
-      ]}
-    />
-  </View>
-);
+          borderColor: isFocused ? theme.primary : theme.border,
+        }
+      ]}>
+        {icon && <Ionicons name={icon} size={20} color={isFocused ? theme.primary : theme.muted} style={{ marginLeft: 12 }} />}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          placeholder={placeholder}
+          placeholderTextColor={theme.muted + '80'}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          multiline={multiline}
+          style={[
+            styles.input,
+            { color: theme.text, height: multiline ? 80 : 50 }
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
+  container: { flex: 1 },
+  scrollContent: {
+    paddingBottom: 40,
   },
-  hero: {
-    borderWidth: 1,
-    borderRadius: spacing.xl,
-    padding: spacing.md,
-    gap: spacing.md,
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    gap: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  heroTop: {
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  heroTitle: {
-    fontSize: typography.size.xl,
-    fontWeight: '800',
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
-  profileRow: {
+  heroCard: {
+    padding: spacing.lg,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  heroContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.lg,
   },
-  avatar: {
+  avatarBox: {
     width: 64,
     height: 64,
-    borderRadius: 18,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
   avatarText: {
-    fontSize: typography.size.lg,
+    fontSize: 24,
     fontWeight: '800',
   },
-  name: {
-    fontSize: typography.size.lg,
+  heroMeta: {
+    flex: 1,
+    gap: 4,
+  },
+  heroName: {
+    fontSize: 20,
     fontWeight: '800',
   },
-  subText: {
-    fontSize: typography.size.sm,
+  heroEmail: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.md,
-    borderWidth: 1,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     alignSelf: 'flex-start',
+    marginTop: 4,
   },
-  card: {
-    gap: spacing.md,
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  title: {
-    fontSize: typography.size.xl,
-    fontWeight: '700',
+  form: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.xl,
   },
-  meta: {
-    fontSize: typography.size.md,
-  },
-  label: {
-    fontSize: typography.size.xs,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  sectionHeader: {
+    marginBottom: -8,
   },
   sectionTitle: {
-    fontSize: typography.size.md,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    opacity: 0.6,
+  },
+  inputGroup: {
+    gap: spacing.lg,
+  },
+  label: {
+    fontSize: 11,
     fontWeight: '800',
+    letterSpacing: 1,
+    opacity: 0.5,
+    marginLeft: 4,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  input: {
+    flex: 1,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
