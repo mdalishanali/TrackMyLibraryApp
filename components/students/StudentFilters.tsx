@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import { ScrollView, Text, StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { spacing, radius, typography } from '@/constants/design';
 
@@ -27,20 +28,24 @@ const StudentFilters = memo(({ selected, setSelected, theme }: { selected: strin
         {FILTERS.map(({ value, label, icon }) => {
           const active = selected === value;
           return (
-            <TouchableOpacity
+            <Pressable
               key={value}
-              onPress={() => setSelected(value)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={[
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelected(value);
+              }}
+              style={({ pressed }) => [
                 styles.chip,
                 {
-                  backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                  backgroundColor: active ? theme.primary : theme.surface,
                   borderColor: active ? theme.primary : theme.border,
-                  shadowColor: active ? theme.primary : 'transparent',
-                  shadowOpacity: active ? 0.18 : 0,
-                  shadowRadius: active ? 8 : 0,
-                  shadowOffset: { width: 0, height: active ? 4 : 0 },
+                  opacity: pressed ? 0.8 : 1,
+                  shadowColor: active ? theme.primary : '#000',
+                  shadowOpacity: active ? 0.2 : 0.03,
+                  shadowRadius: active ? 10 : 4,
+                  shadowOffset: { width: 0, height: 4 },
                 },
+                active && styles.activeChip
               ]}
             >
               <Ionicons
@@ -51,13 +56,14 @@ const StudentFilters = memo(({ selected, setSelected, theme }: { selected: strin
               <Text
                 style={{
                   color: active ? '#fff' : theme.text,
-                  fontWeight: '700',
-                  fontSize: typography.size.sm,
+                  fontWeight: '800',
+                  fontSize: 13,
+                  letterSpacing: 0.3,
                 }}
               >
-                {label}
+                {label.toUpperCase()}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -69,23 +75,27 @@ export default StudentFilters;
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: spacing.md,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xs,
+    gap: 12,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.lg,
-    borderWidth: 1,
+    gap: 10,
+    paddingHorizontal: 20,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    elevation: 2,
   },
+  activeChip: {
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  }
 });

@@ -207,22 +207,21 @@ export default function StudentsScreen() {
   const initialFormValues = useMemo(() => mapToForm(editingStudent), [editingStudent]);
 
   const listHeader = useMemo(() => (
-    <Animated.View entering={FadeInDown.duration(800)} style={styles.headerContainer}>
+    <Animated.View entering={FadeInDown.duration(800)} style={styles.header}>
       <View style={styles.headerTop}>
         <View style={{ flex: 1 }}>
+          <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
           <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
-          <View style={styles.summaryRow}>
-            <View style={[styles.summaryPill, { backgroundColor: theme.primary + '15' }]}>
-              <Text style={[styles.summaryText, { color: theme.primary }]}>{totalCount} Members</Text>
-            </View>
-            <Text style={[styles.subtitle, { color: theme.muted }]}>Manage your library database</Text>
-          </View>
+        </View>
+        <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
+          <Text style={[styles.countVal, { color: theme.primary }]}>{totalCount}</Text>
+          <Text style={[styles.countUnit, { color: theme.primary }]}>PROFILES</Text>
         </View>
       </View>
 
       <View style={styles.searchLayer}>
         <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
-        <View style={{ marginTop: 12 }}>
+        <View style={styles.filterRow}>
           <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
         </View>
       </View>
@@ -304,69 +303,76 @@ export default function StudentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.lg,
+  },
+  headerPreTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 2,
   },
   headerTop: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -1,
   },
-  summaryRow: {
-    flexDirection: 'row',
+  countBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
     alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
+    gap: 2,
   },
-  summaryPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 8,
+  countVal: {
+    fontSize: 18,
+    fontWeight: '900',
   },
-  summaryText: {
-    fontSize: 12,
+  countUnit: {
+    fontSize: 8,
     fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '500',
+    letterSpacing: 1,
   },
   searchLayer: {
-    marginBottom: 12,
+    gap: spacing.md,
+  },
+  filterRow: {
+    marginTop: 4,
   },
   fabContainer: {
     position: 'absolute',
     bottom: 30,
-    right: 20,
-    borderRadius: 30,
+    right: 24,
+    zIndex: 100,
+  },
+  fabTouch: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
   },
-  fabTouch: {
-    borderRadius: 30,
-    overflow: 'hidden',
-  },
   fabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    height: 60,
-    gap: 8,
+    paddingHorizontal: 22,
+    height: 64,
+    gap: 10,
   },
   fabText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '900',
+    letterSpacing: -0.5,
   },
 });

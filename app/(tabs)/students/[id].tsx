@@ -4,7 +4,9 @@ import { StyleSheet, Text, View, ScrollView, NativeSyntheticEvent, NativeScrollE
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Pressable } from 'react-native';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppBadge } from '@/components/ui/app-badge';
@@ -131,22 +133,34 @@ export default function StudentDetailScreen() {
           style={styles.bgGradient}
         />
 
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
+            style={({ pressed }) => [
+              styles.headerBtn,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && { opacity: 0.7 }
+            ]}
           >
             <Ionicons name="chevron-back" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => router.push({ pathname: '/(tabs)/students', params: { search: student.name } })}
-            style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          </Pressable>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Member Profile</Text>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push({ pathname: '/(tabs)/students', params: { search: student.name } });
+            }}
+            style={({ pressed }) => [
+              styles.headerBtn,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && { opacity: 0.7 }
+            ]}
           >
             <Ionicons name="search" size={20} color={theme.text} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         <ScrollView
@@ -159,96 +173,103 @@ export default function StudentDetailScreen() {
           scrollEventThrottle={200}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View entering={FadeInDown.duration(600)}>
-            <AppCard style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={styles.profileMain}>
-                <TouchableOpacity
+          <Animated.View entering={FadeInDown.duration(800)}>
+            <LinearGradient
+              colors={[theme.surface, theme.surface]}
+              style={[styles.heroCard, { borderColor: theme.border }]}
+            >
+              <View style={styles.heroMain}>
+                <Pressable
                   onPress={() => student.profilePicture && setPreviewVisible(true)}
-                  activeOpacity={0.8}
-                  style={[styles.avatarContainer, { shadowColor: theme.primary }]}
+                  style={({ pressed }) => [
+                    styles.avatarWrapper,
+                    { shadowColor: theme.primary },
+                    pressed && { transform: [{ scale: 0.95 }] }
+                  ]}
                 >
-                  <View style={[styles.avatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+                  <View style={[styles.heroAvatar, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
                     {student.profilePicture ? (
-                      <>
-                        <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} contentFit="cover" />
-                        <View style={[styles.expandOverlay, { backgroundColor: theme.primary }]}>
-                          <Ionicons name="expand" size={12} color="#fff" />
-                        </View>
-                      </>
+                      <Image source={{ uri: student.profilePicture }} style={styles.fullImg} contentFit="cover" />
                     ) : (
                       <Text style={[styles.avatarText, { color: theme.primary }]}>
                         {student.name?.[0]?.toUpperCase() || 'S'}
                       </Text>
                     )}
                   </View>
-                </TouchableOpacity>
-
-                <View style={styles.profileInfo}>
-                  <Text style={[styles.profileName, { color: theme.text }]}>{student.name}</Text>
-                  <View style={styles.idBadge}>
-                    <Text style={[styles.idText, { color: theme.muted }]}>MEMBER ID: {student.id || '—'}</Text>
+                  <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]}>
+                    <Ionicons name="camera" size={10} color="#fff" />
                   </View>
-                  <View style={styles.statusRow}>
-                    <AppBadge tone={student.status === 'Active' ? 'success' : 'warning'}>
-                      {student.status?.toUpperCase() || 'ACTIVE'}
-                    </AppBadge>
-                    <View style={[styles.miniPill, { backgroundColor: theme.surfaceAlt }]}>
-                      <Ionicons name="time-outline" size={12} color={theme.primary} />
-                      <Text style={[styles.miniPillText, { color: theme.text }]}>{student.shift || '—'}</Text>
+                </Pressable>
+
+                <View style={styles.heroMeta}>
+                  <Text style={[styles.heroName, { color: theme.text }]}>{student.name}</Text>
+                  <View style={styles.heroRow}>
+                    <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.warning) + '15' }]}>
+                      <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.warning }]} />
+                      <Text style={[styles.statusText, { color: student.status === 'Active' ? theme.success : theme.warning }]}>
+                        {student.status?.toUpperCase() || 'ACTIVE'}
+                      </Text>
                     </View>
+                    <Text style={[styles.heroId, { color: theme.muted }]}>ID: {student.id || '—'}</Text>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.statsGrid}>
-                <View style={[styles.statItem, { backgroundColor: theme.surfaceAlt }]}>
+              <View style={styles.heroStats}>
+                <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
+                  <Text style={[styles.statValue, { color: theme.text }]}>{student.seatNumber ? `#${student.seatNumber}` : '—'}</Text>
                   <Text style={[styles.statLabel, { color: theme.muted }]}>SEAT</Text>
-                  <Text style={[styles.statValue, { color: theme.text }]}>
-                    {student.seatNumber ? `#${student.seatNumber}` : '—'}
-                  </Text>
                 </View>
-                <View style={[styles.statItem, { backgroundColor: theme.surfaceAlt }]}>
-                  <Text style={[styles.statLabel, { color: theme.muted }]}>JOINED</Text>
-                  <Text style={[styles.statValue, { color: theme.text }]}>
-                    {formatDate(student.joiningDate)}
-                  </Text>
+                <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
+                  <Text style={[styles.statValue, { color: theme.text }]}>{student.shift || '—'}</Text>
+                  <Text style={[styles.statLabel, { color: theme.muted }]}>SHIFT</Text>
                 </View>
-                <View style={[styles.statItem, { backgroundColor: theme.surfaceAlt }]}>
-                  <Text style={[styles.statLabel, { color: theme.muted }]}>FEES</Text>
-                  <Text style={[styles.statValue, { color: theme.primary }]}>
-                    {formatCurrency(student.fees || 0)}
-                  </Text>
+                <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
+                  <Text style={[styles.statValue, { color: theme.primary }]}>{formatCurrency(student.fees || 0)}</Text>
+                  <Text style={[styles.statLabel, { color: theme.muted }]}>MONTHLY</Text>
                 </View>
               </View>
 
-              <View style={styles.profileActions}>
-                <TouchableOpacity
-                  onPress={openPayment}
-                  style={[styles.primaryAction, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+              <View style={styles.heroActions}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    openPayment();
+                  }}
+                  style={({ pressed }) => [
+                    styles.payBtn,
+                    { backgroundColor: theme.primary },
+                    pressed && { opacity: 0.8 }
+                  ]}
                 >
                   <Ionicons name="wallet-outline" size={20} color="#fff" />
-                  <Text style={styles.primaryActionText}>Record Payment</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setConfirmStudentDelete(true)}
-                  style={[styles.secondaryAction, { backgroundColor: theme.danger + '10' }]}
+                  <Text style={styles.payBtnText}>Record Payment</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setConfirmStudentDelete(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.delBtn,
+                    { backgroundColor: theme.danger + '10' },
+                    pressed && { opacity: 0.7 }
+                  ]}
                 >
                   <Ionicons name="trash-outline" size={20} color={theme.danger} />
-                </TouchableOpacity>
+                </Pressable>
               </View>
-            </AppCard>
+            </LinearGradient>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(200).duration(600)}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Contact Details</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Bio & Space</Text>
+            <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
+              <DetailRow icon="business" label="Workspace" value={student.seatNumber ? `Level ${student.floor || '1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
+              <DetailRow icon="time" label="Schedule" value={student.shift || 'Morning Shift'} theme={theme} />
+              <DetailRow icon="calendar" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last />
             </View>
-            <AppCard style={[styles.detailsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <DetailRow icon="call-outline" label="Phone Number" value={student.number} theme={theme} />
-              <DetailRow icon="home-outline" label="Library Seat" value={student.seatNumber ? `Floor ${student.floor || '—'} / Seat ${student.seatNumber}` : 'Not Allocated'} theme={theme} />
-              <DetailRow icon="calendar-outline" label="Enrollment Date" value={formatDate(student.joiningDate)} theme={theme} />
-              <DetailRow icon="card-outline" label="Current Status" value={student.paymentStatus || 'Up-to-date'} theme={theme} last />
-            </AppCard>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(400).duration(600)}>
@@ -267,38 +288,49 @@ export default function StudentDetailScreen() {
               paymentsQuery.data.pages.flatMap(p => p.payments).map((payment, idx) => (
                 <View
                   key={payment._id} 
-                  style={[styles.historyItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  style={[styles.paymentCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
                 >
-                  <View style={styles.historyHeader}>
-                    <View>
-                      <Text style={[styles.historyAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
-                      <Text style={[styles.historyDate, { color: theme.muted }]}>{formatDate(payment.paymentDate)}</Text>
+                  <View style={styles.paymentCardHeader}>
+                    <View style={styles.payMain}>
+                      <Text style={[styles.payAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
+                      <View style={[styles.payModePill, { backgroundColor: theme.primary + '10' }]}>
+                        <Ionicons name={payment.paymentMode === 'cash' ? 'cash' : 'phone-portrait'} size={10} color={theme.primary} />
+                        <Text style={[styles.payModeText, { color: theme.primary }]}>{payment.paymentMode?.toUpperCase() || 'CASH'}</Text>
+                      </View>
                     </View>
-                    <AppBadge tone="success" style={{ borderRadius: 6 }}>{payment.paymentMode?.toUpperCase() || 'CASH'}</AppBadge>
+                    <View style={styles.payActions}>
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          startEditPayment(payment);
+                        }}
+                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                      >
+                        <Ionicons name="create-outline" size={18} color={theme.primary} />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => setDeleteTarget(payment._id)}
+                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={theme.danger} />
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={[styles.historyPeriod, { backgroundColor: theme.surfaceAlt }]}>
-                    <Ionicons name="calendar-outline" size={14} color={theme.muted} />
-                    <Text style={[styles.periodText, { color: theme.text }]}>
-                      {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
-                    </Text>
-                  </View>
-                  <View style={styles.historyActions}>
-                    <TouchableOpacity onPress={() => startEditPayment(payment)} style={styles.histBtn}>
-                      <Ionicons name="create-outline" size={18} color={theme.primary} />
-                      <Text style={[styles.histBtnText, { color: theme.primary }]}>Edit</Text>
-                    </TouchableOpacity>
-                    <View style={[styles.histDivider, { backgroundColor: theme.border }]} />
-                    <TouchableOpacity onPress={() => setDeleteTarget(payment._id)} style={styles.histBtn}>
-                      <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                      <Text style={[styles.histBtnText, { color: theme.danger }]}>Delete</Text>
-                    </TouchableOpacity>
+                  <View style={[styles.payBody, { backgroundColor: theme.surfaceAlt }]}>
+                    <View style={styles.payRow}>
+                      <Ionicons name="calendar-outline" size={14} color={theme.muted} />
+                      <Text style={[styles.payDateText, { color: theme.text }]}>
+                        {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
+                      </Text>
+                    </View>
+                    <Text style={[styles.payStatusText, { color: theme.muted }]}>Paid {formatDate(payment.paymentDate)}</Text>
                   </View>
                 </View>
               ))
             ) : (
-              <View style={[styles.emptyHistory, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
-                <Ionicons name="receipt-outline" size={48} color={theme.muted + '40'} />
-                <Text style={{ color: theme.muted, fontWeight: '600', marginTop: 12 }}>No payment records found.</Text>
+                <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Ionicons name="receipt-outline" size={48} color={theme.muted + '20'} />
+                  <Text style={[styles.emptyText, { color: theme.muted }]}>No transaction history</Text>
               </View>
             )}
 
@@ -375,205 +407,195 @@ function DetailRow({ icon, label, value, theme, last }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-  },
+  container: { flex: 1 },
+  sectionHeader: { marginBottom: 16 },
   bgGradient: {
     ...StyleSheet.absoluteFillObject,
-    height: 300,
+    height: 400,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
     justifyContent: 'space-between',
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  headerBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   content: {
-    paddingHorizontal: spacing.lg,
-    gap: 24,
+    paddingHorizontal: spacing.xl,
+    gap: 32,
   },
-  profileCard: {
-    borderRadius: 32,
+  heroCard: {
+    borderRadius: 36,
+    borderWidth: 1.5,
     padding: spacing.xl,
     gap: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 4,
   },
-  profileMain: {
+  heroMain: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
   },
-  avatarContainer: {
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+  avatarWrapper: {
+    position: 'relative',
   },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 28,
-    borderWidth: 3,
+  heroAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 32,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarImg: {
+  fullImg: {
     width: '100%',
     height: '100%',
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
   },
-  expandOverlay: {
+  avatarBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderTopLeftRadius: 10,
+    bottom: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
-  profileInfo: {
+  heroMeta: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
-  profileName: {
-    fontSize: 24,
+  heroName: {
+    fontSize: 26,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
-  idBadge: {
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  idText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  statusRow: {
+  heroRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  miniPill: {
+  statusTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: 6,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  miniPillText: {
-    fontSize: 12,
-    fontWeight: '700',
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  statsGrid: {
+  statusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  heroId: {
+    fontSize: 11,
+    fontWeight: '800',
+    opacity: 0.6,
+  },
+  heroStats: {
     flexDirection: 'row',
     gap: 12,
   },
-  statItem: {
+  statBox: {
     flex: 1,
-    padding: 12,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 20,
     alignItems: 'center',
     gap: 4,
   },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
   statLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  statValue: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  profileActions: {
+  heroActions: {
     flexDirection: 'row',
     gap: 12,
   },
-  primaryAction: {
+  payBtn: {
     flex: 1,
+    height: 56,
+    borderRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    gap: 10,
   },
-  primaryActionText: {
+  payBtnText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '800',
   },
-  secondaryAction: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+  delBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectionHeader: {
-    marginBottom: 12,
-  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.5,
+    marginBottom: 16,
   },
-  detailsCard: {
-    borderRadius: 24,
-    padding: spacing.xs,
+  detailsContainer: {
+    borderRadius: 32,
+    borderWidth: 1.5,
+    paddingVertical: spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
+    padding: spacing.lg,
     gap: 16,
   },
   detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    opacity: 0.5,
   },
   detailValue: {
     fontSize: 15,
@@ -581,75 +603,93 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   countText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  historyItem: {
-    borderRadius: 24,
-    padding: spacing.lg,
-    gap: 12,
-    marginBottom: 12,
-    borderWidth: 1.5,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  historyAmount: {
-    fontSize: 20,
+    fontSize: 13,
     fontWeight: '900',
   },
-  historyDate: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
+  paymentCard: {
+    borderRadius: 32,
+    borderWidth: 1.5,
+    padding: spacing.lg,
+    gap: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  historyPeriod: {
+  paymentCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  payMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  payAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  payModePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  payModeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  payActions: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  payIconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payBody: {
+    padding: 16,
+    borderRadius: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  payRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 12,
-    borderRadius: 14,
   },
-  periodText: {
+  payDateText: {
     fontSize: 13,
     fontWeight: '700',
   },
-  historyActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.03)',
-    paddingTop: 8,
-  },
-  histBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-  },
-  histBtnText: {
-    fontSize: 13,
+  payStatusText: {
+    fontSize: 12,
     fontWeight: '800',
   },
-  histDivider: {
-    width: 1,
-    height: 20,
-    opacity: 0.1,
-  },
-  emptyHistory: {
-    padding: 40,
-    borderRadius: 24,
+  emptyState: {
+    padding: 60,
+    borderRadius: 32,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderStyle: 'dashed',
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
