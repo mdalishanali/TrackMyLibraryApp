@@ -8,27 +8,26 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
   Dimensions,
   Pressable,
 } from 'react-native';
-import Animated, { FadeInUp, FadeInDown, Layout } from 'react-native-reanimated';
+import Animated, {
+  FadeInUp,
+  FadeInDown,
+  Layout,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
-import { AppBadge } from '@/components/ui/app-badge';
-import { AppButton } from '@/components/ui/app-button';
 import { PaymentFormModal, PaymentFormValues } from '@/components/students/payment-form-modal';
-import { radius, spacing, typography } from '@/constants/design';
+import { spacing } from '@/constants/design';
 import { useTheme } from '@/hooks/use-theme';
 import { useCreatePayment, useInfinitePaymentsQuery } from '@/hooks/use-payments';
 import { useStudentsQuery } from '@/hooks/use-students';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-const { width } = Dimensions.get('window');
 
 const monthOptions = [
   { label: 'Jan', value: '1' },
@@ -50,7 +49,6 @@ const yearOptions = [currentYear.toString(), (currentYear + 1).toString()];
 
 export default function PaymentsScreen() {
   const theme = useTheme();
-  const colorScheme = useColorScheme();
   const studentsQuery = useStudentsQuery();
   const createPayment = useCreatePayment();
 
@@ -70,7 +68,6 @@ export default function PaymentsScreen() {
   const [paymentDefaults, setPaymentDefaults] = useState<PaymentFormValues>(buildPaymentDefaults());
   const [selectedYear, setSelectedYear] = useState<string | null>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string | null>((new Date().getMonth() + 1).toString());
-  const [modeFilter, setModeFilter] = useState<'cash' | 'upi' | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -83,11 +80,10 @@ export default function PaymentsScreen() {
     () => ({
       year: selectedYear || undefined,
       month: selectedMonth || undefined,
-      paymentMode: modeFilter || undefined,
       search: debouncedSearch || undefined,
       limit: 10,
     }),
-    [selectedYear, selectedMonth, modeFilter, debouncedSearch]
+    [selectedYear, selectedMonth, debouncedSearch]
   );
 
   const paymentsQuery = useInfinitePaymentsQuery(filterParams);
@@ -119,7 +115,6 @@ export default function PaymentsScreen() {
   const clearFilters = () => {
     setSelectedYear(currentYear.toString());
     setSelectedMonth((new Date().getMonth() + 1).toString());
-    setModeFilter(null);
     setSearch('');
     setDebouncedSearch('');
   };
@@ -132,12 +127,16 @@ export default function PaymentsScreen() {
 
   const isInitialLoading = paymentsQuery.isLoading && payments.length === 0;
 
+  const totalRevenue = useMemo(() =>
+    payments.reduce((acc, p) => acc + (p.rupees || 0), 0),
+    [payments]);
+
   return (
     <SafeScreen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
-          colors={[theme.primary + '08', 'transparent']}
-          style={styles.bgGradient}
+          colors={[theme.primary + '10', 'transparent', 'transparent']}
+          style={StyleSheet.absoluteFill}
         />
 
         <FlatList
@@ -145,43 +144,54 @@ export default function PaymentsScreen() {
           keyExtractor={(item) => (item._id?.toString() || Math.random().toString())}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
+          stickyHeaderIndices={[0]}
           ListHeaderComponent={
-            <View style={styles.listHeader}>
-              <Animated.View entering={FadeInUp.duration(600)} style={styles.headerTop}>
-                <View>
-                  <Text style={[styles.title, { color: theme.text }]}>Revenue</Text>
-                  <Text style={[styles.subtitle, { color: theme.muted }]}>Track and manage student fees</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.addBtn, { backgroundColor: theme.primary }]}
-                  onPress={() => openPaymentModal()}
-                >
-                  <Ionicons name="add" size={24} color="#fff" />
-                </TouchableOpacity>
-              </Animated.View>
-
-              <Animated.View entering={FadeInUp.delay(200).duration(600)} style={[styles.filterCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.searchBar}>
-                  <Ionicons name="search" size={20} color={theme.muted} style={{ marginLeft: 12 }} />
-                  <TextInput
-                    value={search}
-                    onChangeText={setSearch}
-                    placeholder="Search name or notes..."
-                    placeholderTextColor={theme.muted}
-                    style={[styles.searchInput, { color: theme.text }]}
-                  />
-                  {search !== '' && (
-                    <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 12 }}>
-                      <Ionicons name="close-circle" size={18} color={theme.muted} />
-                    </TouchableOpacity>
-                  )}
+            <View style={[styles.stickyHeader, { backgroundColor: theme.background }]}>
+              <Animated.View entering={FadeInUp.duration(800)} style={styles.header}>
+                <View style={styles.headerTitleRow}>
+                  <View>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Revenue</Text>
+                    <View style={styles.headerMeta}>
+                      <View style={[styles.dot, { backgroundColor: theme.primary }]} />
+                      <Text style={[styles.headerSubtitle, { color: theme.muted }]}>
+                        {payments.length} Transactions
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.revenueTotalBox}>
+                    <Text style={[styles.revenueTotalLabel, { color: theme.muted }]}>TOTAL</Text>
+                    <Text style={[styles.revenueTotalValue, { color: theme.primary }]}>
+                      {formatCurrency(totalRevenue)}
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.filterRows}>
-                  <View style={styles.filterGroup}>
-                    <Text style={[styles.filterLabel, { color: theme.muted }]}>Year</Text>
-                    <View style={styles.chipRow}>
-                      <FilterChip label="All" active={!selectedYear} onPress={() => setSelectedYear(null)} theme={theme} />
+                {/* Glass Search & Filters */}
+                <View style={[styles.filterContainer, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+                  <View style={styles.searchBox}>
+                    <Ionicons name="search" size={20} color={theme.muted} />
+                    <TextInput
+                      value={search}
+                      onChangeText={setSearch}
+                      placeholder="Search name or notes..."
+                      placeholderTextColor={theme.muted}
+                      style={[styles.searchInput, { color: theme.text }]}
+                    />
+                    {search !== '' && (
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSearch('');
+                        }}
+                      >
+                        <Ionicons name="close-circle" size={18} color={theme.muted} />
+                      </Pressable>
+                    )}
+                  </View>
+
+                  <View style={styles.filterRows}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                      <FilterChip label="All Years" active={!selectedYear} onPress={() => setSelectedYear(null)} theme={theme} />
                       {yearOptions.map((year) => (
                         <FilterChip
                           key={year}
@@ -191,13 +201,8 @@ export default function PaymentsScreen() {
                           theme={theme}
                         />
                       ))}
-                    </View>
-                  </View>
-
-                  <View style={styles.filterGroup}>
-                    <Text style={[styles.filterLabel, { color: theme.muted }]}>Month</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-                      <FilterChip label="All" active={!selectedMonth} onPress={() => setSelectedMonth(null)} theme={theme} />
+                      <View style={[styles.vDivider, { backgroundColor: theme.border }]} />
+                      <FilterChip label="All Months" active={!selectedMonth} onPress={() => setSelectedMonth(null)} theme={theme} />
                       {monthOptions.map((m) => (
                         <FilterChip
                           key={m.value}
@@ -210,67 +215,99 @@ export default function PaymentsScreen() {
                     </ScrollView>
                   </View>
                 </View>
-
-                <View style={[styles.filterFooter, { borderTopColor: theme.border + '50' }]}>
-                  <Text style={[styles.paymentCount, { color: theme.muted }]}>
-                    {payments.length} Payments found
-                  </Text>
-                  {(selectedYear || selectedMonth || modeFilter || debouncedSearch) && (
-                    <TouchableOpacity onPress={clearFilters}>
-                      <Text style={[styles.clearText, { color: theme.primary }]}>Clear Filters</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
               </Animated.View>
             </View>
           }
-          refreshControl={<RefreshControl refreshing={paymentsQuery.isRefetching} onRefresh={paymentsQuery.refetch} tintColor={theme.primary} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={paymentsQuery.isRefetching}
+              onRefresh={paymentsQuery.refetch}
+              tintColor={theme.primary}
+              progressViewOffset={140}
+            />
+          }
           renderItem={({ item, index }) => (
-            <Animated.View entering={FadeInDown.delay(index * 50 + 400).duration(500)} layout={Layout.springify()}>
-              <Pressable style={({ pressed }) => [styles.paymentItem, pressed && styles.itemPressed]}>
+            <Animated.View
+              entering={FadeInDown.delay(index * 50).duration(500)}
+              layout={Layout.springify().damping(15)}
+            >
+              <Pressable
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                style={({ pressed }) => [styles.paymentItem, pressed && styles.itemPressed]}
+              >
                 <View style={[styles.paymentInner, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <View style={styles.itemMain}>
                     <View style={styles.studentInfo}>
                       <Text style={[styles.studentName, { color: theme.text }]} numberOfLines={1}>
                         {typeof item.student === 'object' ? item.student.name : 'Student'}
                       </Text>
-                      <Text style={[styles.paymentDate, { color: theme.muted }]}>Paid on {formatDate(item.paymentDate)}</Text>
+                      <View style={styles.metaRow}>
+                        <Ionicons name="time-outline" size={12} color={theme.muted} />
+                        <Text style={[styles.paymentDate, { color: theme.muted }]}>
+                          Paid on {formatDate(item.paymentDate)}
+                        </Text>
+                      </View>
                     </View>
                     <View style={styles.amountInfo}>
-                      <Text style={[styles.amountText, { color: theme.primary }]}>{formatCurrency(item.rupees)}</Text>
-                      <AppBadge tone={item.paymentMode === 'cash' ? 'success' : 'info'}>
-                        {item.paymentMode.toUpperCase()}
-                      </AppBadge>
+                      <Text style={[styles.amountText, { color: theme.primary }]}>
+                        {formatCurrency(item.rupees)}
+                      </Text>
+                      <LinearGradient
+                        colors={item.paymentMode === 'cash' ? ['#48BB7820', '#48BB7805'] : ['#4299E120', '#4299E105']}
+                        style={styles.modeBadge}
+                      >
+                        <Text style={[styles.modeText, { color: item.paymentMode === 'cash' ? '#48BB78' : '#4299E1' }]}>
+                          {item.paymentMode.toUpperCase()}
+                        </Text>
+                      </LinearGradient>
                     </View>
                   </View>
+
                   <View style={[styles.itemDetail, { backgroundColor: theme.surfaceAlt }]}>
-                    <Ionicons name="calendar-outline" size={14} color={theme.muted} />
-                    <Text style={[styles.periodText, { color: theme.text }]}>
-                      {formatDate(item.startDate)} — {formatDate(item.endDate)}
-                    </Text>
+                    <View style={styles.periodRow}>
+                      <Ionicons name="calendar-outline" size={14} color={theme.muted} />
+                      <Text style={[styles.periodText, { color: theme.text }]}>
+                        {formatDate(item.startDate)} — {formatDate(item.endDate)}
+                      </Text>
+                    </View>
+                    {item.notes ? (
+                      <View style={[styles.notesContainer, { borderTopColor: theme.border + '30' }]}>
+                        <Text style={[styles.itemNotes, { color: theme.muted }]} numberOfLines={2}>
+                          {item.notes}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
-                  {item.notes ? (
-                    <Text style={[styles.itemNotes, { color: theme.muted }]} numberOfLines={2}>
-                      {item.notes}
-                    </Text>
-                  ) : null}
                 </View>
               </Pressable>
             </Animated.View>
           )}
           ListEmptyComponent={
             isInitialLoading ? (
-              <View style={styles.footerLoader}>
+              <View style={styles.emptyState}>
                 <ActivityIndicator color={theme.primary} />
-                <Text style={{ color: theme.muted, marginTop: 8 }}>Loading payments...</Text>
+                <Text style={{ color: theme.muted, marginTop: 12, fontWeight: '600' }}>Loading payments...</Text>
               </View>
             ) : (
               <View style={[styles.emptyState, { borderColor: theme.border }]}>
-                <Ionicons name="receipt-outline" size={48} color={theme.muted + '40'} />
-                <Text style={{ color: theme.muted, fontWeight: '600', marginTop: 12 }}>No payments found</Text>
-                <TouchableOpacity onPress={clearFilters}>
-                  <Text style={{ color: theme.primary, marginTop: 8, fontWeight: '700' }}>Reset filters</Text>
-                </TouchableOpacity>
+                  <View style={[styles.emptyIconBox, { backgroundColor: theme.surfaceAlt }]}>
+                    <Ionicons name="receipt-outline" size={48} color={theme.muted + '40'} />
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: theme.text }]}>No records found</Text>
+                  <Text style={[styles.emptySubtitle, { color: theme.muted }]}>Try adjusting your filters or record a new payment.</Text>
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      clearFilters();
+                    }}
+                    style={({ pressed }) => [
+                      styles.resetBtn,
+                      { backgroundColor: theme.primary + '10' },
+                      pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }
+                    ]}
+                  >
+                    <Text style={{ color: theme.primary, fontWeight: '700' }}>Reset Filters</Text>
+                  </Pressable>
               </View>
             )
           }
@@ -281,9 +318,33 @@ export default function PaymentsScreen() {
               <View style={styles.footerLoader}>
                 <ActivityIndicator color={theme.primary} />
               </View>
-            ) : null
+            ) : <View style={{ height: 100 }} />
           }
         />
+
+        {/* Floating Action Button */}
+        <Animated.View
+          entering={FadeInDown.delay(600).springify()}
+          style={styles.fabContainer}
+        >
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              openPaymentModal();
+            }}
+            style={({ pressed }) => [
+              styles.fab,
+              { backgroundColor: theme.primary },
+              pressed && { transform: [{ scale: 0.9 }], opacity: 0.9 }
+            ]}
+          >
+            <LinearGradient
+              colors={['rgba(255,255,255,0.3)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+            />
+            <Ionicons name="add" size={32} color="#fff" />
+          </Pressable>
+        </Animated.View>
 
         <PaymentFormModal
           visible={isModalOpen}
@@ -302,97 +363,116 @@ export default function PaymentsScreen() {
 
 function FilterChip({ label, active, onPress, theme }: { label: string; active: boolean; onPress: () => void; theme: any }) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.7}
-      style={[
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: active ? theme.primary : theme.surfaceAlt,
+          backgroundColor: active ? theme.primary : theme.surface,
           borderColor: active ? theme.primary : theme.border,
+          opacity: pressed ? 0.8 : 1,
+          transform: [{ scale: pressed ? 0.96 : 1 }]
         },
       ]}>
-      <Text style={[styles.chipText, { color: active ? '#fff' : theme.text }]}>{label}</Text>
-    </TouchableOpacity>
+      <Text style={[styles.chipText, { color: active ? '#fff' : theme.text, opacity: active ? 1 : 0.8 }]}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  bgGradient: { ...StyleSheet.absoluteFillObject, height: 250 },
   listContent: {
-    padding: spacing.xl,
     paddingBottom: 40,
   },
-  listHeader: {
-    marginBottom: spacing.xl,
-    gap: spacing.xl,
+  stickyHeader: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    zIndex: 10,
   },
-  headerTop: {
+  header: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.lg,
+  },
+  headerTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.md,
+    alignItems: 'flex-end',
   },
-  title: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  headerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  revenueTotalBox: {
+    alignItems: 'flex-end',
+  },
+  revenueTotalLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  revenueTotalValue: {
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  filterCard: {
+  filterContainer: {
     borderRadius: 24,
     padding: spacing.md,
     borderWidth: 1.5,
+    gap: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 15,
     elevation: 5,
   },
-  searchBar: {
+  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    borderRadius: 14,
     backgroundColor: 'rgba(0,0,0,0.03)',
-    marginBottom: spacing.lg,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 48,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    height: '100%',
-    paddingHorizontal: 10,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  filterRows: { gap: spacing.md },
-  filterGroup: { gap: 8 },
-  filterLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginLeft: 4,
+  filterRows: {
+    flexDirection: 'row',
   },
   chipRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  vDivider: {
+    width: 1,
+    height: 20,
+    marginHorizontal: 4,
   },
   chip: {
     paddingHorizontal: 16,
@@ -404,24 +484,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  filterFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-  },
-  paymentCount: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  clearText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
+
   // Item Styles
   paymentItem: {
+    paddingHorizontal: spacing.xl,
     marginBottom: spacing.md,
   },
   paymentInner: {
@@ -442,15 +508,20 @@ const styles = StyleSheet.create({
   },
   studentInfo: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
   studentName: {
     fontSize: 18,
     fontWeight: '800',
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   paymentDate: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   amountInfo: {
     alignItems: 'flex-end',
@@ -461,40 +532,103 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.5,
   },
+  modeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  modeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   itemDetail: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  periodRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginBottom: 8,
+    padding: 12,
   },
   periodText: {
     fontSize: 13,
     fontWeight: '700',
   },
+  notesContainer: {
+    padding: 12,
+    paddingTop: 0,
+    borderTopWidth: 1,
+  },
   itemNotes: {
     fontSize: 13,
     fontStyle: 'italic',
     lineHeight: 18,
-    marginTop: 4,
   },
   itemPressed: {
     transform: [{ scale: 0.98 }],
     opacity: 0.9,
   },
+
+  // Empty State
+  emptyState: {
+    margin: spacing.xl,
+    padding: 40,
+    alignItems: 'center',
+    borderRadius: 32,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    gap: 12,
+  },
+  emptyIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontWeight: '500',
+    paddingHorizontal: 20,
+  },
+  resetBtn: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+
+  // FAB
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 24,
+    zIndex: 100,
+  },
+  fab: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
   footerLoader: {
     paddingVertical: 20,
     alignItems: 'center',
   },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    marginTop: 20,
-  },
 });
-
