@@ -104,8 +104,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [isRcPro, user?.company]);
 
   const expiryData = useMemo(() => {
-    const rcActive = customerInfo?.entitlements.active[ENTITLEMENT_ID];
-    const expDateStr = rcActive?.expirationDate || user?.company?.subscriptionEndDate || user?.company?.trialEnd;
+    const expDateStr = user?.company?.subscriptionEndDate || user?.company?.trialEnd;
     
     if (!expDateStr) return { text: null, soon: false };
 
