@@ -127,8 +127,7 @@ export default function StudentDetailScreen() {
   };
 
   return (
-    <SafeScreen edges={['bottom']}>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
         <LinearGradient
           colors={[theme.primary + '15', 'transparent']}
           style={styles.bgGradient}
@@ -279,7 +278,7 @@ export default function StudentDetailScreen() {
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(400).duration(600)}>
+        <Animated.View entering={FadeInDown.delay(400).duration(600)} style={{ gap: 16 }}>
             <View style={styles.sectionHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>Payment History</Text>
@@ -330,7 +329,10 @@ export default function StudentDetailScreen() {
                         {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
                       </Text>
                     </View>
-                    <Text style={[styles.payStatusText, { color: theme.muted }]}>Paid {formatDate(payment.paymentDate)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <Ionicons name="checkmark-circle-outline" size={14} color={theme.primary} />
+                      <Text style={[styles.payStatusText, { color: theme.text }]}>Paid on {formatDate(payment.paymentDate)}</Text>
+                    </View>
                   </View>
                 </View>
               ))
@@ -340,15 +342,15 @@ export default function StudentDetailScreen() {
                   <Text style={[styles.emptyText, { color: theme.muted }]}>No transaction history</Text>
               </View>
             )}
+        </Animated.View>
 
             {paymentsQuery.isFetchingNextPage && (
               <View style={{ padding: 20 }}>
                 <ActivityIndicator color={theme.primary} />
               </View>
-            )}
-          </Animated.View>
-        </ScrollView>
-      </View>
+        )}
+      </ScrollView>
+
 
       <PaymentFormModal
         visible={isPaymentOpen}
@@ -395,7 +397,7 @@ export default function StudentDetailScreen() {
         onRequestClose={() => setPreviewVisible(false)}
         swipeToCloseEnabled
       />
-    </SafeScreen>
+    </View >
   );
 }
 
@@ -670,9 +672,7 @@ const styles = StyleSheet.create({
   payBody: {
     padding: 16,
     borderRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 8,
   },
   payRow: {
     flexDirection: 'row',

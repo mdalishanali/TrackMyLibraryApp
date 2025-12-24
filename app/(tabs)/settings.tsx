@@ -9,6 +9,7 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing, radius, typography } from '@/constants/design';
+import { BRAND_FOOTER_TEXT } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/providers/subscription-provider';
 import { useDeleteAccount } from '@/hooks/use-profile';
@@ -218,7 +219,7 @@ export default function SettingsScreen() {
 
           <View style={styles.footer}>
             <Text style={[styles.versionText, { color: theme.muted }]}>Version 2.0.0 (Premium)</Text>
-            <Text style={[styles.footerSub, { color: theme.muted }]}>Library Management System</Text>
+            <Text style={[styles.footerSub, { color: theme.muted }]}>{BRAND_FOOTER_TEXT}</Text>
           </View>
         </ScrollView>
       </View>

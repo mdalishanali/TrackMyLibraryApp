@@ -200,9 +200,12 @@ function PaymentCard({ payment, theme, index }: { payment: any; theme: any; inde
               {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
             </Text>
           </View>
-          <Text style={[styles.metaPaidText, { color: theme.primary }]}>
-            Paid {formatDate(payment.paymentDate)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={theme.primary} />
+            <Text style={[styles.metaPaidText, { color: theme.primary }]}>
+              Paid on {formatDate(payment.paymentDate)}
+            </Text>
+          </View>
         </View>
       </Pressable>
     </Animated.View>
@@ -766,9 +769,7 @@ const styles = StyleSheet.create({
   paymentMetaBox: {
     padding: 16,
     borderRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 8,
   },
   metaSmallRow: {
     flexDirection: 'row',
