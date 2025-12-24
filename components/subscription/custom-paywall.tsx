@@ -176,7 +176,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
         {/* Dynamic Header */}
         <View style={styles.header}>
           <Image
-            source={require('../../assets/images/subscription_premium_illustration.png')}
+            source={require('../../assets/images/subscription_premium_illustration.jpg')}
             style={styles.heroImage}
             contentFit="cover"
           />
