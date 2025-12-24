@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
@@ -130,6 +131,38 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={18} color={theme.danger} />
             </Pressable>
           )}
+
+          {/* Prominent Upgrade CTA for Store Reviewers */}
+          <Animated.View entering={FadeInDown.delay(200)} style={styles.upgradeBtnContainer}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                presentPaywall();
+              }}
+              style={({ pressed }) => [
+                styles.upgradeBtn,
+                pressed && { transform: [{ scale: 0.98 }] }
+              ]}
+            >
+              <LinearGradient
+                colors={[theme.primary, theme.info || '#4FACFE']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.upgradeGradient}
+              >
+                <View style={styles.upgradeContent}>
+                  <View style={styles.upgradeIconBox}>
+                    <Ionicons name="sparkles" size={20} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.upgradeTitle}>{isPro ? 'You are PRO' : 'Upgrade to PRO'}</Text>
+                    <Text style={styles.upgradeSubtitle}>View all premium features and plans</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#fff" style={{ opacity: 0.8 }} />
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
 
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {!isPro ? (
@@ -299,6 +332,46 @@ function ActionRow({ icon, label, description, onPress, themeTint, destructive }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  upgradeBtnContainer: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  upgradeBtn: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  upgradeGradient: {
+    padding: spacing.lg,
+  },
+  upgradeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  upgradeIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  upgradeSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   scrollContent: {
     paddingBottom: 60,
   },
