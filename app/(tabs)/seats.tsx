@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { Image } from 'expo-image';
 import {
   Alert,
   Modal,
@@ -32,6 +33,7 @@ import { StudentFormModal, StudentFormValues } from '@/components/students/stude
 import { formatDate } from '@/utils/format';
 
 const { width } = Dimensions.get('window');
+const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 export default function SeatsScreen() {
   const theme = useTheme();
@@ -387,8 +389,18 @@ export default function SeatsScreen() {
                       return (
                         <View style={styles.occupantDetails}>
                           <View style={styles.occupantMain}>
-                            <View style={[styles.occupantAvatar, { backgroundColor: theme.primary + '10' }]}>
-                              <Text style={[styles.avatarText, { color: theme.primary }]}>{occupant.name[0].toUpperCase()}</Text>
+                            <View style={[styles.occupantAvatar, { backgroundColor: theme.primary + '10', overflow: 'hidden' }]}>
+                              {occupant.profilePicture ? (
+                                <Image
+                                  source={{ uri: occupant.profilePicture }}
+                                  style={{ width: '100%', height: '100%' }}
+                                  contentFit="cover"
+                                  transition={1000}
+                                  placeholder={BLURHASH}
+                                />
+                              ) : (
+                                <Text style={[styles.avatarText, { color: theme.primary }]}>{occupant.name[0].toUpperCase()}</Text>
+                              )}
                             </View>
                             <View>
                               <Text style={[styles.occupantName, { color: theme.text }]}>{occupant.name}</Text>
@@ -406,11 +418,17 @@ export default function SeatsScreen() {
                             </View>
                           </View>
                           <View style={styles.sheetActions}>
-                            <Link href={{ pathname: '/(tabs)/students/[id]', params: { id: occupant._id } }} asChild>
-                              <AppButton fullWidth variant="outline" style={{ height: 54, borderRadius: 16 }}>
+                            <AppButton
+                              fullWidth
+                              variant="outline"
+                              style={{ height: 54, borderRadius: 16 }}
+                              onPress={() => {
+                                setSelectedSeat(null);
+                                router.push({ pathname: '/(tabs)/students/[id]', params: { id: occupant._id } });
+                              }}
+                            >
                                 View Full Profile
-                              </AppButton>
-                            </Link>
+                            </AppButton>
                           </View>
                         </View>
                       );

@@ -12,7 +12,7 @@ export type OptimizedImage = {
   fileSize?: number;
 };
 
-const TARGET_WIDTH = 1024; // Standard HD-ish width for profile photos
+const TARGET_WIDTH = 500; // Aggressive compression: ~50-80KB
 
 /**
  * Picks an image from gallery or camera and optimizes it.
@@ -57,7 +57,7 @@ export const pickOrCaptureImage = async (source: 'gallery' | 'camera'): Promise<
 };
 
 /**
- * Compresses and resizes image to meet PRD requirements (70% quality, JPEG).
+ * Compresses and resizes image to meet PRD requirements (40% quality, JPEG).
  */
 export const compressAndResize = async (uri: string): Promise<OptimizedImage> => {
   try {
@@ -65,7 +65,7 @@ export const compressAndResize = async (uri: string): Promise<OptimizedImage> =>
       uri,
       [{ resize: { width: TARGET_WIDTH } }],
       {
-        compress: 0.7, // 70% quality as requested
+        compress: 0.4, // 40% quality (very aggressive)
         format: ImageManipulator.SaveFormat.JPEG
       }
     );

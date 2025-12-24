@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -70,6 +70,32 @@ export default function PaymentsScreen() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>((new Date().getMonth() + 1).toString());
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const monthListRef = useRef<FlatList>(null);
+  const monthsData = useMemo(() => [
+    { label: 'All Months', value: null },
+    ...monthOptions
+  ], []);
+
+  useEffect(() => {
+    if (selectedMonth && monthListRef.current) {
+      // Small timeout to ensure list is ready if it's the initial render
+      setTimeout(() => {
+        monthListRef.current?.scrollToIndex({
+          index: Number(selectedMonth),
+          animated: true,
+          viewPosition: 0.5
+        });
+      }, 500);
+    }
+  }, []); // Run on mount to scroll to initial selection
+
+  useEffect(() => {
+    if (monthListRef.current) {
+      const idx = selectedMonth ? Number(selectedMonth) : 0;
+      monthListRef.current.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
+    }
+  }, [selectedMonth]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -189,7 +215,7 @@ export default function PaymentsScreen() {
                     )}
                   </View>
 
-                  <View style={styles.filterRows}>
+                  <View style={{ gap: 12 }}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                       <FilterChip label="All Years" active={!selectedYear} onPress={() => setSelectedYear(null)} theme={theme} />
                       {yearOptions.map((year) => (
@@ -201,18 +227,30 @@ export default function PaymentsScreen() {
                           theme={theme}
                         />
                       ))}
-                      <View style={[styles.vDivider, { backgroundColor: theme.border }]} />
-                      <FilterChip label="All Months" active={!selectedMonth} onPress={() => setSelectedMonth(null)} theme={theme} />
-                      {monthOptions.map((m) => (
-                        <FilterChip
-                          key={m.value}
-                          label={m.label}
-                          active={selectedMonth === m.value}
-                          onPress={() => setSelectedMonth(m.value)}
+                    </ScrollView>
+
+                    <FlatList
+                      ref={monthListRef}
+                      data={monthsData}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.chipRow}
+                      keyExtractor={(item) => item.label}
+                      onScrollToIndexFailed={(info) => {
+                        const wait = new Promise(resolve => setTimeout(resolve, 500));
+                        wait.then(() => {
+                          monthListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+                        });
+                      }}
+                      renderItem={({ item }) => (
+                        <FilterChip 
+                          label={item.label}
+                          active={selectedMonth === item.value}
+                          onPress={() => setSelectedMonth(item.value)}
                           theme={theme}
                         />
-                      ))}
-                    </ScrollView>
+                      )}
+                    />
                   </View>
                 </View>
               </Animated.View>

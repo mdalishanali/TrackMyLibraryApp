@@ -1,4 +1,5 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions, Image } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeInDown, Layout, SlideInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,7 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
 
 const { width } = Dimensions.get('window');
+const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 // Subscription Expiry Banner
 function SubscriptionBanner({ theme }: { theme: any }) {
@@ -90,7 +92,13 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
           <View style={styles.studentInfo}>
             <View style={[styles.studentAvatar, { backgroundColor: theme.primary + '10' }]}>
               {student.profilePicture ? (
-                <Image source={{ uri: student.profilePicture }} style={styles.studentAvatarImage} />
+                <Image
+                  source={{ uri: student.profilePicture }}
+                  style={styles.studentAvatarImage}
+                  transition={1000}
+                  placeholder={BLURHASH}
+                  contentFit="cover"
+                />
               ) : (
                 <Text style={[styles.studentAvatarText, { color: theme.primary }]}>
                   {student.name?.[0]?.toUpperCase() || 'S'}

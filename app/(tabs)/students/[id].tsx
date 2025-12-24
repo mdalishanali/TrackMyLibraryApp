@@ -23,6 +23,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
+const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 export default function StudentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -189,7 +190,13 @@ export default function StudentDetailScreen() {
                 >
                   <View style={[styles.heroAvatar, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
                     {student.profilePicture ? (
-                      <Image source={{ uri: student.profilePicture }} style={styles.fullImg} contentFit="cover" />
+                      <Image
+                        source={{ uri: student.profilePicture }}
+                        style={styles.fullImg}
+                        contentFit="cover"
+                        transition={1000}
+                        placeholder={BLURHASH}
+                      />
                     ) : (
                       <Text style={[styles.avatarText, { color: theme.primary }]}>
                         {student.name?.[0]?.toUpperCase() || 'S'}
