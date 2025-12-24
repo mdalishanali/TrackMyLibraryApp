@@ -156,7 +156,11 @@ export default function SettingsScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.upgradeTitle}>{isPro ? 'You are PRO' : 'Upgrade to PRO'}</Text>
-                    <Text style={styles.upgradeSubtitle}>View all premium features and plans</Text>
+                    <Text style={styles.upgradeSubtitle}>
+                      {isPro && daysRemainingText
+                        ? `Your subscription expires in ${daysRemainingText}`
+                        : 'View all premium features and plans'}
+                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#fff" style={{ opacity: 0.8 }} />
                 </View>
