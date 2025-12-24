@@ -178,7 +178,7 @@ export default function SettingsScreen() {
                   icon="card"
                 label="Manage Subscription"
                   description="View your plan or billing history"
-                onPress={presentCustomerCenter}
+                  onPress={presentPaywall}
                   themeTint={theme.primary}
               />
             )}

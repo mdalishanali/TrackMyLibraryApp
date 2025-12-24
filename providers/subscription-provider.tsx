@@ -91,7 +91,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const isProActive = useMemo(() => {
-    const isTrialActive = user?.company?.trialEnd && new Date(user.company.trialEnd) > new Date();
+    const isTrialActive = !!(user?.company?.trialEnd && new Date(user.company.trialEnd) > new Date());
     
     let isDbActive = user?.company?.subscriptionStatus === 'Active';
     if (isDbActive && user?.company?.subscriptionEndDate) {
@@ -100,7 +100,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     }
 
-    return isRcPro || isDbActive || isTrialActive;
+    return !!(isRcPro || isDbActive || isTrialActive);
   }, [isRcPro, user?.company]);
 
   const expiryData = useMemo(() => {
