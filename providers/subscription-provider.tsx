@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Linking, Alert } from 'react-native';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { useAuth } from '@/hooks/use-auth';
 import { SubscriptionModal } from '@/components/subscription/subscription-modal';
@@ -10,6 +10,7 @@ interface SubscriptionContextType {
   isBlocked: boolean;
   customerInfo: CustomerInfo | null;
   presentPaywall: () => void;
+  presentCustomerCenter: () => void;
   restorePurchases: () => Promise<void>;
   checkSubscriptionStatus: () => Promise<void>;
   daysRemainingText: string | null;
@@ -36,7 +37,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const isConfigured = await Purchases.isConfigured();
       if (!isConfigured) return;
-
+      
       const info = await Purchases.getCustomerInfo();
       setCustomerInfo(info);
       setIsRcPro(!!info.entitlements.active[ENTITLEMENT_ID]);
@@ -91,7 +92,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const isProActive = useMemo(() => {
     const isTrialActive = user?.company?.trialEnd && new Date(user.company.trialEnd) > new Date();
-
+    
     let isDbActive = user?.company?.subscriptionStatus === 'Active';
     if (isDbActive && user?.company?.subscriptionEndDate) {
       if (new Date(user.company.subscriptionEndDate) < new Date()) {
@@ -105,18 +106,27 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const expiryData = useMemo(() => {
     const rcActive = customerInfo?.entitlements.active[ENTITLEMENT_ID];
     const expDateStr = rcActive?.expirationDate || user?.company?.subscriptionEndDate || user?.company?.trialEnd;
-
+    
     if (!expDateStr) return { text: null, soon: false };
 
     const exp = new Date(expDateStr).getTime();
     const now = new Date().getTime();
     const days = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
-
+    
     return {
       text: days < 0 ? 'Expired' : (days === 0 ? 'Today' : `${days} day${days > 1 ? 's' : ''}`),
       soon: days >= 0 && days <= 3
     };
   }, [customerInfo, user?.company]);
+
+  const presentCustomerCenter = useCallback(() => {
+    const url = Platform.OS === 'ios'
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'Unable to open subscription management. Please check your system settings.');
+    });
+  }, []);
 
   const value = useMemo(() => ({
     isPro: isProActive,
@@ -124,11 +134,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     isBlocked: isAuthenticated && !isProActive,
     customerInfo,
     presentPaywall: () => setShowPaywall(true),
+    presentCustomerCenter,
     restorePurchases,
     checkSubscriptionStatus,
     daysRemainingText: expiryData.text,
     isExpiringSoon: expiryData.soon,
-  }), [isProActive, isLoading, isAuthenticated, customerInfo, restorePurchases, checkSubscriptionStatus, expiryData]);
+  }), [isProActive, isLoading, isAuthenticated, customerInfo, presentCustomerCenter, restorePurchases, checkSubscriptionStatus, expiryData]);
 
   return (
     <SubscriptionContext.Provider value={value}>
