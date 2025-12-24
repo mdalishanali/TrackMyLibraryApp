@@ -24,6 +24,7 @@ export type Student = {
   paymentStatus?: string;
   profilePicture?: string;
   gender?: string;
+  floor?: number | string;
 };
 
 export type Payment = {

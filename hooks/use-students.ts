@@ -4,6 +4,7 @@ import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
 import { queryKeys } from '@/lib/query-keys';
 import { Student } from '@/types/api';
+import { uploadImageToCloud } from '@/utils/image';
 
 export type StudentPayload = {
   name: string;
@@ -16,6 +17,7 @@ export type StudentPayload = {
   notes?: string;
   status?: string;
   gender?: string;
+  profilePicture?: string;
 };
 
 type StudentsPage = {
@@ -57,8 +59,15 @@ export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: stri
 
 export const useCreateStudent = () =>
   useMutation({
-    mutationFn: async (payload: StudentPayload) => {
-      const { data } = await api.post('/students', payload, { successToastMessage: 'Student created' });
+    mutationFn: async ({ payload, onProgress }: { payload: StudentPayload; onProgress?: (p: number) => void }) => {
+      let finalProfilePicture = payload.profilePicture;
+
+      // If we have a local URI, we need to upload it first
+      if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
+        finalProfilePicture = await uploadImageToCloud(payload.profilePicture, onProgress);
+      }
+
+      const { data } = await api.post('/students', { ...payload, profilePicture: finalProfilePicture }, { successToastMessage: 'Student created' });
       return data;
     },
     onSuccess: () => {
@@ -69,9 +78,17 @@ export const useCreateStudent = () =>
 
 export const useUpdateStudent = (id?: string) =>
   useMutation({
-    mutationFn: async (payload: Partial<StudentPayload>) => {
+    mutationFn: async ({ payload, onProgress }: { payload: Partial<StudentPayload>; onProgress?: (p: number) => void }) => {
       if (!id) throw new Error('Missing student id');
-      const { data } = await api.put(`/students/${id}`, payload);
+
+      let finalProfilePicture = payload.profilePicture;
+
+      // If we have a local URI, we need to upload it first
+      if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
+        finalProfilePicture = await uploadImageToCloud(payload.profilePicture, onProgress);
+      }
+
+      const { data } = await api.put(`/students/${id}`, { ...payload, profilePicture: finalProfilePicture });
       return data;
     },
     onSuccess: () => {

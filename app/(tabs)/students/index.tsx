@@ -1,11 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
-import { SectionHeader } from '@/components/ui/section-header';
-import { gradientFor } from '@/constants/design';
+import { spacing } from '@/constants/design';
+import { Student } from '@/types/api';
 
 import {
   useCreateStudent,
@@ -15,7 +18,7 @@ import {
 } from '@/hooks/use-students';
 
 import { useCreatePayment } from '@/hooks/use-payments';
-  import { useSeatsQuery } from '@/hooks/use-seats';
+import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,11 +27,11 @@ import StudentFilters from '@/components/students/StudentFilters';
 import StudentList from '@/components/students/StudentList';
 
 import { PaymentFormModal } from '@/components/students/payment-form-modal';
-
-import { StudentFormModal } from '@/components/students/student-form-modal';
-import StudentSkeletonList from '@/components/students/StudentSkeletonList';
+import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
+
+const { width } = Dimensions.get('window');
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -39,12 +42,12 @@ export default function StudentsScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState('recent');
 
-  const [editingStudent, setEditingStudent] = useState(null);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
 
-  const [paymentStudent, setPaymentStudent] = useState(null);
+  const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 400);
@@ -57,72 +60,96 @@ export default function StudentsScreen() {
   });
 
   const seatsQuery = useSeatsQuery();
-
   const createStudent = useCreateStudent();
   const deleteStudent = useDeleteStudent();
   const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
 
-  const students = studentsQuery.data?.pages.flatMap(p => p.students) ?? [];
+  const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
+  const totalCount = useMemo(() => {
+    const firstPage: any = studentsQuery.data?.pages[0];
+    return firstPage?.totalCount ?? firstPage?.total ?? students.length;
+  }, [studentsQuery.data, students.length]);
 
   const seats = useMemo(
-    () =>
-      (seatsQuery.data ?? []).map(s => ({
-        _id: s._id,
-        seatNumber: s.seatNumber,
-        floor: s.floor
-      })),
+    () => (seatsQuery.data ?? []).map(s => ({
+      _id: s._id as string,
+      seatNumber: String(s.seatNumber),
+      floor: s.floor
+    })),
     [seatsQuery.data]
   );
 
-  const openCreateForm = () => {
+  const openCreateForm = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditingStudent(null);
     setIsStudentFormOpen(true);
-  };
+  }, []);
 
-  const openEditForm = id => {
+  const openEditForm = useCallback((id: string) => {
     const s = students.find(u => u._id === id);
-    setEditingStudent(s);
+    setEditingStudent(s ?? null);
     setIsStudentFormOpen(true);
-  };
+  }, [students]);
 
-  const removeStudent = id => {
+  const removeStudent = useCallback((id: string) => {
     const s = students.find(u => u._id === id);
     setPendingDelete(s ?? null);
-  };
+  }, [students]);
 
-  const mapToForm = s => {
+  const openPayment = useCallback((student: any) => {
+    setPaymentStudent(student);
+    setIsPaymentFormOpen(true);
+  }, []);
+
+  const handleViewStudent = useCallback((id: string) => {
+    router.push({ pathname: '/(tabs)/students/[id]', params: { id } });
+  }, [router]);
+
+  const handleLoadMore = useCallback(() => {
+    if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
+      studentsQuery.fetchNextPage();
+    }
+  }, [studentsQuery.hasNextPage, studentsQuery.isFetchingNextPage]);
+
+  const handleRefresh = useCallback(() => {
+    studentsQuery.refetch();
+  }, [studentsQuery.refetch]);
+
+  const mapToForm = (s: Student | null): StudentFormValues => {
     const d = new Date().toISOString().slice(0, 10);
     if (!s)
       return {
         name: '',
         number: '',
         joiningDate: d,
-        seat: undefined,
+        seat: '',
         shift: 'Morning',
         startTime: '09:00',
         endTime: '18:00',
         status: 'Active',
-        fees: undefined,
+        fees: '',
         gender: 'Male',
-        notes: ''
+        notes: '',
+        profilePicture: ''
       };
     return {
       name: s.name,
       number: s.number,
       joiningDate: s.joiningDate?.slice(0, 10) || d,
-      seat: s.seat ?? undefined,
+      seat: s.seat ?? '',
       shift: s.shift ?? 'Morning',
       startTime: s.time?.[0]?.start ?? '09:00',
       endTime: s.time?.[0]?.end ?? '18:00',
       status: s.status ?? 'Active',
-      fees: s.fees,
+      fees: s.fees ? String(s.fees) : '',
       gender: s.gender ?? 'Male',
-      notes: s.notes ?? ''
+      notes: s.notes ?? '',
+      profilePicture: s.profilePicture || ''
     };
   };
 
-  const saveStudent = async values => {
+  const saveStudent = async (values: any, onProgress?: (p: number) => void) => {
     const payload = {
       name: values.name,
       number: values.number,
@@ -131,13 +158,17 @@ export default function StudentsScreen() {
       shift: values.shift,
       time: [{ start: values.startTime, end: values.endTime }],
       status: values.status,
-      fees: values.fees,
+      fees: Number(values.fees) || 0,
       notes: values.notes,
-      gender: values.gender
+      gender: values.gender,
+      profilePicture: values.profilePicture,
     };
 
-    if (editingStudent) await updateStudent.mutateAsync(payload);
-    else await createStudent.mutateAsync(payload);
+    if (editingStudent) {
+      await updateStudent.mutateAsync({ payload, onProgress });
+    } else {
+      await createStudent.mutateAsync({ payload, onProgress });
+    }
 
     setIsStudentFormOpen(false);
     setEditingStudent(null);
@@ -147,12 +178,7 @@ export default function StudentsScreen() {
     }
   };
 
-  const openPayment = student => {
-    setPaymentStudent(student);
-    setIsPaymentFormOpen(true);
-  };
-
-  const buildPaymentDefaults = s => {
+  const buildPaymentDefaults = (s: Student | null) => {
     const d = new Date().toISOString().slice(0, 10);
     return {
       student: s?._id || '',
@@ -160,16 +186,15 @@ export default function StudentsScreen() {
       startDate: d,
       endDate: d,
       paymentDate: d,
-      paymentMode: 'cash',
+      paymentMode: 'cash' as const,
       notes: ''
     };
   };
 
-  const savePayment = async values => {
+  const savePayment = async (values: any) => {
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
-    // Success toast handled globally for POST calls
   };
 
   const confirmDelete = async () => {
@@ -179,55 +204,67 @@ export default function StudentsScreen() {
     setPendingDelete(null);
   };
 
-  const initialFormValues = useMemo(
-    () => mapToForm(editingStudent),
-    [editingStudent, isStudentFormOpen]
-  );
+  const initialFormValues = useMemo(() => mapToForm(editingStudent), [editingStudent]);
 
-  const listHeader = (
-    <View style={styles.heroShadow}>
-      <LinearGradient
-        colors={gradientFor(color, 'panel')}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.heroCard, { borderColor: theme.border }]}
-      >
-        <View style={styles.heroHeader}>
-          <SectionHeader>Students</SectionHeader>
-          <Text style={[styles.heroSub, { color: theme.muted }]}>Search, filter, and manage students.</Text>
+  const listHeader = useMemo(() => (
+    <Animated.View entering={FadeInDown.duration(800)} style={styles.header}>
+      <View style={styles.headerTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
         </View>
-        <StudentSearchBar search={search} setSearch={setSearch} onAdd={openCreateForm} theme={theme} />
-        <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
-      </LinearGradient>
-    </View>
-  );
+        <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
+          <Text style={[styles.countVal, { color: theme.primary }]}>{totalCount}</Text>
+          <Text style={[styles.countUnit, { color: theme.primary }]}>PROFILES</Text>
+        </View>
+      </View>
+
+      <View style={styles.searchLayer}>
+        <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
+        <View style={styles.filterRow}>
+          <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
+        </View>
+      </View>
+    </Animated.View>
+  ), [theme, search, filter, totalCount]);
 
   return (
     <SafeScreen>
-      {studentsQuery.isFetching && students.length === 0 ? (
-        <>
-          {listHeader}
-          <StudentSkeletonList />
-        </>
-      ) : (
-        <StudentList
-          students={students}
-          theme={theme}
-          onView={id => router.push({ pathname: '/(tabs)/students/[id]', params: { id } })}
-          onEdit={openEditForm}
-          onDelete={removeStudent}
-          onPay={openPayment}
-          headerComponent={listHeader}
-          onLoadMore={() => {
-            if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
-              studentsQuery.fetchNextPage();
-            }
-          }}
-          refreshing={studentsQuery.isRefetching}
-          onRefresh={studentsQuery.refetch}
-          loadingMore={studentsQuery.isFetchingNextPage}
-        />
-      )}
+      <StudentList
+        students={students}
+        theme={theme}
+        onView={handleViewStudent}
+        onEdit={openEditForm}
+        onDelete={removeStudent}
+        onPay={openPayment}
+        headerComponent={listHeader}
+        onLoadMore={handleLoadMore}
+        refreshing={studentsQuery.isRefetching}
+        onRefresh={handleRefresh}
+        loadingMore={studentsQuery.isFetchingNextPage}
+        isLoading={studentsQuery.isFetching && students.length === 0}
+      />
+
+      <Animated.View
+        entering={FadeInUp.delay(1000).duration(800)}
+        style={styles.fabContainer}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={openCreateForm}
+          style={styles.fabTouch}
+        >
+          <LinearGradient
+            colors={[theme.primary, theme.primary + 'CC']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <Ionicons name="add" size={30} color="#fff" />
+            <Text style={styles.fabText}>New Member</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
       <StudentFormModal
         visible={isStudentFormOpen}
@@ -250,6 +287,7 @@ export default function StudentsScreen() {
         onSubmit={savePayment}
         studentName={paymentStudent?.name}
       />
+
       <ConfirmDialog
         visible={Boolean(pendingDelete)}
         title="Delete student?"
@@ -265,22 +303,76 @@ export default function StudentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroShadow: {
-    paddingHorizontal: 4,
-    paddingVertical: 6,
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.lg,
   },
-  heroCard: {
-    borderWidth: 1,
+  headerPreTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  countBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignItems: 'center',
+    gap: 2,
+  },
+  countVal: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  countUnit: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  searchLayer: {
+    gap: spacing.md,
+  },
+  filterRow: {
+    marginTop: 4,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 24,
+    zIndex: 100,
+  },
+  fabTouch: {
     borderRadius: 24,
-    padding: 16,
-    gap: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  heroHeader: {
-    gap: 4,
-    marginBottom: 4,
+  fabGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 22,
+    height: 64,
+    gap: 10,
   },
-  heroSub: {
-    fontSize: 14,
-    fontWeight: '600',
+  fabText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
 });

@@ -4,15 +4,25 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { queryClient } from '@/lib/query-client';
 import { mmkStorage } from '@/lib/storage';
 
+export type Company = {
+  _id: string;
+  businessName: string;
+  businessAddress: string;
+  contactNumber: string;
+  trialStart: string;
+  trialEnd: string;
+  subscriptionStatus: 'Trialing' | 'Active' | 'Expired' | 'None';
+  subscriptionEndDate?: string;
+  revenueCatId?: string;
+};
+
 export type AuthUser = {
   id?: string;
   _id?: string;
   name: string;
   email: string;
   contactNumber?: string;
-  businessName?: string;
-  businessAddress?: string;
-  company?: unknown;
+  company?: Company;
   role?: string;
 };
 
@@ -21,6 +31,7 @@ type AuthState = {
   token: string | null;
   hydrated: boolean;
   setAuth: (payload: { user: AuthUser; token: string }) => void;
+  updateUser: (user: AuthUser) => void;
   logout: () => void;
   setHydrated: (value: boolean) => void;
 };
@@ -39,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       hydrated: false,
       setAuth: ({ user, token }) => set({ user: normalizeUser(user), token }),
+      updateUser: (user) => set({ user: normalizeUser(user) }),
       logout: () => {
         queryClient.clear();
         set({ user: null, token: null });

@@ -14,6 +14,7 @@ type Props = PropsWithChildren<{
   variant?: Variant;
   fullWidth?: boolean;
   tone?: Tone;
+  style?: any;
 }>;
 
 export function AppButton({
@@ -24,6 +25,7 @@ export function AppButton({
   variant = 'primary',
   fullWidth,
   tone = 'primary',
+  style,
 }: Props) {
   const colorScheme = useColorScheme();
   const theme = themeFor(colorScheme);
@@ -72,6 +74,7 @@ export function AppButton({
           shadowOffset: { width: 0, height: 8 },
           shadowRadius: 14,
         },
+        style,
       ]}>
       {loading ? <ActivityIndicator color={textColor} /> : <Text style={[styles.text, { color: textColor }]}>{children}</Text>}
     </Pressable>

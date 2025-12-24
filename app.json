@@ -31,6 +31,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow TrackMyLibrary to access your photos to set student profile pictures.",
+          "cameraPermission": "Allow TrackMyLibrary to access your camera to take student profile pictures."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

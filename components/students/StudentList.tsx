@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ImageViewing from 'react-native-image-viewing';
 import StudentCard from './StudentCard';
+import StudentSkeletonList from './StudentSkeletonList';
 import { spacing } from '@/constants/design';
 
 export default function StudentList({
@@ -14,6 +17,7 @@ export default function StudentList({
     refreshing,
     onRefresh,
     loadingMore,
+    isLoading,
     headerComponent,
 }: {
     students: any[];
@@ -26,14 +30,25 @@ export default function StudentList({
     refreshing: boolean;
     onRefresh: () => void;
     loadingMore: boolean;
+        isLoading?: boolean;
     headerComponent?: React.ReactElement | null;
 }) {
     const insets = useSafeAreaInsets();
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewImages, setPreviewImages] = useState<{ uri: string }[]>([]);
+
+    const handleAvatarPress = (uri?: string) => {
+        if (!uri) return;
+        setPreviewImages([{ uri }]);
+        setPreviewVisible(true);
+    };
+
     return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
         <FlatList
             data={students}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item }) => (
+            keyExtractor={(item) => (item._id?.toString() || item.id?.toString() || Math.random().toString())}
+                renderItem={({ item, index }) => (
                 <StudentCard
                     student={item}
                     theme={theme}
@@ -41,6 +56,8 @@ export default function StudentList({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onPay={onPay}
+                    onAvatarPress={() => handleAvatarPress(item.profilePicture)}
+                    index={index}
                 />
             )}
             style={{ backgroundColor: theme.background }}
@@ -64,11 +81,23 @@ export default function StudentList({
                 ) : null
             }
             ListEmptyComponent={
-                <View style={{ paddingTop: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
-                    <Text style={{ color: theme.muted, fontWeight: '600' }}>No students found</Text>
-                    <Text style={{ color: theme.muted }}>Try adjusting search or filters.</Text>
-                </View>
+                isLoading ? (
+                    <StudentSkeletonList />
+                ) : (
+                        <View style={{ paddingTop: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
+                            <Text style={{ color: theme.muted, fontWeight: '600' }}>No students found</Text>
+                            <Text style={{ color: theme.muted }}>Try adjusting search or filters.</Text>
+                        </View>
+                    )
             }
         />
+            <ImageViewing
+                images={previewImages}
+                imageIndex={0}
+                visible={previewVisible}
+                onRequestClose={() => setPreviewVisible(false)}
+                swipeToCloseEnabled
+            />
+        </View>
     );
 }

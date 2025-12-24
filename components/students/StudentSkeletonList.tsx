@@ -25,7 +25,7 @@ const Skeleton = ({ height, width = '100%', radiusOverride }: { height: number; 
         styles.skeleton,
         {
           height,
-          width,
+          width: width as any,
           borderRadius: radiusOverride ?? radius.md,
           backgroundColor: theme.surfaceAlt,
           borderColor: theme.border,
@@ -45,27 +45,35 @@ export const StudentSkeletonList = () => {
       {[1, 2, 3].map((key) => (
         <View key={key} style={[styles.card, { borderColor: theme.border, backgroundColor: theme.surface }]}>
           <View style={styles.cardHeader}>
-            <Skeleton height={48} width={48} radiusOverride={24} />
-            <View style={{ flex: 1, gap: spacing.xs }}>
-              <Skeleton height={14} width="60%" />
-              <Skeleton height={12} width="40%" />
+            <Skeleton height={60} width={60} radiusOverride={20} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Skeleton height={18} width="60%" />
+                <Skeleton height={20} width={70} radiusOverride={8} />
+              </View>
+              <Skeleton height={14} width="40%" />
             </View>
-            <Skeleton height={24} width={64} radiusOverride={12} />
           </View>
-          <View style={styles.metaRow}>
-            <Skeleton height={12} width="30%" />
-            <Skeleton height={12} width="25%" />
-            <Skeleton height={12} width="20%" />
+
+          <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+
+          <View style={styles.metaGrid}>
+            <Skeleton height={36} width="48%" radiusOverride={12} />
+            <Skeleton height={36} width="48%" radiusOverride={12} />
+            <Skeleton height={36} width="48%" radiusOverride={12} />
+            <Skeleton height={36} width="48%" radiusOverride={12} />
           </View>
-          <View style={styles.metaRow}>
-            <Skeleton height={12} width="35%" />
-            <Skeleton height={12} width="30%" />
+
+          <View style={styles.actions}>
+            <Skeleton height={40} width="30%" radiusOverride={12} />
+            <Skeleton height={40} width="30%" radiusOverride={12} />
+            <Skeleton height={40} width="30%" radiusOverride={12} />
           </View>
-          <Skeleton height={10} width="100%" />
         </View>
       ))}
     </View>
   );
+
 };
 
 const styles = StyleSheet.create({
@@ -100,6 +108,20 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     alignItems: 'center',
   },
+  divider: {
+    height: 1,
+    width: '100%',
+  },
+  metaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
 });
+
 
 export default StudentSkeletonList;

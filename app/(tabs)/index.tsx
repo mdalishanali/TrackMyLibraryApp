@@ -1,97 +1,214 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import Animated, { FadeInUp, FadeInDown, Layout, SlideInRight } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { AppBadge } from '@/components/ui/app-badge';
-import { AppCard } from '@/components/ui/app-card';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { typography, spacing, gradientFor } from '@/constants/design';
+import { typography, spacing, radius, gradientFor } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardQuery } from '@/hooks/use-dashboard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSubscription } from '@/providers/subscription-provider';
+
+const { width } = Dimensions.get('window');
+const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
+
+// Subscription Expiry Banner
+function SubscriptionBanner({ theme }: { theme: any }) {
+  const { isExpiringSoon, daysRemainingText } = useSubscription();
+  const router = useRouter();
+
+  if (!isExpiringSoon) return null;
+
+  return (
+    <Animated.View
+      entering={FadeInDown.springify().damping(15)}
+      style={styles.bannerContainer}
+    >
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push('/settings');
+        }}
+        style={({ pressed }) => [
+          styles.bannerInner,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
+        ]}
+      >
+        <LinearGradient
+          colors={[theme.danger + '15', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[styles.bannerIconBox, { backgroundColor: theme.danger + '20' }]}>
+          <Ionicons name="flash" size={20} color={theme.danger} />
+        </View>
+        <View style={styles.bannerContent}>
+          <Text style={[styles.bannerTitle, { color: theme.text }]}>Subscription Status</Text>
+          <Text style={[styles.bannerSubtitle, { color: theme.muted }]} numberOfLines={1}>
+            Expires in <Text style={{ color: theme.danger, fontWeight: '900' }}>{daysRemainingText}</Text>
+          </Text>
+        </View>
+        <View style={[styles.bannerAction, { backgroundColor: theme.danger + '15' }]}>
+          <Text style={[styles.bannerActionText, { color: theme.danger }]}>RENEW</Text>
+          <Ionicons name="chevron-forward" size={12} color={theme.danger} />
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 // Reusable Student Card Component
-function StudentCard({ student, theme }: { student: any; theme: any }) {
+function StudentCard({ student, theme, index }: { student: any; theme: any; index: number }) {
+  const router = useRouter();
+
   return (
-    <Pressable style={({ pressed }) => [styles.studentCard, pressed && styles.cardPressed]}>
-      <View style={[styles.cardInner, { backgroundColor: theme.surface }]}>
+    <Animated.View entering={FadeInDown.delay(index * 100 + 400).duration(600)}>
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push({
+            pathname: '/students',
+            params: { search: student.name }
+          });
+        }}
+        style={({ pressed }) => [
+          styles.studentCard,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          pressed && styles.cardPressed
+        ]}
+      >
         <View style={styles.studentCardHeader}>
           <View style={styles.studentInfo}>
-            <View style={[styles.studentAvatar, { backgroundColor: theme.primary + '15' }]}>
-              <Text style={[styles.studentAvatarText, { color: theme.primary }]}>
-                {student.name?.[0]?.toUpperCase() || 'S'}
-              </Text>
+            <View style={[styles.studentAvatar, { backgroundColor: theme.primary + '10' }]}>
+              {student.profilePicture ? (
+                <Image
+                  source={{ uri: student.profilePicture }}
+                  style={styles.studentAvatarImage}
+                  transition={1000}
+                  placeholder={BLURHASH}
+                  contentFit="cover"
+                />
+              ) : (
+                <Text style={[styles.studentAvatarText, { color: theme.primary }]}>
+                  {student.name?.[0]?.toUpperCase() || 'S'}
+                </Text>
+              )}
             </View>
             <View style={styles.studentDetails}>
               <Text style={[styles.studentName, { color: theme.text }]} numberOfLines={1}>
                 {student.name}
               </Text>
-              <Text style={[styles.studentId, { color: theme.muted }]}>ID: {student.id ?? '—'}</Text>
+              <View style={styles.idRow}>
+                <Ionicons name="finger-print-outline" size={12} color={theme.muted} />
+                <Text style={[styles.studentId, { color: theme.muted }]}>ID: {student.id ?? '—'}</Text>
+              </View>
             </View>
           </View>
-          <AppBadge tone={student.status === 'Active' ? 'success' : 'warning'}>
-            {student.status ?? 'Active'}
-          </AppBadge>
+          <View style={[styles.statusBadge, {
+            backgroundColor: student.status === 'Active' ? theme.success + '15' : theme.warning + '15'
+          }]}>
+            <View style={[styles.statusDot, {
+              backgroundColor: student.status === 'Active' ? theme.success : theme.warning
+            }]} />
+            <Text style={[styles.statusBadgeText, {
+              color: student.status === 'Active' ? theme.success : theme.warning
+            }]}>
+              {student.status || 'Active'}
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.studentMeta, { borderTopColor: theme.border }]}>
+        <View style={[styles.studentMeta, { borderTopColor: theme.border + '50' }]}>
           <View style={styles.metaItem}>
             <Text style={[styles.metaLabel, { color: theme.muted }]}>JOINED</Text>
             <Text style={[styles.metaValue, { color: theme.text }]}>
               {formatDate(student.joiningDate)}
             </Text>
           </View>
-          <View style={[styles.metaDivider, { backgroundColor: theme.border }]} />
+          <View style={[styles.metricDividerVertical, { backgroundColor: theme.border + '50' }]} />
           <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: theme.muted }]}>SEAT</Text>
+            <Text style={[styles.metaLabel, { color: theme.muted }]}>POSITION</Text>
             <Text style={[styles.metaValue, { color: theme.text }]}>
-              {student.seatNumber ?? 'N/A'}
+              {student.seatNumber ? `F${student.floor ?? '-'} • S${student.seatNumber}` : 'Unassigned'}
             </Text>
           </View>
+          <Ionicons name="arrow-forward-circle" size={24} color={theme.primary + '40'} />
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 // Reusable Payment Card Component
-function PaymentCard({ payment, theme }: { payment: any; theme: any }) {
+function PaymentCard({ payment, theme, index }: { payment: any; theme: any; index: number }) {
+  const router = useRouter();
+
   return (
-    <Pressable style={({ pressed }) => [styles.paymentCardWrapper, pressed && styles.cardPressed]}>
-      <View style={[styles.paymentCard, { backgroundColor: theme.surface }]}>
+    <Animated.View entering={FadeInDown.delay(index * 100 + 400).duration(600)}>
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push('/payments');
+        }}
+        style={({ pressed }) => [
+          styles.paymentCard,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          pressed && styles.cardPressed
+        ]}
+      >
         <View style={styles.paymentHeader}>
-          <View style={styles.paymentInfo}>
+          <View style={styles.paymentMainInfo}>
             <Text style={[styles.paymentStudent, { color: theme.text }]} numberOfLines={1}>
               {typeof payment.student === 'object' ? payment.student.name : 'Student'}
             </Text>
-            <Text style={[styles.paymentAmount, { color: theme.primary }]}>
-              {formatCurrency(payment.rupees)}
-            </Text>
+            <View style={styles.amountBadgeRow}>
+              <Text style={[styles.paymentAmount, { color: theme.primary }]}>
+                {formatCurrency(payment.rupees)}
+              </Text>
+              <View style={[styles.modePill, { backgroundColor: theme.primary + '10' }]}>
+                <Ionicons
+                  name={payment.paymentMode === 'cash' ? 'cash' : 'phone-portrait'}
+                  size={10}
+                  color={theme.primary}
+                />
+                <Text style={[styles.modePillText, { color: theme.primary }]}>
+                  {payment.paymentMode.toUpperCase()}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.paymentBadgeWrapper}>
-            <AppBadge tone="info">{payment.paymentMode.toUpperCase()}</AppBadge>
+          <View style={[styles.paymentCircle, { backgroundColor: theme.primary + '10' }]}>
+            <Ionicons name="receipt-outline" size={20} color={theme.primary} />
           </View>
         </View>
 
-        <View style={[styles.paymentMeta, { backgroundColor: theme.surfaceAlt }]}>
-          <View style={styles.paymentMetaRow}>
-            <Text style={[styles.paymentMetaLabel, { color: theme.muted }]}>Period</Text>
-            <Text style={[styles.paymentMetaValue, { color: theme.text }]}>
-              {formatDate(payment.startDate)} → {formatDate(payment.endDate)}
+        <View style={[styles.paymentMetaBox, { backgroundColor: theme.surfaceAlt }]}>
+          <View style={styles.metaSmallRow}>
+            <Ionicons name="calendar-outline" size={12} color={theme.muted} />
+            <Text style={[styles.metaSmallText, { color: theme.muted }]}>
+              {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
             </Text>
           </View>
-          <View style={styles.paymentMetaRow}>
-            <Text style={[styles.paymentMetaLabel, { color: theme.muted }]}>Paid on</Text>
-            <Text style={[styles.paymentMetaValue, { color: theme.text }]}>
-              {formatDate(payment.paymentDate)}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={theme.primary} />
+            <Text style={[styles.metaPaidText, { color: theme.primary }]}>
+              Paid on {formatDate(payment.paymentDate)}
             </Text>
           </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -106,12 +223,14 @@ function getGreeting() {
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const theme = useTheme();
+  const router = useRouter();
   const { user } = useAuth();
+  const { isPro } = useSubscription();
 
   const dashboardQuery = useDashboardQuery();
 
   if (dashboardQuery.isLoading) {
-    return <FullScreenLoader message="Loading dashboard..." />;
+    return <FullScreenLoader message="Preparing your dashboard..." />;
   }
 
   const metrics = [
@@ -119,188 +238,305 @@ export default function DashboardScreen() {
       label: 'Active Students',
       value: dashboardQuery.data?.activeStudentsCount ?? 0,
       colors: gradientFor(colorScheme, 'metricGreen'),
-      icon: '👥'
+      icon: 'people-outline'
     },
     {
       label: 'Total Students',
       value: dashboardQuery.data?.totalStudents ?? 0,
       colors: gradientFor(colorScheme, 'metricBlue'),
-      icon: '📊'
+      icon: 'stats-chart-outline'
     },
     {
-      label: 'This Month',
+      label: 'New This Month',
       value: dashboardQuery.data?.studentsEnrolledThisMonth ?? 0,
       colors: gradientFor(colorScheme, 'metricPurple'),
-      icon: '📈'
+      icon: 'trending-up-outline'
     },
     {
-      label: 'Earnings',
+      label: 'Monthly Earnings',
       value: formatCurrency(dashboardQuery.data?.earnings ?? 0),
       colors: gradientFor(colorScheme, 'metricAmber'),
-      icon: '💰'
+      icon: 'wallet-outline'
     },
   ];
 
   return (
     <SafeScreen>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={dashboardQuery.isRefetching} onRefresh={dashboardQuery.refetch} />
-        }>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <LinearGradient
+          colors={[theme.primary + '15', 'transparent']}
+          style={styles.bgGradient}
+        />
 
-        {/* Modern Header with Gradient */}
-        <View style={styles.headerWrapper}>
-          <LinearGradient
-            colors={gradientFor(colorScheme, 'header')}
-            style={[styles.header, { borderColor: theme.border }]}>
-            <View style={styles.greetingSection}>
-              <Text style={[styles.greeting, { color: theme.muted }]}>
-                {getGreeting()} 👋
-              </Text>
-              <Text style={[styles.userName, { color: theme.text }]}>
-                {user?.name || 'User'}
-              </Text>
-              <Text style={[styles.subtitle, { color: theme.muted }]}>
-                Here's what's happening today
-              </Text>
-            </View>
-            <View style={[styles.avatarLarge, { backgroundColor: theme.primary + '20', borderColor: theme.primary + '30' }]}>
-              <Text style={[styles.avatarLargeText, { color: theme.primary }]}>
-                {user?.name?.[0]?.toUpperCase() || 'U'}
-              </Text>
-            </View>
-          </LinearGradient>
-        </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={dashboardQuery.isRefetching}
+              onRefresh={dashboardQuery.refetch}
+              tintColor={theme.primary}
+            />
+          }>
 
-        {/* Metrics Grid with Gradient Cards */}
-        <View style={styles.metricsSection}>
-          <SectionHeader>Overview</SectionHeader>
-          <View style={styles.metricsGrid}>
-            {metrics.map((item, index) => (
+          {/* Premium Header */}
+          <View style={styles.header}>
+            <Animated.View entering={FadeInDown.duration(800)}>
+              <View style={styles.greetingRow}>
+                <View>
+                  <Text style={[styles.greetingText, { color: theme.muted }]}>{getGreeting()}</Text>
+                  <Text style={[styles.userName, { color: theme.text }]}>
+                    {user?.name?.split(' ')[0] || 'User'}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/settings');
+                  }}
+                  style={({ pressed }) => [
+                    styles.avatarBtn,
+                    { borderColor: theme.border, backgroundColor: theme.surface },
+                    pressed && { transform: [{ scale: 0.95 }] }
+                  ]}
+                >
+                  <Text style={[styles.avatarText, { color: theme.primary }]}>
+                    {user?.name?.[0]?.toUpperCase() || 'U'}
+                  </Text>
+                  {isPro && (
+                    <View style={styles.proIndicator}>
+                      <Ionicons name="star" size={10} color="#fff" />
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+
+          {/* Subscription Banner */}
+          <SubscriptionBanner theme={theme} />
+
+          {/* Quick Metrics Carousel/Grid */}
+          <View style={styles.metricsSection}>
+            <SectionHeader>Overview</SectionHeader>
+            <View style={styles.metricsGrid}>
+              {metrics.map((item, index) => (
+                <Animated.View
+                  key={item.label} 
+                  entering={FadeInDown.delay(index * 100 + 400).duration(800)}
+                  style={styles.metricCardWrapper}
+                >
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      if (index === 0 || index === 1 || index === 2) router.push('/students');
+                      if (index === 3) router.push('/payments');
+                    }}
+                    style={({ pressed }) => [
+                      styles.metricCardInner,
+                      pressed && styles.cardPressed
+                    ]}>
+                    <LinearGradient
+                      colors={item.colors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.metricCard}>
+                      <View style={styles.metricIconContainer}>
+                        <Ionicons name={item.icon as any} size={24} color="#fff" />
+                      </View>
+                      <View>
+                        <Text style={styles.metricValue}>{item.value}</Text>
+                        <Text style={styles.metricLabel}>{item.label}</Text>
+                      </View>
+                      <View style={styles.metricCardDecor}>
+                        <Ionicons name={item.icon as any} size={80} color="rgba(255,255,255,0.1)" />
+                      </View>
+                    </LinearGradient>
+                  </Pressable>
+                </Animated.View>
+              ))}
+            </View>
+          </View>
+
+          {/* Recent Students Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <SectionHeader>Recent Students</SectionHeader>
               <Pressable
-                key={item.label}
-                style={({ pressed }) => [
-                  styles.metricCardWrapper,
-                  pressed && styles.cardPressed
-                ]}>
-                <LinearGradient
-                  colors={item.colors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.metricCard}>
-                  <Text style={styles.metricIcon}>{item.icon}</Text>
-                  <Text style={styles.metricValue}>{item.value}</Text>
-                  <Text style={styles.metricLabel}>{item.label}</Text>
-                </LinearGradient>
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/students');
+                }}
+              >
+                <Text style={[styles.viewAll, { color: theme.primary }]}>View All</Text>
               </Pressable>
-            ))}
+            </View>
+            <View style={styles.cardList}>
+              {dashboardQuery.data?.recentStudents?.length ? (
+                dashboardQuery.data.recentStudents.slice(0, 3).map((student, idx) => (
+                  <StudentCard key={student._id} student={student} theme={theme} index={idx} />
+                ))
+              ) : (
+                <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Ionicons name="people-outline" size={48} color={theme.muted + '40'} />
+                  <Text style={[styles.emptyText, { color: theme.muted }]}>No recent students</Text>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
 
-        {/* Recent Students */}
-        <View style={styles.section}>
-          <SectionHeader>Recent Students</SectionHeader>
-          <View style={styles.cardList}>
-            {dashboardQuery.data?.recentStudents?.length ? (
-              dashboardQuery.data.recentStudents.map((student) => (
-                <StudentCard key={student._id} student={student} theme={theme} />
-              ))
-            ) : (
-              <View style={[styles.emptyCard, { backgroundColor: theme.surface }]}>
-                <Text style={styles.emptyIcon}>📋</Text>
-                <Text style={[styles.emptyText, { color: theme.muted }]}>No recent students</Text>
-              </View>
-            )}
+          {/* Latest Payments Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <SectionHeader>Latest Payments</SectionHeader>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/payments');
+                }}
+              >
+                <Text style={[styles.viewAll, { color: theme.primary }]}>History</Text>
+              </Pressable>
+            </View>
+            <View style={styles.cardList}>
+              {dashboardQuery.data?.latestPayments?.length ? (
+                dashboardQuery.data.latestPayments.slice(0, 3).map((payment, idx) => (
+                  <PaymentCard key={payment._id} payment={payment} theme={theme} index={idx} />
+                ))
+              ) : (
+                <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Ionicons name="card-outline" size={48} color={theme.muted + '40'} />
+                  <Text style={[styles.emptyText, { color: theme.muted }]}>No payments yet</Text>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
-
-        {/* Latest Payments */}
-        <View style={styles.section}>
-          <SectionHeader>Latest Payments</SectionHeader>
-          <View style={styles.cardList}>
-            {dashboardQuery.data?.latestPayments?.length ? (
-              dashboardQuery.data.latestPayments.map((payment) => (
-                <PaymentCard key={payment._id} payment={payment} theme={theme} />
-              ))
-            ) : (
-              <View style={[styles.emptyCard, { backgroundColor: theme.surface }]}>
-                <Text style={styles.emptyIcon}>💳</Text>
-                <Text style={[styles.emptyText, { color: theme.muted }]}>No payments yet</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </SafeScreen>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  scrollView: { flex: 1 },
+  bgGradient: {
+    ...StyleSheet.absoluteFillObject,
+    height: 400,
+  },
   content: {
-    padding: spacing.lg,
-    gap: 28,
+    padding: spacing.xl,
+    paddingTop: spacing.lg,
+    gap: 32,
     paddingBottom: 40,
   },
-
-  // Header Styles
-  headerWrapper: {
-    marginHorizontal: -spacing.lg,
-    marginTop: -spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
   header: {
-    borderRadius: 28,
-    padding: 24,
+    marginBottom: spacing.xs,
+  },
+  greetingRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    borderWidth: 1,
+    alignItems: 'center',
   },
-  greetingSection: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: typography.size.md,
-    fontWeight: '600',
-    marginBottom: 4,
+  greetingText: {
+    fontSize: 16,
+    fontWeight: '700',
+    opacity: 0.6,
+    letterSpacing: 0.5,
   },
   userName: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
     letterSpacing: -1,
-    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: typography.size.sm,
-    fontWeight: '500',
-  },
-  avatarLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  avatarBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 22,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    position: 'relative',
   },
-  avatarLargeText: {
-    fontSize: 28,
+  avatarText: {
+    fontSize: 24,
     fontWeight: '800',
+  },
+  proIndicator: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFB800',
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Subscription Banner
+  bannerContainer: {
+    marginBottom: -8,
+  },
+  bannerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    gap: spacing.lg,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  bannerIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerContent: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  bannerSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bannerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+  },
+  bannerActionText: {
+    fontSize: 11,
+    fontWeight: '900',
   },
 
   // Metrics Styles
   metricsSection: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -308,193 +544,265 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   metricCardWrapper: {
-    width: '47%',
+    width: (width - spacing.xl * 2 - spacing.md) / 2,
+  },
+  metricCardInner: {
+    borderRadius: 28,
+    overflow: 'hidden',
   },
   metricCard: {
-    borderRadius: 24,
     padding: spacing.lg,
-    gap: 8,
-    minHeight: 140,
+    minHeight: 155,
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 6,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  metricIcon: {
-    fontSize: 32,
+  metricCardDecor: {
+    position: 'absolute',
+    bottom: -20,
+    right: -20,
+    opacity: 0.4,
+    transform: [{ rotate: '15deg' }],
+  },
+  metricIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   metricValue: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
     color: '#ffffff',
     letterSpacing: -0.5,
   },
   metricLabel: {
-    fontSize: typography.size.sm,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#ffffff',
     opacity: 0.9,
+    marginTop: 2,
   },
 
   // Section Styles
   section: {
-    gap: spacing.md,
+    gap: spacing.lg,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: -8,
+  },
+  viewAll: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   cardList: {
     gap: spacing.md,
   },
 
-  // Empty State
-  emptyCard: {
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    fontSize: typography.size.md,
-    fontWeight: '600',
-  },
-
   // Student Card Styles
   studentCard: {
-    borderRadius: 20,
-  },
-  cardInner: {
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 28,
+    borderWidth: 1.5,
+    padding: spacing.lg,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+    gap: spacing.lg,
   },
   studentCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
   },
   studentInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.lg,
     flex: 1,
   },
   studentAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   studentAvatarText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
+  },
+  studentAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
   studentDetails: {
     flex: 1,
+    gap: 4,
   },
   studentName: {
-    fontSize: typography.size.lg + 2,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 2,
+  },
+  idRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   studentId: {
-    fontSize: typography.size.sm,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    opacity: 0.6,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   studentMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.lg,
     borderTopWidth: 1,
   },
   metaItem: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   metaLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+    opacity: 0.5,
   },
   metaValue: {
-    fontSize: typography.size.md,
+    fontSize: 15,
     fontWeight: '700',
   },
-  metaDivider: {
+  metricDividerVertical: {
     width: 1,
-    height: 32,
-    marginHorizontal: spacing.sm,
+    height: 24,
+    marginHorizontal: spacing.lg,
+    opacity: 0.5,
   },
 
   // Payment Card Styles
-  paymentCardWrapper: {
-    borderRadius: 20,
-  },
   paymentCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 28,
+    borderWidth: 1.5,
+    padding: spacing.lg,
+    gap: spacing.lg,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
   paymentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
+    alignItems: 'center',
   },
-  paymentInfo: {
+  paymentMainInfo: {
     flex: 1,
     gap: 6,
   },
-  paymentBadgeWrapper: {
-    marginLeft: spacing.sm,
-  },
   paymentStudent: {
-    fontSize: typography.size.lg,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  amountBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   paymentAmount: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
-  paymentMeta: {
-    gap: spacing.sm,
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  paymentMetaRow: {
+  modePill: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  paymentMetaLabel: {
-    fontSize: typography.size.sm,
+  modePillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  paymentCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentMetaBox: {
+    padding: 16,
+    borderRadius: 20,
+    gap: 8,
+  },
+  metaSmallRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaSmallText: {
+    fontSize: 13,
     fontWeight: '600',
   },
-  paymentMetaValue: {
-    fontSize: typography.size.sm,
+  metaPaidText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  // Empty State
+  emptyCard: {
+    borderRadius: 28,
+    padding: 40,
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  emptyText: {
+    fontSize: 16,
     fontWeight: '700',
   },
 
   // Interactive States
   cardPressed: {
-    opacity: 0.7,
+    opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
 });
+
