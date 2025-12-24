@@ -27,7 +27,7 @@ const ENTITLEMENT_ID = 'Library Manager TrackMyLibrary Pro';
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
-  const [isPro, setIsPro] = useState(false);
+  const [isRcPro, setIsRcPro] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showPaywall, setShowPaywall] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
@@ -39,7 +39,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       const info = await Purchases.getCustomerInfo();
       setCustomerInfo(info);
-      setIsPro(!!info.entitlements.active[ENTITLEMENT_ID]);
+      setIsRcPro(!!info.entitlements.active[ENTITLEMENT_ID]);
     } catch (error) {
     }
   }, []);
@@ -60,12 +60,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }
 
           if (isAuthenticated && user?.company?._id) {
-            const { company } = user;
-            await Purchases.logIn(company._id);
+            await Purchases.logIn(user.company._id);
             await checkSubscriptionStatus();
           } else {
-            await Purchases.logOut();
-            setIsPro(false);
+            if (isConfigured) await Purchases.logOut();
+            setIsRcPro(false);
             setCustomerInfo(null);
           }
         }
@@ -76,45 +75,60 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     init();
-  }, [isAuthenticated, user, checkSubscriptionStatus]);
+  }, [isAuthenticated, user?.company?._id, checkSubscriptionStatus]);
 
   const restorePurchases = useCallback(async () => {
     try {
       setIsLoading(true);
       const restoredInfo = await Purchases.restorePurchases();
       setCustomerInfo(restoredInfo);
-      setIsPro(!!restoredInfo.entitlements.active[ENTITLEMENT_ID]);
+      setIsRcPro(!!restoredInfo.entitlements.active[ENTITLEMENT_ID]);
     } catch (error) {
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const expiryData = useMemo(() => {
-    const active = customerInfo?.entitlements.active[ENTITLEMENT_ID];
-    if (!active || !active.expirationDate) return { text: null, soon: false };
+  const isProActive = useMemo(() => {
+    const isTrialActive = user?.company?.trialEnd && new Date(user.company.trialEnd) > new Date();
 
-    const exp = new Date(active.expirationDate).getTime();
+    let isDbActive = user?.company?.subscriptionStatus === 'Active';
+    if (isDbActive && user?.company?.subscriptionEndDate) {
+      if (new Date(user.company.subscriptionEndDate) < new Date()) {
+        isDbActive = false;
+      }
+    }
+
+    return isRcPro || isDbActive || isTrialActive;
+  }, [isRcPro, user?.company]);
+
+  const expiryData = useMemo(() => {
+    const rcActive = customerInfo?.entitlements.active[ENTITLEMENT_ID];
+    const expDateStr = rcActive?.expirationDate || user?.company?.subscriptionEndDate || user?.company?.trialEnd;
+
+    if (!expDateStr) return { text: null, soon: false };
+
+    const exp = new Date(expDateStr).getTime();
     const now = new Date().getTime();
     const days = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
 
     return {
-      text: days <= 0 ? 'Today' : `${days} day${days > 1 ? 's' : ''}`,
+      text: days < 0 ? 'Expired' : (days === 0 ? 'Today' : `${days} day${days > 1 ? 's' : ''}`),
       soon: days >= 0 && days <= 3
     };
-  }, [customerInfo]);
+  }, [customerInfo, user?.company]);
 
   const value = useMemo(() => ({
-    isPro,
+    isPro: isProActive,
     isLoading,
-    isBlocked: isAuthenticated && !isPro,
+    isBlocked: isAuthenticated && !isProActive,
     customerInfo,
     presentPaywall: () => setShowPaywall(true),
     restorePurchases,
     checkSubscriptionStatus,
     daysRemainingText: expiryData.text,
     isExpiringSoon: expiryData.soon,
-  }), [isPro, isLoading, isAuthenticated, customerInfo, restorePurchases, checkSubscriptionStatus, expiryData]);
+  }), [isProActive, isLoading, isAuthenticated, customerInfo, restorePurchases, checkSubscriptionStatus, expiryData]);
 
   return (
     <SubscriptionContext.Provider value={value}>
