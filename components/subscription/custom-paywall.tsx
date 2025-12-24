@@ -154,9 +154,11 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
                       {pkg.product.priceString}
                     </Text>
                     {isYearly && isSelected && (
-                      <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '700', marginTop: 4 }}>
-                        Just {(pkg.product.price / 12).toLocaleString(undefined, { style: 'currency', currency: pkg.product.currencyCode })} / month
-                      </Text>
+                      <View style={{ backgroundColor: theme.primary + '15', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 8, alignSelf: 'flex-start' }}>
+                        <Text style={{ fontSize: 13, color: theme.primary, fontWeight: '800' }}>
+                          {(pkg.product.price / 12).toLocaleString(undefined, { style: 'currency', currency: pkg.product.currencyCode })} / month
+                        </Text>
+                      </View>
                     )}
                   </View>
                   {isYearly && (
