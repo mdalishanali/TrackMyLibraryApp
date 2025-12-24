@@ -8,6 +8,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -152,6 +153,11 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
                     <Text style={[styles.planPrice, { color: theme.muted }]}>
                       {pkg.product.priceString}
                     </Text>
+                    {isYearly && isSelected && (
+                      <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '700', marginTop: 4 }}>
+                        Just {(pkg.product.price / 12).toLocaleString(undefined, { style: 'currency', currency: pkg.product.currencyCode })} / month
+                      </Text>
+                    )}
                   </View>
                   {isYearly && (
                     <View style={[styles.badge, { backgroundColor: theme.primary }]}>
@@ -186,6 +192,16 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
         <TouchableOpacity onPress={() => Purchases.restorePurchases()} style={styles.restoreBtn}>
           <Text style={[styles.restoreText, { color: theme.muted }]}>Restore Enrollment</Text>
         </TouchableOpacity>
+
+        <View style={styles.legalLinks}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://your-website.com/terms')}>
+            <Text style={[styles.legalText, { color: theme.muted }]}>Terms of Service</Text>
+          </TouchableOpacity>
+          <Text style={[styles.legalText, { color: theme.muted }]}>  •  </Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://your-website.com/privacy')}>
+            <Text style={[styles.legalText, { color: theme.muted }]}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -220,4 +236,15 @@ const styles = StyleSheet.create({
   buyButtonText: { color: '#fff', fontSize: 18, fontWeight: '900' },
   restoreBtn: { marginTop: 16, alignItems: 'center' },
   restoreText: { fontSize: 14, fontWeight: '700' },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    opacity: 0.6,
+  },
+  legalText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
 });
