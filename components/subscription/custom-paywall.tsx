@@ -200,7 +200,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
             <Text style={[styles.legalText, { color: theme.muted }]}>Terms of Service</Text>
           </TouchableOpacity>
           <Text style={[styles.legalText, { color: theme.muted }]}>  •  </Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://trackmylibrary.in/privacy-policy')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://lumbar-hyssop-0ce.notion.site/Privacy-Policy-2d3ce51ccc32800ea087fc6d0422511c?source=copy_link')}>
             <Text style={[styles.legalText, { color: theme.muted }]}>Privacy Policy</Text>
           </TouchableOpacity>
         </View>
