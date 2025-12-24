@@ -196,7 +196,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
         </TouchableOpacity>
 
         <View style={styles.legalLinks}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://trackmylibrary.in/terms-and-conditions')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://lumbar-hyssop-0ce.notion.site/Terms-of-Service-2d3ce51ccc328015b6d7eac567dc03d7?source=copy_link')}>
             <Text style={[styles.legalText, { color: theme.muted }]}>Terms of Service</Text>
           </TouchableOpacity>
           <Text style={[styles.legalText, { color: theme.muted }]}>  •  </Text>
