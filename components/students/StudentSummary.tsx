@@ -134,6 +134,9 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
       <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={1} />
       <InfoItem icon="location-outline" label="Seat" value={student.seatNumber ? `Seat ${student.seatNumber}` : 'Unallocated'} theme={theme} index={2} />
       <InfoItem icon="time-outline" label="Shift" value={student.shift} theme={theme} index={3} />
+      {typeof student.daysOverdue === 'number' && student.daysOverdue > 0 && (
+        <InfoItem icon="alert-circle-outline" label="Overdue" value={`${student.daysOverdue} Days`} theme={theme} index={4} />
+      )}
     </View>
   );
 }
