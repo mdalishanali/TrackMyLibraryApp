@@ -24,6 +24,7 @@ const MAPPING = {
   'rectangle.grid.2x2': 'grid-view',
   'creditcard.fill': 'credit-card',
   'line.3.horizontal': 'menu',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**

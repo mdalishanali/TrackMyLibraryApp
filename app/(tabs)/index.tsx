@@ -261,7 +261,7 @@ export default function DashboardScreen() {
   ];
 
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
           colors={[theme.primary + '15', 'transparent']}
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingTop: 0,
     gap: 32,
     paddingBottom: 40,
   },

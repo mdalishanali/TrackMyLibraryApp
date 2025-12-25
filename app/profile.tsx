@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.sm,
     gap: spacing.lg,
     marginBottom: spacing.xl,
   },

@@ -158,7 +158,7 @@ export default function PaymentsScreen() {
     [payments]);
 
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
           colors={[theme.primary + '10', 'transparent', 'transparent']}
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   stickyHeader: {
-    paddingTop: spacing.lg,
+    paddingTop: 0,
     paddingBottom: spacing.md,
     zIndex: 10,
   },

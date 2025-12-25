@@ -229,7 +229,7 @@ export default function StudentsScreen() {
   ), [theme, search, filter, totalCount]);
 
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top']}>
       <StudentList
         students={students}
         theme={theme}
@@ -305,7 +305,7 @@ export default function StudentsScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingTop: 0,
     paddingBottom: spacing.md,
     gap: spacing.lg,
   },
