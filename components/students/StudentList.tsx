@@ -64,7 +64,7 @@ export default function StudentList({
             contentContainerStyle={{
                 gap: spacing.md,
                 padding: 10,
-                paddingBottom: spacing.lg + insets.bottom,
+                paddingBottom: 140 + insets.bottom,
                 backgroundColor: theme.background,
             }}
             onEndReached={onLoadMore}

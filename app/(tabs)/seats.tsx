@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   seatsGrid: {
     flexDirection: 'row',

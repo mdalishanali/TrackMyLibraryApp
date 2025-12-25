@@ -428,8 +428,8 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.xl,
     paddingTop: 0,
+    paddingBottom: 140,
     gap: 32,
-    paddingBottom: 40,
   },
   header: {
     marginBottom: spacing.xs,
@@ -467,6 +467,11 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: '800',
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 80,
+    right: 24,
   },
   proIndicator: {
     position: 'absolute',

@@ -425,7 +425,7 @@ function FilterChip({ label, active, onPress, theme }: { label: string; active: 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 140,
   },
   stickyHeader: {
     paddingTop: 0,
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
   // FAB
   fabContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 80,
     right: 24,
     zIndex: 100,
   },
