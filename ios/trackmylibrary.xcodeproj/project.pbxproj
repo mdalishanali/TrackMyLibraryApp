@@ -18,12 +18,12 @@
 
 /* Begin PBXFileReference section */
 		0A7877A97A572053AF436CBE /* libPods-trackmylibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-trackmylibrary.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07F961A680F5B00A75B9A /* trackmylibrary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = trackmylibrary.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07F961A680F5B00A75B9A /* TrackMyLibrary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrackMyLibrary.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = trackmylibrary/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = trackmylibrary/Info.plist; sourceTree = "<group>"; };
 		36DD1A993FB28C57A40D2786 /* Pods-trackmylibrary.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-trackmylibrary.debug.xcconfig"; path = "Target Support Files/Pods-trackmylibrary/Pods-trackmylibrary.debug.xcconfig"; sourceTree = "<group>"; };
 		5A7273D1679E58A31C4A3CB8 /* Pods-trackmylibrary.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-trackmylibrary.release.xcconfig"; path = "Target Support Files/Pods-trackmylibrary/Pods-trackmylibrary.release.xcconfig"; sourceTree = "<group>"; };
-		75C71F9A192DA7813C1E8CDB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = trackmylibrary/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		75C71F9A192DA7813C1E8CDB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = trackmylibrary/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = trackmylibrary/SplashScreen.storyboard; sourceTree = "<group>"; };
 		B77ECC6BA681159FB1EB4105 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-trackmylibrary/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -81,7 +81,6 @@
 				36DD1A993FB28C57A40D2786 /* Pods-trackmylibrary.debug.xcconfig */,
 				5A7273D1679E58A31C4A3CB8 /* Pods-trackmylibrary.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -110,7 +109,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* trackmylibrary.app */,
+				13B07F961A680F5B00A75B9A /* TrackMyLibrary.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -154,7 +153,7 @@
 			);
 			name = trackmylibrary;
 			productName = trackmylibrary;
-			productReference = 13B07F961A680F5B00A75B9A /* trackmylibrary.app */;
+			productReference = 13B07F961A680F5B00A75B9A /* TrackMyLibrary.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -345,6 +344,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = trackmylibrary/trackmylibrary.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DXDQYVMFWT;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -364,7 +364,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.librarymanager.trackmylibrary;
-				PRODUCT_NAME = "TrackMyLibrary";
+				PRODUCT_NAME = TrackMyLibrary;
 				SWIFT_OBJC_BRIDGING_HEADER = "trackmylibrary/trackmylibrary-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -381,6 +381,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = trackmylibrary/trackmylibrary.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DXDQYVMFWT;
 				INFOPLIST_FILE = trackmylibrary/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -395,7 +396,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.librarymanager.trackmylibrary;
-				PRODUCT_NAME = "TrackMyLibrary";
+				PRODUCT_NAME = TrackMyLibrary;
 				SWIFT_OBJC_BRIDGING_HEADER = "trackmylibrary/trackmylibrary-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
