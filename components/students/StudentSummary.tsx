@@ -19,7 +19,9 @@ type Student = {
   joiningDate?: string;
   seatNumber?: number;
   status?: string;
+  paymentStatus?: string;
   dueAmount?: number;
+  daysOverdue?: number;
   profilePicture?: string;
   lastPayment?: {
     paymentDate?: string;
@@ -40,10 +42,10 @@ type Actions = {
 
 type Theme = ReturnType<typeof themeFor>;
 
-const statusTone = (status?: string) => {
-  if (status === 'Active') return 'success';
-  if (status === 'Trial') return 'info';
-  if (status === 'Defaulter') return 'danger';
+const statusTone = (status?: string, paymentStatus?: string) => {
+  if (paymentStatus === 'Paid') return 'success';
+  if (paymentStatus === 'Trial') return 'info';
+  if (paymentStatus === 'Unpaid') return 'danger';
   if (status === 'Inactive') return 'warning';
   return 'default';
 };
@@ -57,6 +59,9 @@ export function StudentHeader({
   theme: Theme;
   onAvatarPress?: () => void;
 }) {
+  const isOverdue = typeof student.daysOverdue === 'number' && student.daysOverdue > 0;
+  const isTrial = student.paymentStatus === 'Trial' || student.status === 'Trial';
+
   return (
     <View style={styles.headerRow}>
       <TouchableOpacity
@@ -83,9 +88,6 @@ export function StudentHeader({
       <View style={{ flex: 1, gap: 4 }}>
         <View style={styles.nameRow}>
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
-          <AppBadge tone={statusTone(student.status)}>
-            {student.status?.toUpperCase() ?? 'ACTIVE'}
-          </AppBadge>
         </View>
         <View style={styles.idRow}>
           <Text style={[styles.meta, { color: theme.muted }]}>MEMBER ID: {student.id ?? '—'}</Text>
@@ -176,11 +178,18 @@ export function PaymentSummary({ student, theme }: { student: Student; theme: Th
 }
 
 export function TimeSlots({ student, theme }: { student: Student; theme: Theme }) {
-  if (!student.time?.length) return null;
+  const hasTime = !!student.time?.length;
+  const isTrial = student.paymentStatus === 'Trial';
+  const isDues = student.paymentStatus === 'Unpaid';
+  const isPaid = student.paymentStatus === 'Paid';
+  const overDueDays = student.daysOverdue ?? 0;
+  const hasPayment = !!student.lastPayment?.startDate;
+
+  if (!hasTime && !student.daysOverdue && !hasPayment) return null;
 
   return (
     <View style={styles.timeRow}>
-      {student.time.map((slot, idx) => (
+      {student.time?.map((slot, idx) => (
         <View key={`${slot.start}-${slot.end}-${idx}`} style={[styles.timeChip, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
           <Ionicons name="time" size={12} color={theme.primary} />
           <Text style={[styles.timeText, { color: theme.text }]}>
@@ -188,6 +197,57 @@ export function TimeSlots({ student, theme }: { student: Student; theme: Theme }
           </Text>
         </View>
       ))}
+
+      {isPaid && (
+        <View style={[styles.statusChip, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}>
+          <View style={[styles.dot, { backgroundColor: theme.success }]} />
+          <Text style={[styles.statusText, { color: theme.success }]}>PAID</Text>
+        </View>
+      )}
+
+      {isDues && (
+        <View style={[styles.statusChip, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '30' }]}>
+          <View style={[styles.dot, { backgroundColor: theme.danger }]} />
+          <Text style={[styles.statusText, { color: theme.danger }]}>UNPAID</Text>
+        </View>
+      )}
+
+      {isTrial && (
+        <View style={[styles.statusChip, { backgroundColor: theme.info + '15', borderColor: theme.info + '30' }]}>
+          <View style={[styles.dot, { backgroundColor: theme.info }]} />
+          <Text style={[styles.statusText, { color: theme.info }]}>TRIAL</Text>
+        </View>
+      )}
+
+      {isTrial && overDueDays >= 0 && (
+        <View style={[styles.timeChip, { backgroundColor: theme.info + '10', borderColor: theme.info + '20' }]}>
+          <Ionicons name="flask" size={12} color={theme.info} />
+          <Text style={[styles.timeText, { color: theme.info, fontWeight: '800' }]}>
+            {overDueDays === 0 ? 'STARTED TODAY' : `${overDueDays} DAYS IN`}
+          </Text>
+        </View>
+      )}
+
+      {isDues && overDueDays > 0 && (
+        <View style={[styles.timeChip, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '20' }]}>
+          <Ionicons name="alert-circle" size={12} color={theme.danger} />
+          <Text style={[styles.timeText, { color: theme.danger, fontWeight: '800' }]}>
+            OVERDUE {overDueDays}D
+          </Text>
+        </View>
+      )}
+
+      {hasPayment && (
+        <View style={[styles.subscriptionChip, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+          <View style={[styles.subIconWrap, { backgroundColor: (isPaid ? theme.success : theme.danger) + '15' }]}>
+            <Ionicons name="calendar" size={10} color={isPaid ? theme.success : theme.danger} />
+          </View>
+          <Text style={[styles.subLabel, { color: theme.muted }]}>VAL:</Text>
+          <Text style={[styles.subValue, { color: theme.text }]}>
+            {formatDate(student.lastPayment?.startDate)} - {formatDate(student.lastPayment?.endDate)}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -414,6 +474,51 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1.2,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  subscriptionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    flexGrow: 1,
+  },
+  subIconWrap: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  subValue: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

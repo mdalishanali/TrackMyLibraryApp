@@ -139,7 +139,7 @@ export default function SeatsScreen() {
   }
 
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
           colors={[theme.primary + '10', 'transparent']}
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingTop: 0,
     paddingBottom: spacing.md,
     gap: spacing.lg,
   },
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   seatsGrid: {
     flexDirection: 'row',

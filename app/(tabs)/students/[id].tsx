@@ -16,10 +16,12 @@ import { PaymentFormModal, PaymentFormValues } from '@/components/students/payme
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing } from '@/constants/design';
-import { useDeleteStudent } from '@/hooks/use-students';
+import { useDeleteStudent, useUpdateStudent } from '@/hooks/use-students';
 import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
+import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
+import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
@@ -40,10 +42,29 @@ export default function StudentDetailScreen() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
+
 
   const studentQuery = useStudentQuery(id);
   const paymentsQuery = useInfinitePaymentsQuery({ student: id, limit: 10 });
   const deleteStudent = useDeleteStudent();
+  const updateStudent = useUpdateStudent(id);
+  const seatsQuery = useSeatsQuery();
+
+
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const basePaymentValues = useMemo<PaymentFormValues>(
+    () => ({
+      student: id,
+      rupees: 0,
+      startDate: todayIso,
+      endDate: todayIso,
+      paymentDate: todayIso,
+      paymentMode: 'cash',
+      notes: '',
+    }),
+    [id, todayIso],
+  );
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -81,25 +102,29 @@ export default function StudentDetailScreen() {
     router.back();
   };
 
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const basePaymentValues = useMemo<PaymentFormValues>(
-    () => ({
-      student: student._id,
-      rupees: 0,
-      startDate: todayIso,
-      endDate: todayIso,
-      paymentDate: todayIso,
-      paymentMode: 'cash',
-      notes: '',
-    }),
-    [student._id, todayIso],
-  );
 
   const openPayment = () => {
     setPaymentDefaults({ ...basePaymentValues, rupees: student.fees ?? 0 });
     setEditingPaymentId(null);
     setIsPaymentOpen(true);
   };
+
+  const handleUpdateStudent = async (values: any) => {
+    try {
+      await updateStudent.mutateAsync({
+        payload: {
+          ...values,
+          fees: values.fees ? Number(values.fees) : undefined,
+          time: [{ start: values.startTime, end: values.endTime }]
+        }
+      });
+      setIsEditStudentOpen(false);
+      studentQuery.refetch();
+    } catch (error) {
+      // handled by mutation success/error toast usually
+    }
+  };
+
 
   const startEditPayment = (payment: any) => {
     setPaymentDefaults({
@@ -223,7 +248,7 @@ export default function StudentDetailScreen() {
 
               <View style={styles.heroStats}>
                 <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
-                  <Text style={[styles.statValue, { color: theme.text }]}>{student.seatNumber ? `#${student.seatNumber}` : '—'}</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>{(student.seatNumber !== undefined && student.seatNumber !== null) ? `#${student.seatNumber}` : '—'}</Text>
                   <Text style={[styles.statLabel, { color: theme.muted }]}>SEAT</Text>
                 </View>
                 <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
@@ -240,6 +265,19 @@ export default function StudentDetailScreen() {
                 <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setIsEditStudentOpen(true);
+                }}
+                style={({ pressed }) => [
+                  styles.editBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  pressed && { opacity: 0.8 }
+                ]}
+              >
+                <Ionicons name="create-outline" size={20} color={theme.text} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     openPayment();
                   }}
                   style={({ pressed }) => [
@@ -249,7 +287,7 @@ export default function StudentDetailScreen() {
                   ]}
                 >
                   <Ionicons name="wallet-outline" size={20} color="#fff" />
-                  <Text style={styles.payBtnText}>Record Payment</Text>
+                <Text style={styles.payBtnText}>Payment</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -271,8 +309,8 @@ export default function StudentDetailScreen() {
           <Animated.View entering={FadeInDown.delay(200).duration(600)}>
             <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Bio & Space</Text>
             <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
-              <DetailRow icon="business" label="Workspace" value={student.seatNumber ? `Level ${student.floor || '1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
+            <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
+            <DetailRow icon="business" label="Workspace" value={(student.seatNumber !== undefined && student.seatNumber !== null) ? `Level ${student.floor ?? '1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
               <DetailRow icon="time" label="Schedule" value={student.shift || 'Morning Shift'} theme={theme} />
               <DetailRow icon="calendar" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last />
             </View>
@@ -389,6 +427,32 @@ export default function StudentDetailScreen() {
         onCancel={() => setConfirmStudentDelete(false)}
         onConfirm={confirmDeleteStudent}
       />
+
+      {student && (
+        <StudentFormModal
+          visible={isEditStudentOpen}
+          onClose={() => setIsEditStudentOpen(false)}
+          onSubmit={handleUpdateStudent}
+          initialValues={{
+            name: student.name || '',
+            number: student.number || '',
+            joiningDate: student.joiningDate?.slice(0, 10) || todayIso,
+            seat: student.seat || '',
+            shift: student.shift || '',
+            startTime: student.time?.[0]?.start || '09:00',
+            endTime: student.time?.[0]?.end || '18:00',
+            status: student.status || 'Active',
+            fees: String(student.fees || ''),
+            gender: student.gender || 'Male',
+            notes: student.notes || '',
+            profilePicture: student.profilePicture || ''
+          }}
+          seats={(seatsQuery.data ?? []).map((s: any) => ({ _id: s._id, seatNumber: String(s.seatNumber), floor: s.floor }))}
+          theme={theme}
+          isSubmitting={updateStudent.isPending}
+          title="Edit Member"
+        />
+      )}
 
       <ImageViewing
         images={student.profilePicture ? [{ uri: student.profilePicture }] : []}
@@ -566,8 +630,16 @@ const styles = StyleSheet.create({
   },
   payBtnText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
+  },
+  editBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   delBtn: {
     width: 56,

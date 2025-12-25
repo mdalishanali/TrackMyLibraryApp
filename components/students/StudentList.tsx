@@ -64,7 +64,7 @@ export default function StudentList({
             contentContainerStyle={{
                 gap: spacing.md,
                 padding: 10,
-                paddingBottom: spacing.lg + insets.bottom,
+                paddingBottom: 140 + insets.bottom,
                 backgroundColor: theme.background,
             }}
             onEndReached={onLoadMore}
@@ -84,7 +84,7 @@ export default function StudentList({
                 isLoading ? (
                     <StudentSkeletonList />
                 ) : (
-                        <View style={{ paddingTop: spacing.lg, alignItems: 'center', gap: spacing.xs }}>
+                        <View style={{ paddingTop: spacing.sm, alignItems: 'center', gap: spacing.xs }}>
                             <Text style={{ color: theme.muted, fontWeight: '600' }}>No students found</Text>
                             <Text style={{ color: theme.muted }}>Try adjusting search or filters.</Text>
                         </View>

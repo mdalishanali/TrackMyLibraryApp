@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
@@ -32,6 +33,16 @@ export default function TabLayout() {
           backgroundColor: designTheme.background,
           borderTopWidth: 0,
           elevation: 0,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+          paddingTop: 10,
+        },
+        tabBarItemStyle: {
+          paddingTop: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
         },
         tabBarHideOnKeyboard: true,
         sceneStyle: { backgroundColor: designTheme.background },

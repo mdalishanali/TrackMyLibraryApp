@@ -158,7 +158,7 @@ export default function PaymentsScreen() {
     [payments]);
 
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
           colors={[theme.primary + '10', 'transparent', 'transparent']}
@@ -425,10 +425,10 @@ function FilterChip({ label, active, onPress, theme }: { label: string; active: 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 140,
   },
   stickyHeader: {
-    paddingTop: spacing.lg,
+    paddingTop: 0,
     paddingBottom: spacing.md,
     zIndex: 10,
   },
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
   // FAB
   fabContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 80,
     right: 24,
     zIndex: 100,
   },

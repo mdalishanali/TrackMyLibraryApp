@@ -16,6 +16,7 @@ import {
   useUpdateStudent,
   useInfiniteStudentsQuery
 } from '@/hooks/use-students';
+import { useDashboardQuery } from '@/hooks/use-dashboard';
 
 import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
@@ -59,6 +60,7 @@ export default function StudentsScreen() {
     filter
   });
 
+  const dashboardQuery = useDashboardQuery();
   const seatsQuery = useSeatsQuery();
   const createStudent = useCreateStudent();
   const deleteStudent = useDeleteStudent();
@@ -67,9 +69,8 @@ export default function StudentsScreen() {
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
   const totalCount = useMemo(() => {
-    const firstPage: any = studentsQuery.data?.pages[0];
-    return firstPage?.totalCount ?? firstPage?.total ?? students.length;
-  }, [studentsQuery.data, students.length]);
+    return dashboardQuery.data?.totalStudents ?? (studentsQuery.data?.pages[0]?.pagination?.total || students.length);
+  }, [dashboardQuery.data, studentsQuery.data, students.length]);
 
   const seats = useMemo(
     () => (seatsQuery.data ?? []).map(s => ({
@@ -204,6 +205,24 @@ export default function StudentsScreen() {
     setPendingDelete(null);
   };
 
+  const queryCount = studentsQuery.data?.pages[0]?.pagination?.total || 0;
+  const filteredCount = useMemo(() => {
+    if (filter === 'recent' || filter === 'all' || filter === 'active') {
+      return dashboardQuery.data?.totalStudents ?? queryCount;
+    }
+    return queryCount;
+  }, [filter, dashboardQuery.data, queryCount]);
+
+  const countLabel = useMemo(() => {
+    const labels: Record<string, string> = {
+      dues: 'DUES',
+      paid: 'PAID',
+      trial: 'TRIAL',
+      defaulter: 'DEFAULTERS'
+    };
+    return labels[filter] || 'PROFILES';
+  }, [filter]);
+
   const initialFormValues = useMemo(() => mapToForm(editingStudent), [editingStudent]);
 
   const listHeader = useMemo(() => (
@@ -214,8 +233,8 @@ export default function StudentsScreen() {
           <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
         </View>
         <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
-          <Text style={[styles.countVal, { color: theme.primary }]}>{totalCount}</Text>
-          <Text style={[styles.countUnit, { color: theme.primary }]}>PROFILES</Text>
+          <Text style={[styles.countVal, { color: theme.primary }]}>{filteredCount}</Text>
+          <Text style={[styles.countUnit, { color: theme.primary }]}>{countLabel}</Text>
         </View>
       </View>
 
@@ -229,7 +248,7 @@ export default function StudentsScreen() {
   ), [theme, search, filter, totalCount]);
 
   return (
-    <SafeScreen>
+    <SafeScreen edges={['top']}>
       <StudentList
         students={students}
         theme={theme}
@@ -305,7 +324,7 @@ export default function StudentsScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingTop: 0,
     paddingBottom: spacing.md,
     gap: spacing.lg,
   },
@@ -349,7 +368,7 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 80,
     right: 24,
     zIndex: 100,
   },
