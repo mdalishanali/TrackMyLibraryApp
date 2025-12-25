@@ -20,6 +20,7 @@ type Student = {
   seatNumber?: number;
   status?: string;
   dueAmount?: number;
+  daysOverdue?: number;
   profilePicture?: string;
   lastPayment?: {
     paymentDate?: string;
@@ -57,6 +58,8 @@ export function StudentHeader({
   theme: Theme;
   onAvatarPress?: () => void;
 }) {
+  const isOverdue = typeof student.daysOverdue === 'number' && student.daysOverdue > 0;
+
   return (
     <View style={styles.headerRow}>
       <TouchableOpacity
@@ -83,9 +86,16 @@ export function StudentHeader({
       <View style={{ flex: 1, gap: 4 }}>
         <View style={styles.nameRow}>
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
-          <AppBadge tone={statusTone(student.status)}>
-            {student.status?.toUpperCase() ?? 'ACTIVE'}
-          </AppBadge>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {isOverdue && (
+              <AppBadge tone="danger">
+                {student.daysOverdue}D DUE
+              </AppBadge>
+            )}
+            <AppBadge tone={statusTone(student.status)}>
+              {student.status?.toUpperCase() ?? 'ACTIVE'}
+            </AppBadge>
+          </View>
         </View>
         <View style={styles.idRow}>
           <Text style={[styles.meta, { color: theme.muted }]}>MEMBER ID: {student.id ?? '—'}</Text>
