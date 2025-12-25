@@ -16,6 +16,7 @@ import {
   useUpdateStudent,
   useInfiniteStudentsQuery
 } from '@/hooks/use-students';
+import { useDashboardQuery } from '@/hooks/use-dashboard';
 
 import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
@@ -59,6 +60,7 @@ export default function StudentsScreen() {
     filter
   });
 
+  const dashboardQuery = useDashboardQuery();
   const seatsQuery = useSeatsQuery();
   const createStudent = useCreateStudent();
   const deleteStudent = useDeleteStudent();
@@ -67,9 +69,8 @@ export default function StudentsScreen() {
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
   const totalCount = useMemo(() => {
-    const firstPage: any = studentsQuery.data?.pages[0];
-    return firstPage?.totalCount ?? firstPage?.total ?? students.length;
-  }, [studentsQuery.data, students.length]);
+    return dashboardQuery.data?.totalStudents ?? (studentsQuery.data?.pages[0]?.pagination?.total || students.length);
+  }, [dashboardQuery.data, studentsQuery.data, students.length]);
 
   const seats = useMemo(
     () => (seatsQuery.data ?? []).map(s => ({
