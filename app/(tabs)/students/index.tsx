@@ -205,6 +205,24 @@ export default function StudentsScreen() {
     setPendingDelete(null);
   };
 
+  const queryCount = studentsQuery.data?.pages[0]?.pagination?.total || 0;
+  const filteredCount = useMemo(() => {
+    if (filter === 'recent' || filter === 'all' || filter === 'active') {
+      return dashboardQuery.data?.totalStudents ?? queryCount;
+    }
+    return queryCount;
+  }, [filter, dashboardQuery.data, queryCount]);
+
+  const countLabel = useMemo(() => {
+    const labels: Record<string, string> = {
+      dues: 'DUES',
+      paid: 'PAID',
+      trial: 'TRIAL',
+      defaulter: 'DEFAULTERS'
+    };
+    return labels[filter] || 'PROFILES';
+  }, [filter]);
+
   const initialFormValues = useMemo(() => mapToForm(editingStudent), [editingStudent]);
 
   const listHeader = useMemo(() => (
@@ -215,8 +233,8 @@ export default function StudentsScreen() {
           <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
         </View>
         <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
-          <Text style={[styles.countVal, { color: theme.primary }]}>{totalCount}</Text>
-          <Text style={[styles.countUnit, { color: theme.primary }]}>PROFILES</Text>
+          <Text style={[styles.countVal, { color: theme.primary }]}>{filteredCount}</Text>
+          <Text style={[styles.countUnit, { color: theme.primary }]}>{countLabel}</Text>
         </View>
       </View>
 
