@@ -148,11 +148,17 @@ export default function StudentsScreen() {
   const getReminderPreview = () => {
     if (!reminderTarget || !selectedTemplate) return "";
 
+    const seatInfo = reminderTarget.seat as any;
+    const seatNumber = typeof reminderTarget.seat === 'object' ? seatInfo?.seatNumber : '—';
+    const floor = typeof reminderTarget.seat === 'object' ? `Level ${seatInfo?.floor || seatInfo?.floorId?.floor || '—'}` : '—';
+
     return selectedTemplate.body
       .replace('{student_name}', reminderTarget.name)
       .replace('{business_name}', user?.company?.businessName || 'Your Library')
       .replace('{joining_date}', reminderTarget.joiningDate ? formatDate(reminderTarget.joiningDate) : '—')
       .replace('{shift}', reminderTarget.shift || '—')
+      .replace('{seat_number}', seatNumber)
+      .replace('{floor}', floor)
       .replace('{amount}', reminderTarget.lastPayment?.rupees || '0')
       .replace('{start_date}', reminderTarget.lastPayment?.startDate ? formatDate(reminderTarget.lastPayment.startDate) : '—')
       .replace('{end_date}', reminderTarget.lastPayment?.endDate ? formatDate(reminderTarget.lastPayment.endDate) : '—');

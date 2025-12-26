@@ -155,7 +155,7 @@ export default function WhatsappTemplateEditScreen() {
                 textAlignVertical="top"
               />
               <Text style={[styles.hint, { color: theme.muted }]}>
-                Available Tags: {'{student_name}'}, {'{business_name}'}, {'{joining_date}'}, {'{amount}'}, {'{end_date}'}
+                Available Tags: {'{student_name}'}, {'{business_name}'}, {'{joining_date}'}, {'{shift}'}, {'{seat_number}'}, {'{floor}'}, {'{amount}'}, {'{end_date}'}
               </Text>
             </View>
 

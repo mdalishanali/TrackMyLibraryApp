@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, Pressable, ActivityIndicator, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TextInput, Pressable, ActivityIndicator, Linking, Switch } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
@@ -9,7 +9,14 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
-import { useWhatsappStatus, usePairingCode, useSendTestMessage, useDisconnect } from '@/hooks/use-whatsapp';
+import {
+  useWhatsappStatus,
+  usePairingCode,
+  useSendTestMessage,
+  useDisconnect,
+  useWhatsappAutomation,
+  useUpdateWhatsappAutomation
+} from '@/hooks/use-whatsapp';
 import { showToast } from '@/lib/toast';
 
 export default function WhatsappSettingsScreen() {
@@ -19,9 +26,22 @@ export default function WhatsappSettingsScreen() {
   const pairingCodeMutation = usePairingCode();
   const sendTestMutation = useSendTestMessage();
   const disconnectMutation = useDisconnect();
+  const { data: automation } = useWhatsappAutomation();
+  const updateAutomation = useUpdateWhatsappAutomation();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [testPhone, setTestPhone] = useState('');
+
+  const handleToggleAutomation = async (key: string, value: boolean) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const newAutomation = { ...automation, [key]: value };
+      await updateAutomation.mutateAsync(newAutomation);
+      showToast('Setting updated', 'success');
+    } catch (error) {
+      showToast('Failed to update setting', 'error');
+    }
+  };
 
   const handleRequestPairingCode = async () => {
     if (!phoneNumber) {
@@ -168,6 +188,38 @@ export default function WhatsappSettingsScreen() {
           </View>
         </Pressable>
 
+        {/* Automation Toggles */}
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Automation Settings</Text>
+          <Text style={[styles.cardDesc, { color: theme.muted }]}>Choose which messages should be sent automatically.</Text>
+
+          <View style={styles.toggleList}>
+            <AutomationToggle
+              label="Welcome Message"
+              description="Sent when a new student is admitted"
+              value={automation?.welcome}
+              onValueChange={(val: boolean) => handleToggleAutomation('welcome', val)}
+              theme={theme}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <AutomationToggle
+              label="Payment Confirmation"
+              description="Sent after a payment is recorded"
+              value={automation?.payment}
+              onValueChange={(val: boolean) => handleToggleAutomation('payment', val)}
+              theme={theme}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <AutomationToggle
+              label="Inactive Alert"
+              description="Sent when a student is marked inactive"
+              value={automation?.inactive}
+              onValueChange={(val: boolean) => handleToggleAutomation('inactive', val)}
+              theme={theme}
+            />
+          </View>
+        </View>
+
         {/* Pairing Code Section */}
         {status?.status !== 'CONNECTED' && !pairingCodeMutation.data && (
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -222,6 +274,24 @@ export default function WhatsappSettingsScreen() {
         )}
       </ScrollView>
     </SafeScreen>
+  );
+}
+
+function AutomationToggle({ label, description, value, onValueChange, theme }: any) {
+  return (
+    <View style={styles.toggleRow}>
+      <View style={styles.toggleText}>
+        <Text style={[styles.toggleLabel, { color: theme.text }]}>{label}</Text>
+        <Text style={[styles.toggleDesc, { color: theme.muted }]}>{description}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: theme.border, true: theme.primary + '80' }}
+        thumbColor={value ? theme.primary : '#f4f3f4'}
+        ios_backgroundColor={theme.border}
+      />
+    </View>
   );
 }
 
@@ -331,6 +401,31 @@ const styles = StyleSheet.create({
   cardDesc: {
     fontSize: 14,
     lineHeight: 18,
+  },
+  toggleList: {
+    marginTop: spacing.sm,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+  },
+  toggleText: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  toggleDesc: {
+    fontSize: 13,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
   },
   input: {
     height: 50,

@@ -89,3 +89,26 @@ export const useUpdateTemplates = () => {
     },
   });
 };
+
+export const useWhatsappAutomation = () => {
+  return useQuery({
+    queryKey: ['whatsapp-automation'],
+    queryFn: async () => {
+      const { data } = await api.get('/whatsapp/automation');
+      return data;
+    },
+  });
+};
+
+export const useUpdateWhatsappAutomation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (automation: any) => {
+      const { data } = await api.post('/whatsapp/automation', { automation });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-automation'] });
+    },
+  });
+};
