@@ -174,14 +174,34 @@ export default function WhatsappSettingsScreen() {
                     </View>
                   )}
 
-                  {status?.status !== 'BUSY' && status?.qr && !pairingCodeMutation.data && (
+                  {status?.status === 'DISCONNECTED' && !pairingCodeMutation.data && !status?.qr && (
+                    <View style={styles.idleView}>
+                      <View style={[styles.busyIcon, { backgroundColor: theme.primary + '10' }]}>
+                        <Ionicons name="link-outline" size={48} color={theme.primary} />
+                      </View>
+                      <Text style={[styles.qrTitle, { color: theme.text }]}>Start Linking</Text>
+                      <Text style={[styles.infoText, { color: theme.muted, textAlign: 'center' }]}>
+                        Initialize the WhatsApp service to generate a pairing code or QR code.
+                      </Text>
+                      <AppButton
+                        onPress={() => pairingCodeMutation.mutate('INIT')}
+                        loading={pairingCodeMutation.isPending}
+                        variant="outline"
+                        style={{ marginTop: spacing.sm, width: '100%' }}
+                      >
+                        Initialize Service
+                      </AppButton>
+                    </View>
+                  )}
+
+                  {status?.status !== 'BUSY' && status?.status !== 'DISCONNECTED' && status?.qr && !pairingCodeMutation.data && (
                 <View style={styles.qrContainer}>
                   <Text style={[styles.qrTitle, { color: theme.text }]}>Scan QR Code</Text>
                   <View style={styles.qrWrapper}>
-                    <QRCode value={status.qr} size={200} />
+                        <QRCode value={status?.qr || ''} size={200} />
                   </View>
                   <Text style={[styles.qrHint, { color: theme.muted }]}>
-                    Scan this code with WhatsApp {'>'} Linked Devices
+                        Scan this code with WhatsApp {' > '} Linked Devices
                   </Text>
                 </View>
               )}
@@ -193,7 +213,7 @@ export default function WhatsappSettingsScreen() {
                     <Text style={[styles.codeText, { color: theme.primary }]}>{pairingCodeMutation.data}</Text>
                   </View>
                   <Text style={[styles.qrHint, { color: theme.muted }]}>
-                    Open WhatsApp {'>'} Linked Devices {'>'} Link with phone number instead
+                        Open WhatsApp {' > '} Linked Devices {' > '} Link with phone number instead
                   </Text>
                   <AppButton 
                     onPress={openWhatsApp}
@@ -509,5 +529,10 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  idleView: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    width: '100%',
   },
 });
