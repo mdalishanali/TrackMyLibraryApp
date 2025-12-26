@@ -20,8 +20,8 @@ export function TemplateSelectorModal({
 }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable style={styles.backdrop} onPress={onClose}>
+              <Pressable style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.text }]}>Choose Template</Text>
             <Pressable onPress={onClose} style={styles.closeBtn}>
@@ -57,8 +57,8 @@ export function TemplateSelectorModal({
               </Pressable>
             ))}
           </ScrollView>
-        </View>
-      </View>
+              </Pressable>
+          </Pressable>
     </Modal>
   );
 }
