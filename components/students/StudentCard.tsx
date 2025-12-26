@@ -12,7 +12,7 @@ import {
   TimeSlots,
 } from './StudentSummary';
 
-const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onAvatarPress, index = 0 }: any) => {
+const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onAvatarPress, index = 0 }: any) => {
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 50).duration(600)}
@@ -49,6 +49,7 @@ const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onA
                   onView: onView ? () => onView(student._id) : undefined,
                   onEdit: () => onEdit(student._id),
                   onPay: () => onPay(student),
+                  onRemind: () => onRemind(student),
                 }}
               />
             </View>

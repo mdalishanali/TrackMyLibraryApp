@@ -21,7 +21,8 @@ import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
-import { useWhatsappStatus, useSendFeeReminder } from '@/hooks/use-whatsapp';
+import { useWhatsappStatus, useSendFeeReminder, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { showToast } from '@/lib/toast';
@@ -48,7 +49,10 @@ export default function StudentDetailScreen() {
 
   const feeReminderMutation = useSendFeeReminder();
   const { data: whatsappStatus } = useWhatsappStatus();
+  const { data: templates } = useWhatsappTemplates();
+  const { user } = useAuth();
   const isWhatsappConnected = whatsappStatus?.status === 'CONNECTED';
+  const [confirmReminder, setConfirmReminder] = useState(false);
 
 
   const studentQuery = useStudentQuery(id);
@@ -151,13 +155,26 @@ export default function StudentDetailScreen() {
       showToast('WhatsApp not connected. Please go to Settings to link.', 'error');
       return;
     }
+    setConfirmReminder(true);
+  };
+
+  const executeReminder = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await feeReminderMutation.mutateAsync(student._id);
       showToast('Fee reminder sent!', 'success');
+      setConfirmReminder(false);
     } catch (error) {
       showToast('Failed to send reminder', 'error');
     }
+  };
+
+  const getReminderPreview = () => {
+    if (!templates?.reminder) return "Sending fee reminder...";
+    return templates.reminder
+      .replace('{student_name}', student.name)
+      .replace('{business_name}', user?.company?.businessName || 'Your Library')
+      .replace('{end_date}', student.lastPayment?.endDate ? formatDate(student.lastPayment.endDate) : '—');
   };
 
   const submitPayment = async (values: PaymentFormValues) => {
@@ -450,6 +467,16 @@ export default function StudentDetailScreen() {
           await deletePaymentMutation.mutateAsync(deleteTarget);
           setDeleteTarget(null);
         }}
+      />
+
+      <ConfirmDialog
+        visible={confirmReminder}
+        title="Send WhatsApp Reminder?"
+        description={getReminderPreview()}
+        confirmText="Send Message"
+        loading={feeReminderMutation.isPending}
+        onCancel={() => setConfirmReminder(false)}
+        onConfirm={executeReminder}
       />
 
       <ConfirmDialog

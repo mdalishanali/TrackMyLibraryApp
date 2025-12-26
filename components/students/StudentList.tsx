@@ -13,6 +13,7 @@ export default function StudentList({
     onEdit,
     onDelete,
     onPay,
+    onRemind,
     onLoadMore,
     refreshing,
     onRefresh,
@@ -26,6 +27,7 @@ export default function StudentList({
     onEdit: (id: string) => void;
     onDelete: (id: string) => void;
     onPay: (student: any) => void;
+        onRemind: (student: any) => void;
     onLoadMore: () => void;
     refreshing: boolean;
     onRefresh: () => void;
@@ -56,6 +58,7 @@ export default function StudentList({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onPay={onPay}
+                        onRemind={onRemind}
                     onAvatarPress={() => handleAvatarPress(item.profilePicture)}
                     index={index}
                 />

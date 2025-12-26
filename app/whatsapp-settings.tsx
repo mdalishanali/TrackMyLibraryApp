@@ -6,10 +6,18 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Haptics from 'expo-haptics';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
+import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
-import { useWhatsappStatus, usePairingCode, useSendTestMessage, useDisconnect } from '@/hooks/use-whatsapp';
+import {
+  useWhatsappStatus,
+  usePairingCode,
+  useSendTestMessage,
+  useDisconnect,
+  useWhatsappTemplates,
+  useUpdateTemplates
+} from '@/hooks/use-whatsapp';
 import { showToast } from '@/lib/toast';
 
 export default function WhatsappSettingsScreen() {
@@ -18,10 +26,33 @@ export default function WhatsappSettingsScreen() {
   const pairingCodeMutation = usePairingCode();
   const sendTestMutation = useSendTestMessage();
   const disconnectMutation = useDisconnect();
+  const { data: templates, isLoading: isTemplatesLoading } = useWhatsappTemplates();
+  const updateTemplatesMutation = useUpdateTemplates();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [testPhone, setTestPhone] = useState('');
-  const [showPairingInput, setShowPairingInput] = useState(false);
+  const [localTemplates, setLocalTemplates] = useState<any>(null);
+
+  // Sync server templates to local state when loaded
+  React.useEffect(() => {
+    if (templates && !localTemplates) {
+      setLocalTemplates(templates);
+    }
+  }, [templates]);
+
+  const handleUpdateTemplate = (key: string, value: string) => {
+    setLocalTemplates((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveTemplates = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await updateTemplatesMutation.mutateAsync(localTemplates);
+      showToast('Templates updated', 'success');
+    } catch (error) {
+      showToast('Failed to update templates', 'error');
+    }
+  };
 
   const handleRequestPairingCode = async () => {
     if (!phoneNumber) {
@@ -196,8 +227,74 @@ export default function WhatsappSettingsScreen() {
             </AppButton>
           </View>
         )}
+
+        {/* Templates Section */}
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Manage Templates</Text>
+            <AppBadge tone="info">Dynamic Tags</AppBadge>
+          </View>
+          <Text style={[styles.cardDesc, { color: theme.muted }]}>
+            Tags: {'{student_name}'}, {'{business_name}'}, {'{start_date}'}, {'{end_date}'}, {'{amount}'}.
+          </Text>
+
+          {isTemplatesLoading ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <View style={{ gap: spacing.lg }}>
+              <TemplateInput
+                label="Welcome Message"
+                value={localTemplates?.welcome}
+                onChange={(v: string) => handleUpdateTemplate('welcome', v)}
+                theme={theme}
+              />
+              <TemplateInput
+                label="Payment Confirmation"
+                value={localTemplates?.payment}
+                onChange={(v: string) => handleUpdateTemplate('payment', v)}
+                theme={theme}
+              />
+              <TemplateInput
+                label="Fee Reminder"
+                value={localTemplates?.reminder}
+                onChange={(v: string) => handleUpdateTemplate('reminder', v)}
+                theme={theme}
+              />
+              <TemplateInput
+                label="Inactive Alert"
+                value={localTemplates?.inactive}
+                onChange={(v: string) => handleUpdateTemplate('inactive', v)}
+                theme={theme}
+              />
+
+              <AppButton
+                onPress={handleSaveTemplates}
+                loading={updateTemplatesMutation.isPending}
+                style={{ marginTop: spacing.sm }}
+              >
+                Save All Templates
+              </AppButton>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeScreen>
+  );
+}
+
+function TemplateInput({ label, value, onChange, theme }: any) {
+  return (
+    <View style={styles.templateGroup}>
+      <Text style={[styles.templateLabel, { color: theme.text }]}>{label}</Text>
+      <TextInput
+        style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+        value={value}
+        onChangeText={onChange}
+        multiline
+        placeholder={`Enter ${label} template...`}
+        placeholderTextColor={theme.muted}
+      />
+    </View>
   );
 }
 
@@ -301,5 +398,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     fontSize: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  templateGroup: {
+    gap: 8,
+  },
+  templateLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  textArea: {
+    minHeight: 100,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlignVertical: 'top',
   },
 });

@@ -22,6 +22,8 @@ import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
+import { useSendFeeReminder, useWhatsappStatus, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useAuth } from '@/hooks/use-auth';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
@@ -31,6 +33,7 @@ import { PaymentFormModal } from '@/components/students/payment-form-modal';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
+import { formatDate } from '@/utils/format';
 
 const { width } = Dimensions.get('window');
 
@@ -49,6 +52,7 @@ export default function StudentsScreen() {
   const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
+  const [reminderTarget, setReminderTarget] = useState<Student | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 400);
@@ -66,6 +70,11 @@ export default function StudentsScreen() {
   const deleteStudent = useDeleteStudent();
   const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
+  const feeReminder = useSendFeeReminder();
+  const { data: whatsappStatus } = useWhatsappStatus();
+  const { data: templates } = useWhatsappTemplates();
+  const { user } = useAuth();
+  const isWhatsappConnected = whatsappStatus?.status === 'CONNECTED';
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
   const totalCount = useMemo(() => {
@@ -102,6 +111,36 @@ export default function StudentsScreen() {
     setPaymentStudent(student);
     setIsPaymentFormOpen(true);
   }, []);
+
+  const handleSendReminder = useCallback(async (student: any) => {
+    if (!isWhatsappConnected) {
+      showToast('WhatsApp not connected', 'error');
+      return;
+    }
+    setReminderTarget(student);
+  }, [isWhatsappConnected]);
+
+  const executeReminder = async () => {
+    if (!reminderTarget) return;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await feeReminder.mutateAsync(reminderTarget._id);
+      showToast('Reminder sent', 'success');
+      setReminderTarget(null);
+    } catch (e) {
+      showToast('Failed to send reminder', 'error');
+    }
+  };
+
+  const getReminderPreview = () => {
+    if (!reminderTarget) return "";
+    if (!templates?.reminder) return "Sending fee reminder...";
+
+    return templates.reminder
+      .replace('{student_name}', reminderTarget.name)
+      .replace('{business_name}', user?.company?.businessName || 'Your Library')
+      .replace('{end_date}', reminderTarget.lastPayment?.endDate ? formatDate(reminderTarget.lastPayment.endDate) : '—');
+  };
 
   const handleViewStudent = useCallback((id: string) => {
     router.push({ pathname: '/(tabs)/students/[id]', params: { id } });
@@ -256,6 +295,7 @@ export default function StudentsScreen() {
         onEdit={openEditForm}
         onDelete={removeStudent}
         onPay={openPayment}
+        onRemind={handleSendReminder}
         headerComponent={listHeader}
         onLoadMore={handleLoadMore}
         refreshing={studentsQuery.isRefetching}
@@ -316,6 +356,16 @@ export default function StudentsScreen() {
         destructive
         confirmText="Delete"
         loading={deleteStudent.isPending}
+      />
+
+      <ConfirmDialog
+        visible={Boolean(reminderTarget)}
+        title="Send WhatsApp Reminder?"
+        description={getReminderPreview()}
+        confirmText="Send Message"
+        onCancel={() => setReminderTarget(null)}
+        onConfirm={executeReminder}
+        loading={feeReminder.isPending}
       />
     </SafeScreen>
   );

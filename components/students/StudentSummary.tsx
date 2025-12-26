@@ -38,6 +38,7 @@ type Actions = {
   onEdit?: () => void;
   onDelete?: () => void;
   onPay?: () => void;
+  onRemind?: () => void;
 };
 
 type Theme = ReturnType<typeof themeFor>;
@@ -282,6 +283,14 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
           <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay</Text>
         </TouchableOpacity>
       ) : null}
+      {actions.onRemind ? (
+        <TouchableOpacity
+          onPress={actions.onRemind}
+          style={[styles.actionIconBtn, { backgroundColor: theme.primary + '10', borderColor: theme.border }]}
+        >
+          <Ionicons name="logo-whatsapp" size={20} color={theme.primary} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -474,6 +483,14 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  actionIconBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusChip: {
     flexDirection: 'row',
