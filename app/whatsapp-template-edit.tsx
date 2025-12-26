@@ -23,6 +23,18 @@ export default function WhatsappTemplateEditScreen() {
   const [body, setBody] = useState('');
   const [templateType, setTemplateType] = useState(type);
   const [isSystem, setIsSystem] = useState(false);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+
+  const availableTags = [
+    { id: '{student_name}', label: 'Name' },
+    { id: '{business_name}', label: 'Library' },
+    { id: '{joining_date}', label: 'Join Date' },
+    { id: '{shift}', label: 'Shift' },
+    { id: '{seat_number}', label: 'Seat' },
+    { id: '{floor}', label: 'Floor' },
+    { id: '{amount}', label: 'Amount' },
+    { id: '{end_date}', label: 'Expiry' },
+  ];
 
   useEffect(() => {
     if (Array.isArray(templates) && type) {
@@ -40,6 +52,18 @@ export default function WhatsappTemplateEditScreen() {
       }
     }
   }, [templates, type]);
+
+  const insertTag = (tag: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const before = body.substring(0, selection.start);
+    const after = body.substring(selection.end);
+    const newBody = before + tag + after;
+    setBody(newBody);
+
+    // Move cursor after the tag (approximate, since state update is async)
+    const newPos = selection.start + tag.length;
+    setSelection({ start: newPos, end: newPos });
+  };
 
   const handleSave = async () => {
     if (!title.trim() || !body.trim()) {
@@ -150,13 +174,35 @@ export default function WhatsappTemplateEditScreen() {
                 value={body}
                 onChangeText={setBody}
                 multiline
+                onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
                 placeholder="Write your message here..."
                 placeholderTextColor={theme.muted + '80'}
                 textAlignVertical="top"
               />
-              <Text style={[styles.hint, { color: theme.muted }]}>
-                Available Tags: {'{student_name}'}, {'{business_name}'}, {'{joining_date}'}, {'{shift}'}, {'{seat_number}'}, {'{floor}'}, {'{amount}'}, {'{end_date}'}
-              </Text>
+              <View style={styles.tagContainer}>
+                <Text style={[styles.hint, { color: theme.muted, marginBottom: 8 }]}>
+                  TAP TO INSERT TAGS:
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.tagScroll}
+                >
+                  {availableTags.map((tag) => (
+                    <Pressable
+                      key={tag.id}
+                      onPress={() => insertTag(tag.id)}
+                      style={({ pressed }) => [
+                        styles.tagChip,
+                        { backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' },
+                        pressed && { backgroundColor: theme.primary + '25' }
+                      ]}
+                    >
+                      <Text style={[styles.tagText, { color: theme.primary }]}>{tag.label}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
             </View>
 
             <View style={{ marginTop: 20, gap: spacing.md }}>
@@ -244,8 +290,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   hint: {
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     marginTop: 4,
+  },
+  tagContainer: {
+    marginTop: 12,
+  },
+  tagScroll: {
+    paddingRight: spacing.xl,
+    gap: 8,
+  },
+  tagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
