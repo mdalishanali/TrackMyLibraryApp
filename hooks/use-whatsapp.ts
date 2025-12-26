@@ -124,3 +124,16 @@ export const useUpdateWhatsappAutomation = () => {
     },
   });
 };
+
+export const useForceReset = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/whatsapp/force-reset');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
+    },
+  });
+};

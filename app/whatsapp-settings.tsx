@@ -15,7 +15,8 @@ import {
   useSendTestMessage,
   useDisconnect,
   useWhatsappAutomation,
-  useUpdateWhatsappAutomation
+  useUpdateWhatsappAutomation,
+  useForceReset
 } from '@/hooks/use-whatsapp';
 import { showToast } from '@/lib/toast';
 
@@ -28,6 +29,7 @@ export default function WhatsappSettingsScreen() {
   const disconnectMutation = useDisconnect();
   const { data: automation } = useWhatsappAutomation();
   const updateAutomation = useUpdateWhatsappAutomation();
+  const forceResetMutation = useForceReset();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [testPhone, setTestPhone] = useState('');
@@ -81,6 +83,16 @@ export default function WhatsappSettingsScreen() {
       showToast('Disconnected from WhatsApp', 'success');
     } catch (error) {
       showToast('Failed to disconnect', 'error');
+    }
+  };
+
+  const handleForceReset = async () => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      await forceResetMutation.mutateAsync();
+      showToast('Service reset successfully', 'success');
+    } catch (error) {
+      showToast('Failed to reset service', 'error');
     }
   };
 
@@ -150,6 +162,15 @@ export default function WhatsappSettingsScreen() {
                           Please wait a few minutes. This page will auto-refresh when the slot is free.
                         </Text>
                       </View>
+                      <AppButton
+                        variant="ghost"
+                        tone="danger"
+                        onPress={handleForceReset}
+                        loading={forceResetMutation.isPending}
+                        style={{ marginTop: spacing.sm }}
+                      >
+                        Force Reset Service
+                      </AppButton>
                     </View>
                   )}
 
