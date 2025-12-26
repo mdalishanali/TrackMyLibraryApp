@@ -230,6 +230,20 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {/* Automation Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Automation</Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ActionRow
+              icon="logo-whatsapp"
+              label="WhatsApp Notifications"
+              description="Manage alerts and connection"
+              onPress={() => router.push('/whatsapp-settings')}
+              themeTint="#25D366"
+            />
+          </View>
+
           {/* Privacy Section */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Data & Security</Text>
