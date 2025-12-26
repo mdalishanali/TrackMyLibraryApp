@@ -21,8 +21,10 @@ import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
+import { useWhatsappStatus, useSendFeeReminder } from '@/hooks/use-whatsapp';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { showToast } from '@/lib/toast';
 import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
@@ -43,6 +45,10 @@ export default function StudentDetailScreen() {
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
+
+  const feeReminderMutation = useSendFeeReminder();
+  const { data: whatsappStatus } = useWhatsappStatus();
+  const isWhatsappConnected = whatsappStatus?.status === 'CONNECTED';
 
 
   const studentQuery = useStudentQuery(id);
@@ -138,6 +144,20 @@ export default function StudentDetailScreen() {
     });
     setEditingPaymentId(payment._id);
     setIsPaymentOpen(true);
+  };
+
+  const handleSendReminder = async () => {
+    if (!isWhatsappConnected) {
+      showToast('WhatsApp not connected. Please go to Settings to link.', 'error');
+      return;
+    }
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await feeReminderMutation.mutateAsync(student._id);
+      showToast('Fee reminder sent!', 'success');
+    } catch (error) {
+      showToast('Failed to send reminder', 'error');
+    }
   };
 
   const submitPayment = async (values: PaymentFormValues) => {
@@ -290,6 +310,21 @@ export default function StudentDetailScreen() {
                 <Text style={styles.payBtnText}>Payment</Text>
                 </Pressable>
                 <Pressable
+                onPress={handleSendReminder}
+                disabled={feeReminderMutation.isPending}
+                style={({ pressed }) => [
+                  styles.remindBtn,
+                  { backgroundColor: theme.primary + '10' },
+                  pressed && { opacity: 0.7 }
+                ]}
+              >
+                <Ionicons
+                  name={feeReminderMutation.isPending ? "sync" : "logo-whatsapp"}
+                  size={20}
+                  color={theme.primary}
+                />
+              </Pressable>
+              <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setConfirmStudentDelete(true);
@@ -642,7 +677,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   delBtn: {
-    width: 56,
+    width: 48,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  remindBtn: {
+    width: 48,
     height: 56,
     borderRadius: 18,
     alignItems: 'center',

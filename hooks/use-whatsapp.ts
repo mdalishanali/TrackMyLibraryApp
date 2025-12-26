@@ -39,3 +39,21 @@ export const useSendTestMessage = () => {
     },
   });
 };
+
+export const useDisconnect = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/whatsapp/disconnect');
+      return data;
+    },
+  });
+};
+
+export const useSendFeeReminder = () => {
+  return useMutation({
+    mutationFn: async (studentId: string) => {
+      const { data } = await api.post('/whatsapp/fee-reminder', { studentId });
+      return data;
+    },
+  });
+};

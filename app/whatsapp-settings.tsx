@@ -9,7 +9,7 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
-import { useWhatsappStatus, usePairingCode, useSendTestMessage } from '@/hooks/use-whatsapp';
+import { useWhatsappStatus, usePairingCode, useSendTestMessage, useDisconnect } from '@/hooks/use-whatsapp';
 import { showToast } from '@/lib/toast';
 
 export default function WhatsappSettingsScreen() {
@@ -17,6 +17,7 @@ export default function WhatsappSettingsScreen() {
   const { data: status, isLoading: isStatusLoading } = useWhatsappStatus();
   const pairingCodeMutation = usePairingCode();
   const sendTestMutation = useSendTestMessage();
+  const disconnectMutation = useDisconnect();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [testPhone, setTestPhone] = useState('');
@@ -31,8 +32,9 @@ export default function WhatsappSettingsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await pairingCodeMutation.mutateAsync(phoneNumber);
       showToast('Pairing code requested', 'success');
-    } catch (error) {
-      showToast('Failed to request pairing code', 'error');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to request pairing code';
+      showToast(message, 'error');
     }
   };
 
@@ -49,6 +51,16 @@ export default function WhatsappSettingsScreen() {
       showToast('Test message sent!', 'success');
     } catch (error) {
       showToast('Failed to send test message', 'error');
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      await disconnectMutation.mutateAsync();
+      showToast('Disconnected from WhatsApp', 'success');
+    } catch (error) {
+      showToast('Failed to disconnect', 'error');
     }
   };
 
@@ -85,8 +97,10 @@ export default function WhatsappSettingsScreen() {
               </Text>
               <AppButton 
                 variant="outline" 
-                onPress={() => {}} 
+                onPress={handleDisconnect}
+                loading={disconnectMutation.isPending}
                 style={{ marginTop: spacing.md }}
+                tone="danger"
               >
                 Disconnect
               </AppButton>
