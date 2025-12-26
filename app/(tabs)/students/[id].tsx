@@ -21,7 +21,8 @@ import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
-import { useWhatsappStatus, useSendFeeReminder, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useWhatsappStatus, useSendTemplate, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { formatCurrency, formatDate } from '@/utils/format';
@@ -47,12 +48,14 @@ export default function StudentDetailScreen() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
 
-  const feeReminderMutation = useSendFeeReminder();
+  const feeReminderMutation = useSendTemplate();
   const { data: whatsappStatus } = useWhatsappStatus();
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
   const isWhatsappConnected = whatsappStatus?.status === 'CONNECTED';
   const [confirmReminder, setConfirmReminder] = useState(false);
+  const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
 
 
   const studentQuery = useStudentQuery(id);
@@ -155,14 +158,24 @@ export default function StudentDetailScreen() {
       showToast('WhatsApp not connected. Please go to Settings to link.', 'error');
       return;
     }
+    setIsTemplateSelectorOpen(true);
+  };
+
+  const handleSelectTemplate = (tpl: any) => {
+    setSelectedTemplate(tpl);
+    setIsTemplateSelectorOpen(false);
     setConfirmReminder(true);
   };
 
   const executeReminder = async () => {
+    if (!selectedTemplate) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await feeReminderMutation.mutateAsync(student._id);
-      showToast('Fee reminder sent!', 'success');
+      await feeReminderMutation.mutateAsync({
+        studentId: student._id,
+        templateType: selectedTemplate.type
+      });
+      showToast('Message sent!', 'success');
       setConfirmReminder(false);
     } catch (error) {
       showToast('Failed to send reminder', 'error');
@@ -170,10 +183,12 @@ export default function StudentDetailScreen() {
   };
 
   const getReminderPreview = () => {
-    if (!templates?.reminder) return "Sending fee reminder...";
-    return templates.reminder
+    if (!selectedTemplate) return "";
+    return selectedTemplate.body
       .replace('{student_name}', student.name)
       .replace('{business_name}', user?.company?.businessName || 'Your Library')
+      .replace('{amount}', student.lastPayment?.rupees || '0')
+      .replace('{start_date}', student.lastPayment?.startDate ? formatDate(student.lastPayment.startDate) : '—')
       .replace('{end_date}', student.lastPayment?.endDate ? formatDate(student.lastPayment.endDate) : '—');
   };
 
@@ -471,12 +486,20 @@ export default function StudentDetailScreen() {
 
       <ConfirmDialog
         visible={confirmReminder}
-        title="Send WhatsApp Reminder?"
+        title={`Send ${selectedTemplate?.title || 'Reminder'}?`}
         description={getReminderPreview()}
         confirmText="Send Message"
         loading={feeReminderMutation.isPending}
         onCancel={() => setConfirmReminder(false)}
         onConfirm={executeReminder}
+      />
+
+      <TemplateSelectorModal
+        visible={isTemplateSelectorOpen}
+        templates={Array.isArray(templates) ? templates : []}
+        onSelect={handleSelectTemplate}
+        onClose={() => setIsTemplateSelectorOpen(false)}
+        theme={theme}
       />
 
       <ConfirmDialog

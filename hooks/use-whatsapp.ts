@@ -58,6 +58,15 @@ export const useSendFeeReminder = () => {
   });
 };
 
+export const useSendTemplate = () => {
+  return useMutation({
+    mutationFn: async ({ studentId, templateType }: { studentId: string; templateType: string }) => {
+      const { data } = await api.post('/whatsapp/send-template', { studentId, templateType });
+      return data;
+    },
+  });
+};
+
 export const useWhatsappTemplates = () => {
   return useQuery({
     queryKey: ['whatsapp-templates'],

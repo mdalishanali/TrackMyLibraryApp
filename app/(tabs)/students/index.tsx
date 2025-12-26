@@ -22,7 +22,8 @@ import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
-import { useSendFeeReminder, useWhatsappStatus, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useSendTemplate, useWhatsappStatus, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
@@ -53,6 +54,8 @@ export default function StudentsScreen() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
   const [reminderTarget, setReminderTarget] = useState<Student | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(search), 400);
@@ -70,7 +73,7 @@ export default function StudentsScreen() {
   const deleteStudent = useDeleteStudent();
   const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
-  const feeReminder = useSendFeeReminder();
+  const feeReminder = useSendTemplate();
   const { data: whatsappStatus } = useWhatsappStatus();
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
@@ -118,27 +121,38 @@ export default function StudentsScreen() {
       return;
     }
     setReminderTarget(student);
+    setIsTemplateSelectorOpen(true);
   }, [isWhatsappConnected]);
 
+  const handleSelectTemplate = (tpl: any) => {
+    setSelectedTemplate(tpl);
+    setIsTemplateSelectorOpen(false);
+  };
+
   const executeReminder = async () => {
-    if (!reminderTarget) return;
+    if (!reminderTarget || !selectedTemplate) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await feeReminder.mutateAsync(reminderTarget._id);
-      showToast('Reminder sent', 'success');
+      await feeReminder.mutateAsync({
+        studentId: reminderTarget._id,
+        templateType: selectedTemplate.type
+      });
+      showToast('Message sent', 'success');
       setReminderTarget(null);
+      setSelectedTemplate(null);
     } catch (e) {
-      showToast('Failed to send reminder', 'error');
+      showToast('Failed to send message', 'error');
     }
   };
 
   const getReminderPreview = () => {
-    if (!reminderTarget) return "";
-    if (!templates?.reminder) return "Sending fee reminder...";
+    if (!reminderTarget || !selectedTemplate) return "";
 
-    return templates.reminder
+    return selectedTemplate.body
       .replace('{student_name}', reminderTarget.name)
       .replace('{business_name}', user?.company?.businessName || 'Your Library')
+      .replace('{amount}', reminderTarget.lastPayment?.rupees || '0')
+      .replace('{start_date}', reminderTarget.lastPayment?.startDate ? formatDate(reminderTarget.lastPayment.startDate) : '—')
       .replace('{end_date}', reminderTarget.lastPayment?.endDate ? formatDate(reminderTarget.lastPayment.endDate) : '—');
   };
 
@@ -359,13 +373,27 @@ export default function StudentsScreen() {
       />
 
       <ConfirmDialog
-        visible={Boolean(reminderTarget)}
-        title="Send WhatsApp Reminder?"
+        visible={Boolean(reminderTarget && selectedTemplate)}
+        title={`Send ${selectedTemplate?.title || 'Reminder'}?`}
         description={getReminderPreview()}
         confirmText="Send Message"
-        onCancel={() => setReminderTarget(null)}
+        onCancel={() => {
+          setReminderTarget(null);
+          setSelectedTemplate(null);
+        }}
         onConfirm={executeReminder}
         loading={feeReminder.isPending}
+      />
+
+      <TemplateSelectorModal
+        visible={isTemplateSelectorOpen}
+        templates={Array.isArray(templates) ? templates : []}
+        onSelect={handleSelectTemplate}
+        onClose={() => {
+          setIsTemplateSelectorOpen(false);
+          setReminderTarget(null);
+        }}
+        theme={theme}
       />
     </SafeScreen>
   );
