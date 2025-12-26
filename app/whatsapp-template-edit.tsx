@@ -188,19 +188,38 @@ export default function WhatsappTemplateEditScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.tagScroll}
                 >
-                  {availableTags.map((tag) => (
-                    <Pressable
-                      key={tag.id}
-                      onPress={() => insertTag(tag.id)}
-                      style={({ pressed }) => [
-                        styles.tagChip,
-                        { backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' },
-                        pressed && { backgroundColor: theme.primary + '25' }
-                      ]}
-                    >
-                      <Text style={[styles.tagText, { color: theme.primary }]}>{tag.label}</Text>
-                    </Pressable>
-                  ))}
+                  <View style={styles.tagRows}>
+                    <View style={styles.tagRow}>
+                      {availableTags.slice(0, 4).map((tag) => (
+                        <Pressable
+                          key={tag.id}
+                          onPress={() => insertTag(tag.id)}
+                          style={({ pressed }) => [
+                            styles.tagChip,
+                            { backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' },
+                            pressed && { backgroundColor: theme.primary + '25' }
+                          ]}
+                        >
+                          <Text style={[styles.tagText, { color: theme.primary }]}>{tag.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <View style={styles.tagRow}>
+                      {availableTags.slice(4).map((tag) => (
+                        <Pressable
+                          key={tag.id}
+                          onPress={() => insertTag(tag.id)}
+                          style={({ pressed }) => [
+                            styles.tagChip,
+                            { backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' },
+                            pressed && { backgroundColor: theme.primary + '25' }
+                          ]}
+                        >
+                          <Text style={[styles.tagText, { color: theme.primary }]}>{tag.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
                 </ScrollView>
               </View>
             </View>
@@ -300,6 +319,12 @@ const styles = StyleSheet.create({
   },
   tagScroll: {
     paddingRight: spacing.xl,
+  },
+  tagRows: {
+    gap: 8,
+  },
+  tagRow: {
+    flexDirection: 'row',
     gap: 8,
   },
   tagChip: {

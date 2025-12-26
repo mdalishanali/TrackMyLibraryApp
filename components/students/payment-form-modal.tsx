@@ -2,7 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, ActivityIndicator } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { z } from 'zod';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -19,7 +19,7 @@ import { formatDate } from '@/utils/format';
 
 const paymentSchema = z.object({
   student: z.string().min(1, 'Pick a student'),
-  rupees: z.preprocess((val) => Number(val), z.number().min(1, 'Enter amount')),
+  rupees: z.coerce.number().min(1, 'Enter amount'),
   startDate: z.string().min(1),
   endDate: z.string().min(1),
   paymentMode: z.enum(['cash', 'upi']),
@@ -113,7 +113,11 @@ export function PaymentFormModal({
     <Modal animationType="slide" visible={visible} onRequestClose={onClose} transparent>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
         <TouchableOpacity style={{ flex: 1 }} onPress={onClose} />
-        <Animated.View
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ width: '100%' }}
+        >
+          <Animated.View
           entering={FadeInUp.duration(400)}
           style={[
             styles.sheet,
@@ -340,6 +344,7 @@ export function PaymentFormModal({
             </Modal>
           )}
         </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

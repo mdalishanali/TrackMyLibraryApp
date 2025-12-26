@@ -1,4 +1,4 @@
-import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
+import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
 import { Image } from 'expo-image';
 import { pickOrCaptureImage, uploadImageToCloud } from '@/utils/image';
 import { ImagePickerSheet } from '../ui/image-picker-sheet';
@@ -190,257 +190,262 @@ export function StudentFormModal({
                     style={StyleSheet.absoluteFill}
                 />
 
-                <View style={{ flex: 1 }}>
-                    <View style={[
-                        styles.modalTopBar,
-                        {
-                            paddingHorizontal: spacing.lg,
-                            paddingTop: insets.top + spacing.xs,
-                            paddingBottom: spacing.sm,
-                        }
-                    ]}>
-                        <TouchableOpacity onPress={handleClose} style={[styles.closeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <Ionicons name="close" size={20} color={theme.text} />
-                        </TouchableOpacity>
-                        <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
-                        <View style={{ width: 44 }} />
-                    </View>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    <View style={{ flex: 1 }}>
+                        <View style={[
+                            styles.modalTopBar,
+                            {
+                                paddingHorizontal: spacing.lg,
+                                paddingTop: insets.top + spacing.xs,
+                                paddingBottom: spacing.sm,
+                            }
+                        ]}>
+                            <TouchableOpacity onPress={handleClose} style={[styles.closeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                <Ionicons name="close" size={20} color={theme.text} />
+                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
+                            <View style={{ width: 44 }} />
+                        </View>
 
-                    <View style={styles.stepperContainer}>
-                        <View style={styles.stepHeaders}>
-                            {steps.map((step, idx) => {
-                                const active = idx === currentStep;
-                                const completed = idx < currentStep;
-                                return (
-                                    <View key={step.key} style={styles.stepHeaderItem}>
-                                        <View style={[
-                                            styles.stepCircle,
-                                            { 
-                                                backgroundColor: active || completed ? theme.primary : theme.surface,
-                                                borderColor: active ? theme.primary : theme.border
-                                            }
-                                        ]}>
-                                            {completed ? (
-                                                <Ionicons name="checkmark" size={16} color="#fff" />
-                                            ) : (
-                                                <Text style={[styles.stepNumber, { color: active ? '#fff' : theme.muted }]}>{idx + 1}</Text>
-                                            )}
+                        <View style={styles.stepperContainer}>
+                            <View style={styles.stepHeaders}>
+                                {steps.map((step, idx) => {
+                                    const active = idx === currentStep;
+                                    const completed = idx < currentStep;
+                                    return (
+                                        <View key={step.key} style={styles.stepHeaderItem}>
+                                            <View style={[
+                                                styles.stepCircle,
+                                                {
+                                                    backgroundColor: active || completed ? theme.primary : theme.surface,
+                                                    borderColor: active ? theme.primary : theme.border
+                                                }
+                                            ]}>
+                                                {completed ? (
+                                                    <Ionicons name="checkmark" size={16} color="#fff" />
+                                                ) : (
+                                                    <Text style={[styles.stepNumber, { color: active ? '#fff' : theme.muted }]}>{idx + 1}</Text>
+                                                )}
+                                            </View>
+                                            <Text style={[styles.stepLabel, { color: active ? theme.text : theme.muted }]}>
+                                                {step.title}
+                                            </Text>
                                         </View>
-                                        <Text style={[styles.stepLabel, { color: active ? theme.text : theme.muted }]}>
-                                            {step.title}
-                                        </Text>
-                                    </View>
-                                );
-                            })}
+                                    );
+                                })}
+                            </View>
+                            <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+                                <Animated.View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
+                            </View>
                         </View>
-                        <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
-                            <Animated.View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
-                        </View>
-                    </View>
 
-                    <ScrollView
-                        style={styles.modalScroll}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        <Animated.View
-                            key={currentStep}
-                            entering={SlideInRight.duration(400)}
-                            exiting={SlideOutLeft.duration(400)}
+                        <ScrollView
+                            style={styles.modalScroll}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
                         >
-                        {currentStep === 0 && (
-                                <View style={styles.stepContent}>
-                                    <TouchableOpacity
-                                        onPress={() => setPickerSheetVisible(true)}
-                                        style={[styles.imagePicker, { borderColor: theme.primary, backgroundColor: theme.surface }]}
-                                    >
-                                        {values.profilePicture ? (
-                                            <Image source={{ uri: values.profilePicture }} style={styles.previewImage} contentFit="cover" />
-                                        ) : (
+                            <Animated.View
+                                key={currentStep}
+                                entering={SlideInRight.duration(400)}
+                                exiting={SlideOutLeft.duration(400)}
+                            >
+                                {currentStep === 0 && (
+                                    <View style={styles.stepContent}>
+                                        <TouchableOpacity
+                                            onPress={() => setPickerSheetVisible(true)}
+                                            style={[styles.imagePicker, { borderColor: theme.primary, backgroundColor: theme.surface }]}
+                                        >
+                                            {values.profilePicture ? (
+                                                <Image source={{ uri: values.profilePicture }} style={styles.previewImage} contentFit="cover" />
+                                            ) : (
                                                 <View style={styles.placeholderContainer}>
                                                     <Ionicons name="camera-outline" size={32} color={theme.primary} />
                                                     <Text style={[styles.placeholderText, { color: theme.primary }]}>Add Photo</Text>
-                                            </View>
-                                        )}
-                                        {(isImageProcessing || isUploading) && (
-                                            <View style={styles.imageOverlay}>
-                                                <ActivityIndicator color="#fff" />
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-
-                                    <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                        <FormField label="Full Name" name="name" control={control} errors={errors} theme={theme} placeholder="Enter member's full name" />
-                                        <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" />
-
-                                        <View style={styles.formGroup}>
-                                            <Text style={[styles.label, { color: theme.text }]}>Joining Date</Text>
-                                            <TouchableOpacity 
-                                                onPress={() => setDatePickerOpen(true)}
-                                                style={[styles.input, { borderColor: errors.joiningDate ? theme.danger : theme.border, backgroundColor: theme.surfaceAlt }]}
-                                        >
-                                                <Text style={{ color: values.joiningDate ? theme.text : theme.muted, fontSize: 16, fontWeight: '600' }}>
-                                                    {values.joiningDate ? formatDate(values.joiningDate) : 'Select date'}
-                                            </Text>
-                                                <Ionicons name="calendar-outline" size={18} color={theme.muted} />
+                                                </View>
+                                            )}
+                                            {(isImageProcessing || isUploading) && (
+                                                <View style={styles.imageOverlay}>
+                                                    <ActivityIndicator color="#fff" />
+                                                </View>
+                                            )}
                                         </TouchableOpacity>
-                                            {errors.joiningDate?.message && <Text style={styles.errorText}>{String(errors.joiningDate.message)}</Text>}
-                                        </View>
 
-                                        <View style={styles.formGroup}>
-                                            <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
-                                        <Dropdown
-                                            data={genderOptions}
-                                            labelField="label"
-                                            valueField="value"
-                                                value={values.gender}
-                                                onChange={(item) => setValue('gender', item.value)}
-                                                style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-                                            placeholderStyle={{ color: theme.muted }}
-                                            selectedTextStyle={{ color: theme.text }}
-                                                itemTextStyle={{ color: theme.text }}
-                                            containerStyle={{ backgroundColor: theme.surface }}
-                                                activeColor={theme.primary + '10'}
-                                        />
-                                        </View>
-                                    </AppCard>
-                                </View>
-                        )}
+                                        <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <FormField label="Full Name" name="name" control={control} errors={errors} theme={theme} placeholder="Enter member's full name" />
+                                            <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" />
 
-                        {currentStep === 1 && (
-                                <View style={styles.stepContent}>
-                                    <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                        <View style={styles.row}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Start Time</Text>
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Joining Date</Text>
                                                 <TouchableOpacity
-                                                    onPress={() => setTimePickerType('startTime')}
-                                                    style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
+                                                    onPress={() => setDatePickerOpen(true)}
+                                                    style={[styles.input, { borderColor: errors.joiningDate ? theme.danger : theme.border, backgroundColor: theme.surfaceAlt }]}
                                                 >
-                                                    <Text style={{ color: theme.text, fontWeight: '600' }}>{toDisplayTime(values.startTime)}</Text>
+                                                    <Text style={{ color: values.joiningDate ? theme.text : theme.muted, fontSize: 16, fontWeight: '600' }}>
+                                                        {values.joiningDate ? formatDate(values.joiningDate) : 'Select date'}
+                                                    </Text>
+                                                    <Ionicons name="calendar-outline" size={18} color={theme.muted} />
                                                 </TouchableOpacity>
+                                                {errors.joiningDate?.message && <Text style={styles.errorText}>{String(errors.joiningDate.message)}</Text>}
                                             </View>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={[styles.label, { color: theme.text }]}>End Time</Text>
-                                                <TouchableOpacity
-                                                    onPress={() => setTimePickerType('endTime')}
-                                                    style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
-                                                >
-                                                    <Text style={{ color: theme.text, fontWeight: '600' }}>{toDisplayTime(values.endTime)}</Text>
-                                                </TouchableOpacity>
+
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
+                                                <Dropdown
+                                                    data={genderOptions}
+                                                    labelField="label"
+                                                    valueField="value"
+                                                    value={values.gender}
+                                                    onChange={(item) => setValue('gender', item.value)}
+                                                    style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                                    placeholderStyle={{ color: theme.muted }}
+                                                    selectedTextStyle={{ color: theme.text }}
+                                                    itemTextStyle={{ color: theme.text }}
+                                                    containerStyle={{ backgroundColor: theme.surface }}
+                                                    activeColor={theme.primary + '10'}
+                                                />
                                             </View>
-                                        </View>
+                                        </AppCard>
+                                    </View>
+                                )}
 
-                                        <View style={styles.formGroup}>
-                                            <Text style={[styles.label, { color: theme.text }]}>Seat Allocation</Text>
-                                            <Dropdown
-                                                data={seatData}
-                                                labelField="label"
-                                                valueField="value"
-                                                value={values.seat}
-                                                search
-                                                searchPlaceholder="Search seat..."
-                                                onChange={(item) => setValue('seat', item.value)}
-                                                style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-                                                placeholderStyle={{ color: theme.muted }}
-                                                selectedTextStyle={{ color: theme.text }}
-                                                itemTextStyle={{ color: theme.text }}
-                                                containerStyle={{ backgroundColor: theme.surface }}
-                                                activeColor={theme.primary + '10'}
-                                            />
-                                        </View>
-
-                                        <View style={styles.formGroup}>
-                                            <Text style={[styles.label, { color: theme.text }]}>Current Status</Text>
-                                            <View style={styles.statusGrid}>
-                                                {statusOptions.map(opt => {
-                                                    const active = values.status === opt.value;
-                                                    return (
-                                                        <TouchableOpacity
-                                                            key={opt.value}
-                                                            onPress={() => setValue('status', opt.value)}
-                                                            style={[
-                                                                styles.statusBtn,
-                                                                { 
-                                                                    backgroundColor: active ? theme.primary : theme.surfaceAlt,
-                                                                    borderColor: active ? theme.primary : theme.border
-                                                                }
-                                                            ]}
-                                                        >
-                                                            <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{opt.label}</Text>
-                                                        </TouchableOpacity>
-                                                    );
-                                                })}
+                                {currentStep === 1 && (
+                                    <View style={styles.stepContent}>
+                                        <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <View style={styles.row}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Start Time</Text>
+                                                    <TouchableOpacity
+                                                        onPress={() => setTimePickerType('startTime')}
+                                                        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
+                                                    >
+                                                        <Text style={{ color: theme.text, fontWeight: '600' }}>{toDisplayTime(values.startTime)}</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>End Time</Text>
+                                                    <TouchableOpacity
+                                                        onPress={() => setTimePickerType('endTime')}
+                                                        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
+                                                    >
+                                                        <Text style={{ color: theme.text, fontWeight: '600' }}>{toDisplayTime(values.endTime)}</Text>
+                                                    </TouchableOpacity>
+                                                </View>
                                             </View>
-                                        </View>
 
-                                        <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 500" />
-                                        <FormField label="Internal Notes" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
-                                    </AppCard>
-                                </View>
-                        )}
-
-                            {currentStep === 2 && (
-                                <View style={styles.stepContent}>
-                                    <AppCard style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                        <View style={styles.reviewAvatarContainer}>
-                                            <View style={[styles.reviewAvatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.primary }]}>
-                                                {values.profilePicture ? (
-                                                    <Image source={{ uri: values.profilePicture }} style={styles.reviewImg} />
-                                                ) : (
-                                                    <Text style={{ fontSize: 32, fontWeight: '900', color: theme.primary }}>{values.name?.[0]}</Text>
-                                                )}
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Seat Allocation</Text>
+                                                <Dropdown
+                                                    data={seatData}
+                                                    labelField="label"
+                                                    valueField="value"
+                                                    value={values.seat}
+                                                    search
+                                                    searchPlaceholder="Search seat..."
+                                                    onChange={(item) => setValue('seat', item.value)}
+                                                    style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                                    placeholderStyle={{ color: theme.muted }}
+                                                    selectedTextStyle={{ color: theme.text }}
+                                                    itemTextStyle={{ color: theme.text }}
+                                                    containerStyle={{ backgroundColor: theme.surface }}
+                                                    activeColor={theme.primary + '10'}
+                                                />
                                             </View>
-                                            <Text style={[styles.reviewName, { color: theme.text }]}>{values.name}</Text>
-                                            <Text style={[styles.reviewPhone, { color: theme.muted }]}>{values.number}</Text>
-                                        </View>
 
-                                        <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-                                        <View style={styles.reviewGrid}>
-                                            <ReviewItem label="JOINED" value={formatDate(values.joiningDate)} theme={theme} />
-                                            <ReviewItem label="GENDER" value={values.gender} theme={theme} />
-                                            <ReviewItem label="SHIFT" value={`${toDisplayTime(values.startTime)} - ${toDisplayTime(values.endTime)}`} theme={theme} />
-                                            <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : 'Free'} theme={theme} />
-                                        </View>
-
-                                        {values.seat && (
-                                            <View style={[styles.reviewSeat, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
-                                                <Ionicons name="bookmark" size={16} color={theme.primary} />
-                                                <Text style={[styles.reviewSeatText, { color: theme.primary }]}>
-                                                    Allocated Seat: {seats.find(s => s._id === values.seat)?.seatNumber || '—'}
-                                                </Text>
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Current Status</Text>
+                                                <View style={styles.statusGrid}>
+                                                    {statusOptions.map(opt => {
+                                                        const active = values.status === opt.value;
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={opt.value}
+                                                                onPress={() => setValue('status', opt.value)}
+                                                                style={[
+                                                                    styles.statusBtn,
+                                                                    {
+                                                                        backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                                                                        borderColor: active ? theme.primary : theme.border
+                                                                    }
+                                                                ]}
+                                                            >
+                                                                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{opt.label}</Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+                                                </View>
                                             </View>
-                                        )}
-                                    </AppCard>
-                                </View>
+
+                                            <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 500" />
+                                            <FormField label="Internal Notes" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
+                                        </AppCard>
+                                    </View>
+                                )}
+
+                                {currentStep === 2 && (
+                                    <View style={styles.stepContent}>
+                                        <AppCard style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <View style={styles.reviewAvatarContainer}>
+                                                <View style={[styles.reviewAvatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.primary }]}>
+                                                    {values.profilePicture ? (
+                                                        <Image source={{ uri: values.profilePicture }} style={styles.reviewImg} />
+                                                    ) : (
+                                                        <Text style={{ fontSize: 32, fontWeight: '900', color: theme.primary }}>{values.name?.[0]}</Text>
+                                                    )}
+                                                </View>
+                                                <Text style={[styles.reviewName, { color: theme.text }]}>{values.name}</Text>
+                                                <Text style={[styles.reviewPhone, { color: theme.muted }]}>{values.number}</Text>
+                                            </View>
+
+                                            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+                                            <View style={styles.reviewGrid}>
+                                                <ReviewItem label="JOINED" value={formatDate(values.joiningDate)} theme={theme} />
+                                                <ReviewItem label="GENDER" value={values.gender} theme={theme} />
+                                                <ReviewItem label="SHIFT" value={`${toDisplayTime(values.startTime)} - ${toDisplayTime(values.endTime)}`} theme={theme} />
+                                                <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : 'Free'} theme={theme} />
+                                            </View>
+
+                                            {values.seat && (
+                                                <View style={[styles.reviewSeat, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
+                                                    <Ionicons name="bookmark" size={16} color={theme.primary} />
+                                                    <Text style={[styles.reviewSeatText, { color: theme.primary }]}>
+                                                        Allocated Seat: {seats.find(s => s._id === values.seat)?.seatNumber || '—'}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </AppCard>
+                                    </View>
+                                )}
+                            </Animated.View>
+                        </ScrollView>
+
+                        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+                            {currentStep > 0 && (
+                                <TouchableOpacity onPress={handlePrev} style={[styles.backBtn, { borderColor: theme.border }]}>
+                                    <Ionicons name="arrow-back" size={20} color={theme.text} />
+                                    <Text style={[styles.backBtnText, { color: theme.text }]}>Back</Text>
+                                </TouchableOpacity>
                             )}
-                        </Animated.View>
-                    </ScrollView>
-
-                    <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-                        {currentStep > 0 && (
-                            <TouchableOpacity onPress={handlePrev} style={[styles.backBtn, { borderColor: theme.border }]}>
-                                <Ionicons name="arrow-back" size={20} color={theme.text} />
-                                <Text style={[styles.backBtnText, { color: theme.text }]}>Back</Text>
-                            </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                            onPress={currentStep === 2 ? handleFinalSubmit : handleNext}
-                            style={[styles.nextBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? (
-                                <ActivityIndicator color="#fff" />
-                        ) : (
+                            <TouchableOpacity
+                                onPress={currentStep === 2 ? handleFinalSubmit : handleNext}
+                                style={[styles.nextBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
                                     <>
                                         <Text style={styles.nextBtnText}>{currentStep === 2 ? 'Finish & Save' : 'Continue'}</Text>
                                         <Ionicons name={currentStep === 2 ? 'checkmark-done' : 'arrow-forward'} size={20} color="#fff" />
                                     </>
-                        )}
-                        </TouchableOpacity>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
 
                 <ImagePickerSheet visible={pickerSheetVisible} onClose={() => setPickerSheetVisible(false)} onSelect={handleImagePick} theme={theme} />
 
