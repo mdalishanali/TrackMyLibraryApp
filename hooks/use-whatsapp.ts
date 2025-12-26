@@ -58,6 +58,15 @@ export const useSendFeeReminder = () => {
   });
 };
 
+export const useSendPaymentReceipt = () => {
+  return useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { data } = await api.post('/whatsapp/payment-confirmation', { paymentId });
+      return data;
+    },
+  });
+};
+
 export const useSendTemplate = () => {
   return useMutation({
     mutationFn: async ({ studentId, templateType }: { studentId: string; templateType: string }) => {

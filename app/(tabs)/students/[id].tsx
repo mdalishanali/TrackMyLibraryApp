@@ -21,7 +21,7 @@ import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
-import { useWhatsappStatus, useSendTemplate, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useWhatsappStatus, useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt } from '@/hooks/use-whatsapp';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
@@ -56,6 +56,7 @@ export default function StudentDetailScreen() {
   const [confirmReminder, setConfirmReminder] = useState(false);
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const sendReceiptMutation = useSendPaymentReceipt();
 
 
   const studentQuery = useStudentQuery(id);
@@ -179,6 +180,20 @@ export default function StudentDetailScreen() {
       setConfirmReminder(false);
     } catch (error) {
       showToast('Failed to send reminder', 'error');
+    }
+  };
+
+  const handleSendReceipt = async (paymentId: string) => {
+    if (!isWhatsappConnected) {
+      showToast('WhatsApp not connected', 'error');
+      return;
+    }
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await sendReceiptMutation.mutateAsync(paymentId);
+      showToast('Receipt sent!', 'success');
+    } catch (e) {
+      showToast('Failed to send receipt', 'error');
     }
   };
 
@@ -432,6 +447,17 @@ export default function StudentDetailScreen() {
                         style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
                       >
                         <Ionicons name="trash-outline" size={18} color={theme.danger} />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleSendReceipt(payment._id)}
+                        disabled={sendReceiptMutation.isPending}
+                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                      >
+                        <Ionicons
+                          name="logo-whatsapp"
+                          size={18}
+                          color={isWhatsappConnected ? "#25D366" : theme.muted}
+                        />
                       </Pressable>
                     </View>
                   </View>
