@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, Pressable, ActivityIndicator, Linking, Switch } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TextInput, Pressable, ActivityIndicator, Linking, Switch, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
@@ -91,7 +91,11 @@ export default function WhatsappSettingsScreen() {
   return (
     <SafeScreen edges={['top']}>
       <Stack.Screen options={{ title: 'WhatsApp Settings', headerTransparent: true }} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.text }]}>WhatsApp Notifications</Text>
           <Text style={[styles.subtitle, { color: theme.muted }]}>
@@ -272,7 +276,8 @@ export default function WhatsappSettingsScreen() {
             </AppButton>
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeScreen>
   );
 }
