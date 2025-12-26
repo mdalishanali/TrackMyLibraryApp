@@ -185,18 +185,16 @@ export default function StudentDetailScreen() {
   const getReminderPreview = () => {
     if (!selectedTemplate) return "";
 
-    // Get seat info if populated
-    const seatInfo = student.seat as any;
-    const seatNumber = typeof student.seat === 'object' ? seatInfo?.seatNumber : '—';
-    const floor = typeof student.seat === 'object' ? `Level ${seatInfo?.floor || seatInfo?.floorId?.floor || '—'}` : '—';
+    const seatNumber = student.seatNumber || (typeof student.seat === 'object' ? (student.seat as any)?.seatNumber : '—');
+    const floor = student.floor !== undefined ? `Level ${student.floor}` : (typeof student.seat === 'object' ? `Level ${(student.seat as any)?.floor || (student.seat as any)?.floorId?.floor || '—'}` : '—');
 
     return selectedTemplate.body
       .replace('{student_name}', student.name)
       .replace('{business_name}', user?.company?.businessName || 'Your Library')
       .replace('{joining_date}', student.joiningDate ? formatDate(student.joiningDate) : '—')
       .replace('{shift}', student.shift || '—')
-      .replace('{seat_number}', seatNumber)
-      .replace('{floor}', floor)
+      .replace('{seat_number}', String(seatNumber))
+      .replace('{floor}', String(floor))
       .replace('{amount}', student.lastPayment?.rupees || '0')
       .replace('{start_date}', student.lastPayment?.startDate ? formatDate(student.lastPayment.startDate) : '—')
       .replace('{end_date}', student.lastPayment?.endDate ? formatDate(student.lastPayment.endDate) : '—');
