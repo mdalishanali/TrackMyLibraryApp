@@ -106,10 +106,14 @@ export default function WhatsappSettingsScreen() {
         {/* Connection Status Card */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.statusHeader}>
-            <View style={[styles.statusIndicator, { backgroundColor: status?.status === 'CONNECTED' ? theme.success : theme.danger }]} />
+              <View style={[styles.statusIndicator, {
+                backgroundColor: status?.status === 'CONNECTED' ? theme.success :
+                  status?.status === 'BUSY' ? theme.warning : theme.danger
+              }]} />
             <Text style={[styles.statusText, { color: theme.text }]}>
               {status?.status === 'CONNECTED' ? 'Connected' : 
-               status?.status === 'WAITING_FOR_SCAN' ? 'Waiting for Link' : 'Disconnected'}
+                  status?.status === 'WAITING_FOR_SCAN' ? 'Waiting for Link' :
+                    status?.status === 'BUSY' ? 'Server Busy' : 'Disconnected'}
             </Text>
           </View>
 
@@ -131,7 +135,25 @@ export default function WhatsappSettingsScreen() {
             </View>
           ) : (
             <View style={styles.disconnectedView}>
-              {status?.qr && !pairingCodeMutation.data && (
+                  {status?.status === 'BUSY' && (
+                    <View style={styles.busyView}>
+                      <View style={[styles.busyIcon, { backgroundColor: theme.warning + '15' }]}>
+                        <Ionicons name="time" size={48} color={theme.warning} />
+                      </View>
+                      <Text style={[styles.qrTitle, { color: theme.text }]}>Server is Busy</Text>
+                      <Text style={[styles.infoText, { color: theme.muted }]}>
+                        The WhatsApp service is currently being used by another library location for a connection.
+                      </Text>
+                      <View style={[styles.busyNotice, { backgroundColor: theme.surfaceAlt }]}>
+                        <Ionicons name="information-circle" size={20} color={theme.primary} />
+                        <Text style={[styles.busyNoticeText, { color: theme.text }]}>
+                          Please wait a few minutes. This page will auto-refresh when the slot is free.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {status?.status !== 'BUSY' && status?.qr && !pairingCodeMutation.data && (
                 <View style={styles.qrContainer}>
                   <Text style={[styles.qrTitle, { color: theme.text }]}>Scan QR Code</Text>
                   <View style={styles.qrWrapper}>
@@ -438,5 +460,33 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     fontSize: 16,
+  },
+  busyView: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+    width: '100%',
+  },
+  busyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  busyNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  busyNoticeText: {
+    fontSize: 13,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500',
   },
 });

@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 
 export type WhatsappStatus = {
-  status: 'DISCONNECTED' | 'WAITING_FOR_SCAN' | 'AUTHENTICATED' | 'CONNECTED';
+  status: 'DISCONNECTED' | 'WAITING_FOR_SCAN' | 'AUTHENTICATED' | 'CONNECTED' | 'BUSY';
   qr?: string;
   pairingCode?: string;
+  message?: string;
 };
 
 export const useWhatsappStatus = () => {
@@ -17,7 +18,9 @@ export const useWhatsappStatus = () => {
     refetchInterval: (query) => {
       // Refetch frequently if waiting for scan or authenticating
       const status = query.state.data?.status;
-      return status === 'WAITING_FOR_SCAN' || status === 'AUTHENTICATED' ? 3000 : 10000;
+      if (status === 'WAITING_FOR_SCAN' || status === 'AUTHENTICATED') return 3000;
+      if (status === 'BUSY') return 5000;
+      return 10000;
     },
   });
 };
