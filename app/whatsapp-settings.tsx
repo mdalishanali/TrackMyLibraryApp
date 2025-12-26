@@ -1,58 +1,27 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TextInput, Pressable, ActivityIndicator, Linking } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import * as Haptics from 'expo-haptics';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
-import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
-import {
-  useWhatsappStatus,
-  usePairingCode,
-  useSendTestMessage,
-  useDisconnect,
-  useWhatsappTemplates,
-  useUpdateTemplates
-} from '@/hooks/use-whatsapp';
+import { useWhatsappStatus, usePairingCode, useSendTestMessage, useDisconnect } from '@/hooks/use-whatsapp';
 import { showToast } from '@/lib/toast';
 
 export default function WhatsappSettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { data: status, isLoading: isStatusLoading } = useWhatsappStatus();
   const pairingCodeMutation = usePairingCode();
   const sendTestMutation = useSendTestMessage();
   const disconnectMutation = useDisconnect();
-  const { data: templates, isLoading: isTemplatesLoading } = useWhatsappTemplates();
-  const updateTemplatesMutation = useUpdateTemplates();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [testPhone, setTestPhone] = useState('');
-  const [localTemplates, setLocalTemplates] = useState<any>(null);
-
-  // Sync server templates to local state when loaded
-  React.useEffect(() => {
-    if (templates && !localTemplates) {
-      setLocalTemplates(templates);
-    }
-  }, [templates]);
-
-  const handleUpdateTemplate = (key: string, value: string) => {
-    setLocalTemplates((prev: any) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveTemplates = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await updateTemplatesMutation.mutateAsync(localTemplates);
-      showToast('Templates updated', 'success');
-    } catch (error) {
-      showToast('Failed to update templates', 'error');
-    }
-  };
 
   const handleRequestPairingCode = async () => {
     if (!phoneNumber) {
@@ -175,6 +144,30 @@ export default function WhatsappSettingsScreen() {
           )}
         </View>
 
+        {/* Link to Templates */}
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/whatsapp-templates');
+          }}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
+          ]}
+        >
+          <View style={styles.templateLinkRow}>
+            <View style={[styles.iconBox, { backgroundColor: theme.primary + '15' }]}>
+              <Ionicons name="document-text-outline" size={24} color={theme.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Message Templates</Text>
+              <Text style={[styles.cardDesc, { color: theme.muted }]}>Customize your welcome, payment, and reminder messages.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.muted} />
+          </View>
+        </Pressable>
+
         {/* Pairing Code Section */}
         {status?.status !== 'CONNECTED' && !pairingCodeMutation.data && (
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -227,74 +220,8 @@ export default function WhatsappSettingsScreen() {
             </AppButton>
           </View>
         )}
-
-        {/* Templates Section */}
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Manage Templates</Text>
-            <AppBadge tone="info">Dynamic Tags</AppBadge>
-          </View>
-          <Text style={[styles.cardDesc, { color: theme.muted }]}>
-            Tags: {'{student_name}'}, {'{business_name}'}, {'{start_date}'}, {'{end_date}'}, {'{amount}'}.
-          </Text>
-
-          {isTemplatesLoading ? (
-            <ActivityIndicator color={theme.primary} />
-          ) : (
-            <View style={{ gap: spacing.lg }}>
-              <TemplateInput
-                label="Welcome Message"
-                value={localTemplates?.welcome}
-                onChange={(v: string) => handleUpdateTemplate('welcome', v)}
-                theme={theme}
-              />
-              <TemplateInput
-                label="Payment Confirmation"
-                value={localTemplates?.payment}
-                onChange={(v: string) => handleUpdateTemplate('payment', v)}
-                theme={theme}
-              />
-              <TemplateInput
-                label="Fee Reminder"
-                value={localTemplates?.reminder}
-                onChange={(v: string) => handleUpdateTemplate('reminder', v)}
-                theme={theme}
-              />
-              <TemplateInput
-                label="Inactive Alert"
-                value={localTemplates?.inactive}
-                onChange={(v: string) => handleUpdateTemplate('inactive', v)}
-                theme={theme}
-              />
-
-              <AppButton
-                onPress={handleSaveTemplates}
-                loading={updateTemplatesMutation.isPending}
-                style={{ marginTop: spacing.sm }}
-              >
-                Save All Templates
-              </AppButton>
-            </View>
-          )}
-        </View>
       </ScrollView>
     </SafeScreen>
-  );
-}
-
-function TemplateInput({ label, value, onChange, theme }: any) {
-  return (
-    <View style={styles.templateGroup}>
-      <Text style={[styles.templateLabel, { color: theme.text }]}>{label}</Text>
-      <TextInput
-        style={[styles.textArea, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
-        value={value}
-        onChangeText={onChange}
-        multiline
-        placeholder={`Enter ${label} template...`}
-        placeholderTextColor={theme.muted}
-      />
-    </View>
   );
 }
 
@@ -303,6 +230,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingTop: 80,
     gap: spacing.lg,
+    paddingBottom: 40,
   },
   header: {
     marginBottom: spacing.md,
@@ -319,7 +247,7 @@ const styles = StyleSheet.create({
   card: {
     padding: spacing.lg,
     borderRadius: radius.xl,
-    borderWidth: 1,
+    borderWidth: 1.5,
     gap: spacing.md,
   },
   statusHeader: {
@@ -384,41 +312,31 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 4,
   },
+  templateLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
   },
   cardDesc: {
     fontSize: 14,
-    marginBottom: spacing.xs,
+    lineHeight: 18,
   },
   input: {
     height: 50,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     fontSize: 16,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  templateGroup: {
-    gap: 8,
-  },
-  templateLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  textArea: {
-    minHeight: 100,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlignVertical: 'top',
   },
 });

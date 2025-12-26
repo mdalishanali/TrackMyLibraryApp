@@ -242,6 +242,14 @@ export default function SettingsScreen() {
               onPress={() => router.push('/whatsapp-settings')}
               themeTint="#25D366"
             />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="document-text-outline"
+              label="Message Templates"
+              description="Edit welcome and reminder texts"
+              onPress={() => router.push('/whatsapp-templates')}
+              themeTint={theme.primary}
+            />
           </View>
 
           {/* Privacy Section */}
