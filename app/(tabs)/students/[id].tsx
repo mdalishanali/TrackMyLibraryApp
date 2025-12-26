@@ -187,6 +187,8 @@ export default function StudentDetailScreen() {
     return selectedTemplate.body
       .replace('{student_name}', student.name)
       .replace('{business_name}', user?.company?.businessName || 'Your Library')
+      .replace('{joining_date}', student.joiningDate ? formatDate(student.joiningDate) : '—')
+      .replace('{shift}', student.shift || '—')
       .replace('{amount}', student.lastPayment?.rupees || '0')
       .replace('{start_date}', student.lastPayment?.startDate ? formatDate(student.lastPayment.startDate) : '—')
       .replace('{end_date}', student.lastPayment?.endDate ? formatDate(student.lastPayment.endDate) : '—');
