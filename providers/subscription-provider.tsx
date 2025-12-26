@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { Platform, Linking, Alert } from 'react-native';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { useAuth } from '@/hooks/use-auth';
+import { useProfileQuery } from '@/hooks/use-profile';
 import { SubscriptionModal } from '@/components/subscription/subscription-modal';
 
 interface SubscriptionContextType {
@@ -28,6 +29,7 @@ const ENTITLEMENT_ID = 'Library Manager TrackMyLibrary Pro';
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
+  const { isLoading: isProfileLoading } = useProfileQuery();
   const [isRcPro, setIsRcPro] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -127,10 +129,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, []);
 
+  const combinedLoading = isLoading || (isAuthenticated && isProfileLoading);
+
   const value = useMemo(() => ({
     isPro: isProActive,
-    isLoading,
-    isBlocked: isAuthenticated && !isProActive,
+    isLoading: combinedLoading,
+    isBlocked: isAuthenticated && !isProActive && !combinedLoading,
     customerInfo,
     presentPaywall: () => setShowPaywall(true),
     presentCustomerCenter,
@@ -138,7 +142,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     checkSubscriptionStatus,
     daysRemainingText: expiryData.text,
     isExpiringSoon: expiryData.soon,
-  }), [isProActive, isLoading, isAuthenticated, customerInfo, presentCustomerCenter, restorePurchases, checkSubscriptionStatus, expiryData]);
+  }), [isProActive, combinedLoading, isAuthenticated, customerInfo, presentCustomerCenter, restorePurchases, checkSubscriptionStatus, expiryData]);
 
   return (
     <SubscriptionContext.Provider value={value}>

@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -13,7 +13,7 @@ type ProfilePayload = {
 };
 
 export const useUpdateProfile = () => {
-  const { setAuth } = useAuth();
+  const { updateUser } = useAuth();
 
   return useMutation({
     mutationFn: async (payload: ProfilePayload) => {
@@ -21,11 +21,29 @@ export const useUpdateProfile = () => {
       return data;
     },
     onSuccess: (data) => {
-      if (data?.user && data?.token) {
-        setAuth({ user: data.user, token: data.token });
+      if (data?.user) {
+        updateUser(data.user);
       }
       queryClient.invalidateQueries();
     },
+  });
+};
+
+export const useProfileQuery = (options?: { enabled?: boolean }) => {
+  const { updateUser, isAuthenticated } = useAuth();
+
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data } = await api.get('/user/profile');
+      if (data?.user) {
+        updateUser(data.user);
+      }
+      return data.user;
+    },
+    enabled: isAuthenticated && (options?.enabled ?? true),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 };
 
