@@ -137,3 +137,31 @@ export const useForceReset = () => {
     },
   });
 };
+
+export const useNotifications = () => {
+  return useQuery({
+    queryKey: ['whatsapp-notifications'],
+    queryFn: async () => {
+      const { data } = await api.get('/whatsapp/notifications');
+      return data;
+    },
+    refetchInterval: 10000,
+  });
+};
+
+export const useMarkNotificationSent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post(`/whatsapp/notifications/${id}/sent`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-notifications'] });
+    },
+  });
+};
+
+export const getNotificationPdfUrl = (id: string) => {
+  return `${api.defaults.baseURL}/whatsapp/notifications/${id}/pdf`;
+};

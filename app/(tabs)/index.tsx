@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
+import { useNotifications } from '@/hooks/use-whatsapp';
 
 const { width } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';

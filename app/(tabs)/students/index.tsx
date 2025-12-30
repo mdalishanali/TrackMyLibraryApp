@@ -35,6 +35,7 @@ import { StudentFormModal, StudentFormValues } from '@/components/students/stude
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
 import { formatDate } from '@/utils/format';
+import { openWhatsappWithMessage } from '@/utils/whatsapp';
 
 const { width } = Dimensions.get('window');
 
@@ -54,7 +55,6 @@ export default function StudentsScreen() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
   const [reminderTarget, setReminderTarget] = useState<Student | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
 
   useEffect(() => {
@@ -116,52 +116,30 @@ export default function StudentsScreen() {
   }, []);
 
   const handleSendReminder = useCallback(async (student: any) => {
-    if (!isWhatsappConnected) {
-      showToast('WhatsApp not connected', 'error');
-      return;
-    }
     setReminderTarget(student);
     setIsTemplateSelectorOpen(true);
-  }, [isWhatsappConnected]);
+  }, []);
 
-  const handleSelectTemplate = (tpl: any) => {
-    setSelectedTemplate(tpl);
+  const handleSelectTemplate = async (tpl: any) => {
     setIsTemplateSelectorOpen(false);
-  };
-
-  const executeReminder = async () => {
-    if (!reminderTarget || !selectedTemplate) return;
+    if (!reminderTarget) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await feeReminder.mutateAsync({
+      const res = await feeReminder.mutateAsync({
         studentId: reminderTarget._id,
-        templateType: selectedTemplate.type
+        templateType: tpl.type
       });
-      showToast('Message sent', 'success');
       setReminderTarget(null);
-      setSelectedTemplate(null);
+
+      if (res.notification) {
+        openWhatsappWithMessage(res.notification.phone, res.notification.message);
+      }
     } catch (e) {
-      showToast('Failed to send message', 'error');
+      showToast('Failed to prepare reminder', 'error');
     }
   };
 
-  const getReminderPreview = () => {
-    if (!reminderTarget || !selectedTemplate) return "";
 
-    const seatNumber = reminderTarget.seatNumber || (typeof reminderTarget.seat === 'object' ? (reminderTarget.seat as any)?.seatNumber : '—');
-    const floor = reminderTarget.floor !== undefined ? `Level ${reminderTarget.floor}` : (typeof reminderTarget.seat === 'object' ? `Level ${(reminderTarget.seat as any)?.floor || (reminderTarget.seat as any)?.floorId?.floor || '—'}` : '—');
-
-    return selectedTemplate.body
-      .replace('{student_name}', reminderTarget.name)
-      .replace('{business_name}', user?.company?.businessName || 'Your Library')
-      .replace('{joining_date}', reminderTarget.joiningDate ? formatDate(reminderTarget.joiningDate) : '—')
-      .replace('{shift}', reminderTarget.shift || '—')
-      .replace('{seat_number}', String(seatNumber))
-      .replace('{floor}', String(floor))
-      .replace('{amount}', reminderTarget.lastPayment?.rupees || '0')
-      .replace('{start_date}', reminderTarget.lastPayment?.startDate ? formatDate(reminderTarget.lastPayment.startDate) : '—')
-      .replace('{end_date}', reminderTarget.lastPayment?.endDate ? formatDate(reminderTarget.lastPayment.endDate) : '—');
-  };
 
   const handleViewStudent = useCallback((id: string) => {
     router.push({ pathname: '/(tabs)/students/[id]', params: { id } });
@@ -379,18 +357,7 @@ export default function StudentsScreen() {
         loading={deleteStudent.isPending}
       />
 
-      <ConfirmDialog
-        visible={Boolean(reminderTarget && selectedTemplate)}
-        title={`Send ${selectedTemplate?.title || 'Reminder'}?`}
-        description={getReminderPreview()}
-        confirmText="Send Message"
-        onCancel={() => {
-          setReminderTarget(null);
-          setSelectedTemplate(null);
-        }}
-        onConfirm={executeReminder}
-        loading={feeReminder.isPending}
-      />
+
 
       <TemplateSelectorModal
         visible={isTemplateSelectorOpen}
