@@ -20,7 +20,7 @@ import { useSubscription } from '@/providers/subscription-provider';
 import { useNotifications } from '@/hooks/use-whatsapp';
 import { useSeatsQuery } from '@/hooks/use-seats';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 // Subscription Expiry Banner
@@ -222,48 +222,106 @@ function getGreeting() {
   return 'Good Evening';
 }
 
+// Background Decorative Circles for Onboarding
+function FloatingDecor({ theme, top, left, size, delay = 0 }: any) {
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(delay).duration(1000)}
+      style={{
+        position: 'absolute',
+        top,
+        left,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: theme.primary + '08',
+        zIndex: -1,
+      }}
+    />
+  );
+}
+
 // Onboarding Overlay for New Users
 function OnboardingOverlay({ theme }: { theme: any }) {
   const router = useRouter();
 
+  const steps = [
+    { icon: 'grid-outline', text: 'Define your Floors & Sections' },
+    { icon: 'layers-outline', text: 'Create Room Layouts' },
+    { icon: 'people-outline', text: 'Assign Students to Seats' },
+  ];
+
   return (
-    <Animated.View
-      entering={FadeInDown.duration(800)}
-      style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 1000, padding: 32, justifyContent: 'center' }]}
-    >
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 1000, padding: 24, justifyContent: 'center' }]}>
       <LinearGradient
-        colors={[theme.primary + '15', 'transparent']}
+        colors={[theme.primary + '10', 'transparent', theme.background]}
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={{ alignItems: 'center', gap: 24 }}>
-        <View style={[styles.onboardingIconBox, { backgroundColor: theme.primary + '10' }]}>
-          <Ionicons name="home-outline" size={64} color={theme.primary} />
+      {/* Background Decor */}
+      <FloatingDecor theme={theme} top={100} left={-20} size={150} delay={200} />
+      <FloatingDecor theme={theme} top={400} left={width - 100} size={200} delay={400} />
+      <FloatingDecor theme={theme} top={height - 200} left={50} size={120} delay={600} />
+
+      <View style={{ gap: 40 }}>
+        <View style={{ alignItems: 'center', gap: 20 }}>
+          <Animated.View
+            entering={FadeInDown.springify().damping(12)}
+            style={[styles.onboardingIconBox, { backgroundColor: theme.primary + '10' }]}
+          >
+            <Ionicons name="location-outline" size={56} color={theme.primary} />
+          </Animated.View>
+
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <Animated.Text
+              entering={FadeInDown.delay(200).duration(600)}
+              style={[styles.onboardingTitle, { color: theme.text }]}
+            >
+              Setup Required
+            </Animated.Text>
+            <Animated.Text
+              entering={FadeInDown.delay(300).duration(600)}
+              style={[styles.onboardingSubtitle, { color: theme.muted }]}
+            >
+              Your library dashboard is almost ready! First, we need to map out your physical space.
+            </Animated.Text>
+          </View>
         </View>
 
-        <View style={{ alignItems: 'center', gap: 12 }}>
-          <Text style={[styles.onboardingTitle, { color: theme.text }]}>Welcome to TrackMyLibrary!</Text>
-          <Text style={[styles.onboardingSubtitle, { color: theme.muted }]}>
-            Let's get your digital library ready. The first step is to create some seats so you can start adding students.
-          </Text>
+        {/* Setup Checklist */}
+        <View style={{ gap: 16 }}>
+          {steps.map((step, i) => (
+            <Animated.View
+              key={i}
+              entering={FadeInDown.delay(400 + (i * 150)).duration(600)}
+              style={[styles.onboardingStep, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+            >
+              <View style={[styles.onboardingStepIcon, { backgroundColor: theme.primary + '15' }]}>
+                <Ionicons name={step.icon as any} size={18} color={theme.primary} />
+              </View>
+              <Text style={[styles.onboardingStepText, { color: theme.text }]}>{step.text}</Text>
+            </Animated.View>
+          ))}
         </View>
 
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            router.push('/seats');
-          }}
-          style={({ pressed }) => [
-            styles.onboardingBtn,
-            { backgroundColor: theme.primary },
-            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
-          ]}
-        >
-          <Text style={styles.onboardingBtnText}>Create My First Seats</Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
-        </Pressable>
+        <Animated.View entering={FadeInDown.delay(900).springify()}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              router.push('/seats');
+            }}
+            style={({ pressed }) => [
+              styles.onboardingBtn,
+              { backgroundColor: theme.primary },
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
+            ]}
+          >
+            <Text style={styles.onboardingBtnText}>Start Library Setup</Text>
+            <Ionicons name="chevron-forward" size={20} color="#fff" />
+          </Pressable>
+        </Animated.View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -891,6 +949,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontWeight: '600',
     opacity: 0.8,
+  },
+  onboardingStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  onboardingStepIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingStepText: {
+    fontSize: 15,
+    fontWeight: '700',
+    flex: 1,
   },
   onboardingBtn: {
     flexDirection: 'row',
