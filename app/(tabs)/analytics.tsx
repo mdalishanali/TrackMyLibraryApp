@@ -267,46 +267,91 @@ export default function AnalyticsScreen() {
                     <Ionicons name="pie-chart-outline" size={48} color={theme.muted + '40'} />
                     <Text style={[styles.emptyText, { color: theme.muted }]}>No transactions recorded</Text>
                 </View>
-            ) : data.revenueBreakdownByUser.map((admin: any, idx) => {
-              // Fix: Fallback for different data structures (total vs value)
-              const totalAmount = admin.total || admin.value || 0;
-              const cashAmount = admin.cash || (admin.paymentMode === 'cash' ? admin.value : 0) || 0;
-              const upiAmount = admin.upi || (admin.paymentMode === 'upi' ? admin.value : 0) || 0;
+            ) : (
+              <>
+                {/* Company Total Row */}
+                {(() => {
+                  const companyTotal = data.revenueBreakdownByUser.reduce((acc, admin: any) => ({
+                    cash: acc.cash + (admin.cash || (admin.paymentMode === 'cash' ? admin.value : 0) || 0),
+                    upi: acc.upi + (admin.upi || (admin.paymentMode === 'upi' ? admin.value : 0) || 0),
+                    total: acc.total + (admin.total || admin.value || 0)
+                  }), { cash: 0, upi: 0, total: 0 });
 
-              return (
-                <View key={idx} style={[styles.breakdownItem, idx > 0 && { borderTopWidth: 1, borderTopColor: theme.border + '50' }]}>
-                <View style={styles.adminHeader}>
-                    <View style={[styles.avatar, { backgroundColor: theme.primary + '20' }]}>
-                      <Text style={{ color: theme.primary, fontWeight: '800' }}>{(admin.name || 'U').charAt(0)}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.adminName, { color: theme.text }]}>{admin.name || 'Unknown'}</Text>
-                      <Text style={[styles.adminSub, { color: theme.muted }]}>{admin.paymentMode ? admin.paymentMode.toUpperCase() : 'Collector'}</Text>
-                    </View>
-                    <Text style={[styles.adminTotal, { color: theme.primary }]}>{formatCurrency(totalAmount)}</Text>
-                </View>
-                  {!admin.total && admin.value ? null : (
-                    <View style={styles.modeRow}>
-                      <View style={styles.modeItem}>
-                        <View style={[styles.modeDot, { backgroundColor: '#48BB78' }]} />
-                        <Text style={[styles.modeLabel, { color: theme.muted }]}>Cash: </Text>
-                        <Text style={[styles.modeValue, { color: theme.text }]}>{formatCurrency(cashAmount)}</Text>
+                  if (companyTotal.total === 0) return null;
+
+                  return (
+                    <View style={[styles.breakdownItem, { backgroundColor: theme.primary + '08', borderRadius: 12, marginBottom: spacing.md, padding: spacing.sm }]}>
+                      <View style={styles.adminHeader}>
+                        <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+                          <Ionicons name="business" size={16} color="#fff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.adminName, { color: theme.text, fontWeight: '800' }]}>Total Period Revenue</Text>
+                          <Text style={[styles.adminSub, { color: theme.muted }]}>All collectors combined</Text>
+                        </View>
+                        <Text style={[styles.adminTotal, { color: theme.primary, fontWeight: '800' }]}>{formatCurrency(companyTotal.total)}</Text>
                       </View>
-                      <View style={styles.modeItem}>
-                        <View style={[styles.modeDot, { backgroundColor: '#4299E1' }]} />
-                        <Text style={[styles.modeLabel, { color: theme.muted }]}>UPI: </Text>
-                        <Text style={[styles.modeValue, { color: theme.text }]}>{formatCurrency(upiAmount)}</Text>
+                      <View style={styles.modeRow}>
+                        <View style={styles.modeItem}>
+                          <View style={[styles.modeDot, { backgroundColor: '#48BB78' }]} />
+                          <Text style={[styles.modeLabel, { color: theme.muted }]}>Cash: </Text>
+                          <Text style={[styles.modeValue, { color: theme.text, fontWeight: '700' }]}>{formatCurrency(companyTotal.cash)}</Text>
+                        </View>
+                        <View style={styles.modeItem}>
+                          <View style={[styles.modeDot, { backgroundColor: '#4299E1' }]} />
+                          <Text style={[styles.modeLabel, { color: theme.muted }]}>UPI: </Text>
+                          <Text style={[styles.modeValue, { color: theme.text, fontWeight: '700' }]}>{formatCurrency(companyTotal.upi)}</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.splitBar, { backgroundColor: theme.border + '30', height: 6 }]}>
+                        <View style={{ flex: companyTotal.cash || 0.0001, backgroundColor: '#48BB78' }} />
+                        <View style={{ flex: companyTotal.upi || 0.0001, backgroundColor: '#4299E1' }} />
                       </View>
                     </View>
-                  )}
-                {/* Visual Progress Bar for split */}
-                <View style={[styles.splitBar, { backgroundColor: theme.border + '30' }]}>
-                    <View style={{ flex: cashAmount || 0.0001, backgroundColor: '#48BB78' }} />
-                    <View style={{ flex: upiAmount || 0.0001, backgroundColor: '#4299E1' }} />
-                </View>
-              </View>
-              )
-            })}
+                  );
+                })()}
+
+                {/* Individual Breakdown List */}
+                {data.revenueBreakdownByUser.map((admin: any, idx) => {
+                  const totalAmount = admin.total || admin.value || 0;
+                  const cashAmount = admin.cash || (admin.paymentMode === 'cash' ? admin.value : 0) || 0;
+                  const upiAmount = admin.upi || (admin.paymentMode === 'upi' ? admin.value : 0) || 0;
+
+                  return (
+                    <View key={idx} style={[styles.breakdownItem, idx > 0 && { borderTopWidth: 1, borderTopColor: theme.border + '50' }]}>
+                      <View style={styles.adminHeader}>
+                        <View style={[styles.avatar, { backgroundColor: theme.primary + '20' }]}>
+                          <Text style={{ color: theme.primary, fontWeight: '800' }}>{(admin.name || 'U').charAt(0)}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.adminName, { color: theme.text }]}>{admin.name || 'Unknown'}</Text>
+                          <Text style={[styles.adminSub, { color: theme.muted }]}>{admin.paymentMode ? admin.paymentMode.toUpperCase() : 'Collector'}</Text>
+                        </View>
+                        <Text style={[styles.adminTotal, { color: theme.primary }]}>{formatCurrency(totalAmount)}</Text>
+                      </View>
+                      {!admin.total && admin.value ? null : (
+                        <View style={styles.modeRow}>
+                          <View style={styles.modeItem}>
+                            <View style={[styles.modeDot, { backgroundColor: '#48BB78' }]} />
+                            <Text style={[styles.modeLabel, { color: theme.muted }]}>Cash: </Text>
+                            <Text style={[styles.modeValue, { color: theme.text }]}>{formatCurrency(cashAmount)}</Text>
+                          </View>
+                          <View style={styles.modeItem}>
+                            <View style={[styles.modeDot, { backgroundColor: '#4299E1' }]} />
+                            <Text style={[styles.modeLabel, { color: theme.muted }]}>UPI: </Text>
+                            <Text style={[styles.modeValue, { color: theme.text }]}>{formatCurrency(upiAmount)}</Text>
+                          </View>
+                        </View>
+                      )}
+                      <View style={[styles.splitBar, { backgroundColor: theme.border + '30' }]}>
+                        <View style={{ flex: cashAmount || 0.0001, backgroundColor: '#48BB78' }} />
+                        <View style={{ flex: upiAmount || 0.0001, backgroundColor: '#4299E1' }} />
+                      </View>
+                    </View>
+                  )
+                })}
+              </>
+            )}
           </View>
         </Animated.View>
 
