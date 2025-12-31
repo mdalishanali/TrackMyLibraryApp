@@ -46,7 +46,7 @@ export default function SeatsScreen() {
   const [floor, setFloor] = useState('1');
   const [startSeat, setStartSeat] = useState('1');
   const [endSeat, setEndSeat] = useState('10');
-  const [selectedSeat, setSelectedSeat] = useState<null | { seatNumber: number; floor?: number; _id?: string }>(null);
+  const [selectedSeat, setSelectedSeat] = useState<null | any>(null);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [studentDefaults, setStudentDefaults] = useState<StudentFormValues | null>(null);
   const [activeFloor, setActiveFloor] = useState<string | null>(null);
@@ -247,14 +247,26 @@ export default function SeatsScreen() {
                     </View>
 
                     <View style={styles.seatBodyInfo}>
-                      <Text style={[styles.seatOccupantName, { color: occupant ? theme.text : theme.muted }]} numberOfLines={1}>
-                        {occupant?.name || 'VACANT'}
-                      </Text>
-                      {occupant && (
-                        <View style={styles.shiftRow}>
-                          <Ionicons name="time-outline" size={10} color={theme.primary} />
-                          <Text style={[styles.seatShiftText, { color: theme.primary }]}>{occupant.shift}</Text>
-                        </View>
+                      {item.students && item.students.length > 0 ? (
+                        <>
+                          <Text style={[styles.seatOccupantName, { color: theme.text }]} numberOfLines={1}>
+                            {item.students.length === 1
+                              ? item.students[0].name
+                              : `${item.students[0].name.split(' ')[0]} +${item.students.length - 1}`
+                            }
+                          </Text>
+                          <View style={styles.shiftRow}>
+                            <Ionicons name="time-outline" size={10} color={theme.primary} />
+                            <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
+                              {item.students.length === 1
+                                ? item.students[0].shift
+                                : item.students.map((s: any) => s.shift?.[0]).join(', ')
+                              }
+                            </Text>
+                          </View>
+                        </>
+                      ) : (
+                        <Text style={[styles.seatOccupantName, { color: theme.muted }]}>VACANT</Text>
                       )}
                     </View>
 
@@ -336,19 +348,92 @@ export default function SeatsScreen() {
                       <Text style={[styles.sheetSubtitle, { color: theme.muted }]}>Floor {selectedSeat.floor}</Text>
                     </View>
                     {(() => {
-                      const occupant = resolveOccupant(selectedSeat);
-                      return <AppBadge tone={occupant ? 'danger' : 'success'}>{occupant ? 'OCCUPIED' : 'VACANT'}</AppBadge>
+                      const count = selectedSeat.students?.length || 0;
+                      return <AppBadge tone={count > 0 ? 'danger' : 'success'}>{count > 0 ? `${count} OCCUPIED` : 'VACANT'}</AppBadge>
                     })()}
                   </View>
 
                   <View style={[styles.sheetBody, { borderTopColor: theme.border + '50' }]}>
-                    {(() => {
-                      const occupant = resolveOccupant(selectedSeat);
-                      if (!occupant) {
-                        return (
-                          <View style={styles.vacantState}>
-                            <Text style={[styles.vacantText, { color: theme.muted }]}>This seat is currently empty.</Text>
+                    {(!selectedSeat.students || selectedSeat.students.length === 0) ? (
+                      <View style={styles.vacantState}>
+                        <Text style={[styles.vacantText, { color: theme.muted }]}>This seat is currently empty.</Text>
+                        <AppButton
+                          onPress={() => {
+                            setStudentDefaults({
+                              name: '',
+                              number: '',
+                              joiningDate: new Date().toISOString().slice(0, 10),
+                              seat: selectedSeat._id ?? '',
+                              shift: 'Morning',
+                              startTime: '09:00',
+                              endTime: '18:00',
+                              status: 'Active',
+                              fees: '',
+                              gender: 'Male',
+                              notes: '',
+                              profilePicture: ''
+                            });
+                            setIsStudentModalOpen(true);
+                            setSelectedSeat(null);
+                          }}
+                          fullWidth
+                          style={{ height: 56, borderRadius: 16 }}
+                        >
+                          Assign Member
+                        </AppButton>
+                      </View>
+                    ) : (
+                      <View style={styles.occupantDetails}>
+                          <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
+                            {selectedSeat.students.map((occupant: any, idx: number) => (
+                              <View key={occupant._id} style={[styles.occupantItem, idx !== 0 && { marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.border + '40' }]}>
+                                <View style={styles.occupantMain}>
+                                  <View style={[styles.occupantAvatar, { backgroundColor: theme.primary + '10', overflow: 'hidden' }]}>
+                                    {occupant.profilePicture ? (
+                                      <Image
+                                        source={{ uri: occupant.profilePicture }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        contentFit="cover"
+                                        transition={1000}
+                                        placeholder={BLURHASH}
+                                      />
+                                    ) : (
+                                      <Text style={[styles.avatarText, { color: theme.primary }]}>{occupant.name[0].toUpperCase()}</Text>
+                                    )}
+                                  </View>
+                                  <View style={{ flex: 1 }}>
+                                    <Text style={[styles.occupantName, { color: theme.text }]} numberOfLines={1}>{occupant.name}</Text>
+                                    <Text style={[styles.occupantPhone, { color: theme.muted }]}>{occupant.number}</Text>
+                                  </View>
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      setSelectedSeat(null);
+                                      router.push({ pathname: '/(tabs)/students/[id]', params: { id: occupant._id } });
+                                    }}
+                                    style={[styles.miniActionBtn, { backgroundColor: theme.primary + '10' }]}
+                                  >
+                                    <Ionicons name="chevron-forward" size={18} color={theme.primary} />
+                                  </TouchableOpacity>
+                                </View>
+                                <View style={styles.occupantGrid}>
+                                  <View style={styles.gridItem}>
+                                    <Text style={[styles.gridLabel, { color: theme.muted }]}>SHIFT</Text>
+                                    <Text style={[styles.gridValue, { color: theme.text }]}>{occupant.shift}</Text>
+                                  </View>
+                                  <View style={styles.gridItem}>
+                                    <Text style={[styles.gridLabel, { color: theme.muted }]}>JOINED</Text>
+                                    <Text style={[styles.gridValue, { color: theme.text }]}>{formatDate(occupant.joiningDate)}</Text>
+                                  </View>
+                                </View>
+                              </View>
+                            ))}
+                          </ScrollView>
+
+                          <View style={styles.sheetActions}>
                             <AppButton
+                              fullWidth
+                              variant="primary"
+                              style={{ height: 54, borderRadius: 16 }}
                               onPress={() => {
                                 setStudentDefaults({
                                   name: '',
@@ -367,61 +452,12 @@ export default function SeatsScreen() {
                                 setIsStudentModalOpen(true);
                                 setSelectedSeat(null);
                               }}
-                              fullWidth
-                              style={{ height: 56, borderRadius: 16 }}
                             >
-                              Assign Member
-                            </AppButton>
-                          </View>
-                        );
-                      }
-                      return (
-                        <View style={styles.occupantDetails}>
-                          <View style={styles.occupantMain}>
-                            <View style={[styles.occupantAvatar, { backgroundColor: theme.primary + '10', overflow: 'hidden' }]}>
-                              {occupant.profilePicture ? (
-                                <Image
-                                  source={{ uri: occupant.profilePicture }}
-                                  style={{ width: '100%', height: '100%' }}
-                                  contentFit="cover"
-                                  transition={1000}
-                                  placeholder={BLURHASH}
-                                />
-                              ) : (
-                                <Text style={[styles.avatarText, { color: theme.primary }]}>{occupant.name[0].toUpperCase()}</Text>
-                              )}
-                            </View>
-                            <View>
-                              <Text style={[styles.occupantName, { color: theme.text }]}>{occupant.name}</Text>
-                              <Text style={[styles.occupantPhone, { color: theme.muted }]}>{occupant.number}</Text>
-                            </View>
-                          </View>
-                          <View style={styles.occupantGrid}>
-                            <View style={styles.gridItem}>
-                              <Text style={[styles.gridLabel, { color: theme.muted }]}>SHIFT</Text>
-                              <Text style={[styles.gridValue, { color: theme.text }]}>{occupant.shift}</Text>
-                            </View>
-                            <View style={styles.gridItem}>
-                              <Text style={[styles.gridLabel, { color: theme.muted }]}>JOINED</Text>
-                              <Text style={[styles.gridValue, { color: theme.text }]}>{formatDate(occupant.joiningDate)}</Text>
-                            </View>
-                          </View>
-                          <View style={styles.sheetActions}>
-                            <AppButton
-                              fullWidth
-                              variant="outline"
-                              style={{ height: 54, borderRadius: 16 }}
-                              onPress={() => {
-                                setSelectedSeat(null);
-                                router.push({ pathname: '/(tabs)/students/[id]', params: { id: occupant._id } });
-                              }}
-                            >
-                                View Full Profile
+                              Assign Another Shift
                             </AppButton>
                           </View>
                         </View>
-                      );
-                    })()}
+                    )}
                   </View>
                 </View>
               )}
@@ -726,6 +762,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(0,0,0,0.05)',
+  },
+  occupantItem: {
+    gap: 12,
+  },
+  miniActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarText: {
     fontSize: 24,
