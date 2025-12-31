@@ -18,6 +18,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
 import { useNotifications } from '@/hooks/use-whatsapp';
+import { useSeatsQuery } from '@/hooks/use-seats';
 
 const { width } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
@@ -221,6 +222,51 @@ function getGreeting() {
   return 'Good Evening';
 }
 
+// Onboarding Overlay for New Users
+function OnboardingOverlay({ theme }: { theme: any }) {
+  const router = useRouter();
+
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(800)}
+      style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 1000, padding: 32, justifyContent: 'center' }]}
+    >
+      <LinearGradient
+        colors={[theme.primary + '15', 'transparent']}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={{ alignItems: 'center', gap: 24 }}>
+        <View style={[styles.onboardingIconBox, { backgroundColor: theme.primary + '10' }]}>
+          <Ionicons name="home-outline" size={64} color={theme.primary} />
+        </View>
+
+        <View style={{ alignItems: 'center', gap: 12 }}>
+          <Text style={[styles.onboardingTitle, { color: theme.text }]}>Welcome to TrackMyLibrary!</Text>
+          <Text style={[styles.onboardingSubtitle, { color: theme.muted }]}>
+            Let's get your digital library ready. The first step is to create some seats so you can start adding students.
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            router.push('/seats');
+          }}
+          style={({ pressed }) => [
+            styles.onboardingBtn,
+            { backgroundColor: theme.primary },
+            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
+          ]}
+        >
+          <Text style={styles.onboardingBtnText}>Create My First Seats</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const theme = useTheme();
@@ -229,9 +275,22 @@ export default function DashboardScreen() {
   const { isPro } = useSubscription();
 
   const dashboardQuery = useDashboardQuery();
+  const seatsQuery = useSeatsQuery();
 
-  if (dashboardQuery.isLoading) {
+  const isLoading = dashboardQuery.isLoading || seatsQuery.isLoading;
+
+  if (isLoading) {
     return <FullScreenLoader message="Preparing your dashboard..." />;
+  }
+
+  const hasNoSeats = !seatsQuery.data || seatsQuery.data.length === 0;
+
+  if (hasNoSeats) {
+    return (
+      <SafeScreen>
+        <OnboardingOverlay theme={theme} />
+      </SafeScreen>
+    );
   }
 
   const metrics = [
@@ -809,6 +868,50 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
+  },
+  // Onboarding Styles
+  onboardingIconBox: {
+    width: 120,
+    height: 120,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  onboardingTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  onboardingSubtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  onboardingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 18,
+    borderRadius: 20,
+    gap: 12,
+    marginTop: 16,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  onboardingBtnText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
   },
 });
 
