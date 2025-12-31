@@ -175,6 +175,29 @@ export default function SeatsScreen() {
     );
   };
 
+  const handleSingleDelete = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Delete Seat',
+      'Are you sure you want to delete this seat? This will also remove any student assignments.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSeats.mutateAsync([id]);
+              setSelectedSeat(null);
+            } catch (error) {
+              console.error('Delete failed:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <SafeScreen edges={['top']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -481,10 +504,21 @@ export default function SeatsScreen() {
                       <Text style={[styles.sheetTitle, { color: theme.text }]}>Seat {selectedSeat.seatNumber}</Text>
                       <Text style={[styles.sheetSubtitle, { color: theme.muted }]}>Floor {selectedSeat.floor}</Text>
                     </View>
-                    {(() => {
-                      const count = selectedSeat.students?.length || 0;
-                      return <AppBadge tone={count > 0 ? 'danger' : 'success'}>{count > 0 ? `${count} OCCUPIED` : 'VACANT'}</AppBadge>
-                    })()}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      {(() => {
+                        const count = selectedSeat.students?.length || 0;
+                        return <AppBadge tone={count > 0 ? 'danger' : 'success'}>{count > 0 ? `${count} OCCUPIED` : 'VACANT'}</AppBadge>
+                      })()}
+                      <TouchableOpacity 
+                        onPress={() => handleSingleDelete(selectedSeat._id)}
+                        style={[
+                          styles.miniDeleteBtn,
+                          { backgroundColor: theme.danger + '10' }
+                        ]}
+                      >
+                        <Ionicons name="trash-outline" size={20} color={theme.danger} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   <View style={[styles.sheetBody, { borderTopColor: theme.border + '50' }]}>
@@ -692,6 +726,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
     zIndex: 10,
+  },
+  miniDeleteBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addBtn: {
     width: 48,
