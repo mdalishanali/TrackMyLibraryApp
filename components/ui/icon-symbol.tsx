@@ -25,6 +25,7 @@ const MAPPING = {
   'creditcard.fill': 'credit-card',
   'line.3.horizontal': 'menu',
   'gearshape.fill': 'settings',
+  'chart.bar.fill': 'analytics',
 } as IconMapping;
 
 /**
