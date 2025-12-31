@@ -308,7 +308,7 @@ function OnboardingOverlay({ theme }: { theme: any }) {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              router.push('/seats');
+              router.push({ pathname: '/seats', params: { setup: 'true' } });
             }}
             style={({ pressed }) => [
               styles.onboardingBtn,

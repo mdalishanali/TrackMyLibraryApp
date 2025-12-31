@@ -19,7 +19,7 @@ import Animated, { FadeInUp, FadeInDown, Layout, FadeIn } from 'react-native-rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, useLocalSearchParams } from 'expo-router';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppBadge } from '@/components/ui/app-badge';
@@ -41,8 +41,15 @@ export default function SeatsScreen() {
   const createSeats = useCreateSeats();
   const router = useRouter();
   const createStudent = useCreateStudent();
+  const { setup } = useLocalSearchParams();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (setup === 'true') {
+      setIsModalOpen(true);
+    }
+  }, [setup]);
   const [floor, setFloor] = useState('1');
   const [startSeat, setStartSeat] = useState('1');
   const [endSeat, setEndSeat] = useState('10');
