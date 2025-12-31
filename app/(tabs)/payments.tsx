@@ -45,7 +45,7 @@ const monthOptions = [
 ];
 
 const currentYear = new Date().getFullYear();
-const yearOptions = [(currentYear - 1).toString(), currentYear.toString(), (currentYear + 1).toString()];
+const yearOptions = ['2025', currentYear.toString()];
 
 export default function PaymentsScreen() {
   const theme = useTheme();

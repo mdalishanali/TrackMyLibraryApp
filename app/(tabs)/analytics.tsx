@@ -49,7 +49,7 @@ const monthOptions = [
   { label: 'Dec', value: '12' },
 ];
 
-const yearOptions = [(currentYear - 1).toString(), currentYear.toString(), (currentYear + 1).toString()];
+const yearOptions = ['2025', currentYear.toString()];
 
 export default function AnalyticsScreen() {
   const theme = useTheme();
