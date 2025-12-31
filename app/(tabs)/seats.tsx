@@ -30,6 +30,7 @@ import { useCreateSeats, useSeatsQuery, useDeleteSeats } from '@/hooks/use-seats
 import { useCreateStudent } from '@/hooks/use-students';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDate } from '@/utils/format';
 
 const { width } = Dimensions.get('window');
@@ -62,6 +63,17 @@ export default function SeatsScreen() {
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [studentDefaults, setStudentDefaults] = useState<StudentFormValues | null>(null);
   const [activeFloor, setActiveFloor] = useState<string | null>(null);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    visible: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   const seatsByFloor = useMemo(() => {
     const data = (seatsQuery.data ?? []);
@@ -153,49 +165,39 @@ export default function SeatsScreen() {
   const handleBulkDelete = () => {
     if (selectionSet.size === 0) return;
     
-    Alert.alert(
-      'Delete Seats',
-      `Are you sure you want to delete ${selectionSet.size} selected seat(s)? This will also remove any student assignments.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteSeats.mutateAsync(Array.from(selectionSet));
-              setSelectionSet(new Set());
-              setIsSelectionMode(false);
-            } catch (error) {
-              console.error('Bulk delete failed:', error);
-            }
-          }
+    setConfirmConfig({
+      visible: true,
+      title: 'Delete Seats',
+      description: `Are you sure you want to delete ${selectionSet.size} selected seat(s)? This will also remove any student assignments.`,
+      onConfirm: async () => {
+        try {
+          await deleteSeats.mutateAsync(Array.from(selectionSet));
+          setSelectionSet(new Set());
+          setIsSelectionMode(false);
+          setConfirmConfig(prev => ({ ...prev, visible: false }));
+        } catch (error) {
+          console.error('Bulk delete failed:', error);
         }
-      ]
-    );
+      }
+    });
   };
 
   const handleSingleDelete = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Delete Seat',
-      'Are you sure you want to delete this seat? This will also remove any student assignments.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteSeats.mutateAsync([id]);
-              setSelectedSeat(null);
-            } catch (error) {
-              console.error('Delete failed:', error);
-            }
-          }
+    setConfirmConfig({
+      visible: true,
+      title: 'Delete Seat',
+      description: 'Are you sure you want to delete this seat? This will also remove any student assignments.',
+      onConfirm: async () => {
+        try {
+          await deleteSeats.mutateAsync([id]);
+          setSelectedSeat(null);
+          setConfirmConfig(prev => ({ ...prev, visible: false }));
+        } catch (error) {
+          console.error('Delete failed:', error);
         }
-      ]
-    );
+      }
+    });
   };
 
   return (
@@ -651,6 +653,15 @@ export default function SeatsScreen() {
             title="Add Member"
           />
         )}
+        <ConfirmDialog
+          visible={confirmConfig.visible}
+          title={confirmConfig.title}
+          description={confirmConfig.description}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(prev => ({ ...prev, visible: false }))}
+          destructive
+          loading={deleteSeats.isPending}
+        />
       </View>
     </SafeScreen>
   );
