@@ -15,8 +15,8 @@ export const useSeatsQuery = () =>
   useQuery({
     queryKey: queryKeys.seats,
     queryFn: async () => {
-      const { data } = await api.get('/seats/number');
-      return data.seats as Seat[];
+      const { data } = await api.get('/seats/students');
+      return data.floors as any[];
     },
   });
 

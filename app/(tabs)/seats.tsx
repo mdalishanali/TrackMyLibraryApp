@@ -27,7 +27,7 @@ import { AppButton } from '@/components/ui/app-button';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
 import { useCreateSeats, useSeatsQuery } from '@/hooks/use-seats';
-import { useCreateStudent, useStudentsQuery } from '@/hooks/use-students';
+import { useCreateStudent } from '@/hooks/use-students';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { formatDate } from '@/utils/format';
@@ -39,7 +39,6 @@ export default function SeatsScreen() {
   const theme = useTheme();
   const seatsQuery = useSeatsQuery();
   const createSeats = useCreateSeats();
-  const studentsQuery = useStudentsQuery();
   const router = useRouter();
   const createStudent = useCreateStudent();
 
@@ -54,10 +53,11 @@ export default function SeatsScreen() {
 
   const seatsByFloor = useMemo(() => {
     const data = seatsQuery.data ?? [];
-    return data.reduce<Record<string, any[]>>((acc, seat) => {
-      const key = String(seat.floor ?? '1');
+    return data.reduce<Record<string, any[]>>((acc, floorObj) => {
+      const key = String(floorObj.floor ?? '1');
       if (!acc[key]) acc[key] = [];
-      acc[key].push(seat);
+      // Assign the seats from the floor object
+      acc[key] = floorObj.seats || [];
       return acc;
     }, {});
   }, [seatsQuery.data]);
@@ -78,24 +78,13 @@ export default function SeatsScreen() {
   }, [seatsByFloor, activeFloor]);
 
   const occupancyStats = useMemo(() => {
-    const students = studentsQuery.data ?? [];
     const total = currentSeats.length;
-    const occupied = currentSeats.filter(seat =>
-      students.some(s => s.seat === seat._id || (Number(s.seatNumber) === Number(seat.seatNumber) && String(s.floor) === String(seat.floor)))
-    ).length;
+    const occupied = currentSeats.filter(seat => seat.students && seat.students.length > 0).length;
     return { total, occupied, vacant: total - occupied };
-  }, [currentSeats, studentsQuery.data]);
+  }, [currentSeats]);
 
-  const resolveOccupant = (seat: { seatNumber: number; floor?: any; _id?: string }) => {
-    const students = studentsQuery.data ?? [];
-    return students.find((s) => {
-      const studentSeatId = typeof s.seat === 'object' ? (s as any).seat?._id : s.seat;
-      if (studentSeatId && seat._id && studentSeatId === seat._id) return true;
-      if (s.seatNumber !== undefined && s.floor !== undefined) {
-        return Number(s.seatNumber) === Number(seat.seatNumber) && String(s.floor) === String(seat.floor);
-      }
-      return false;
-    });
+  const resolveOccupant = (seat: any) => {
+    return seat.students?.[0] || null;
   };
 
   const handleFloorSelect = (f: string) => {
@@ -446,7 +435,13 @@ export default function SeatsScreen() {
             onClose={() => setIsStudentModalOpen(false)}
             onSubmit={saveStudent}
             initialValues={studentDefaults}
-            seats={(seatsQuery.data ?? []).map((s) => ({ _id: s._id ?? '', seatNumber: String(s.seatNumber), floor: s.floor }))}
+            seats={(seatsQuery.data ?? []).flatMap((f: any) =>
+              (f.seats || []).map((s: any) => ({
+                _id: s._id,
+                seatNumber: String(s.seatNumber),
+                floor: f.floor
+              }))
+            )}
             theme={theme}
             isSubmitting={createStudent.isPending}
             title="Add Member"

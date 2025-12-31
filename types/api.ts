@@ -3,6 +3,7 @@ export type Seat = {
   seatNumber: number;
   floor?: number;
   floorId?: string;
+  students?: Student[];
 };
 
 export type Student = {
