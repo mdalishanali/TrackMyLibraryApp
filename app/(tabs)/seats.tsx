@@ -214,67 +214,91 @@ export default function SeatsScreen() {
             entering={FadeIn.duration(400)}
             style={styles.seatsGrid}
           >
-            {currentSeats.map((item, sIdx) => {
-              const occupant = resolveOccupant(item);
-              const available = !occupant;
-              const statusColor = available ? theme.success : theme.danger;
+            {floors.length === 0 && !seatsQuery.isLoading ? (
+              <View style={styles.emptyContainer}>
+                <View style={[styles.emptyIconCircle, { backgroundColor: theme.primary + '10' }]}>
+                  <Ionicons name="grid-outline" size={48} color={theme.primary} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>No Library Layout Found</Text>
+                <Text style={[styles.emptySubtitle, { color: theme.muted }]}>
+                  Tap the "+" button above to create your first floor and setup your seats.
+                </Text>
 
-              return (
-                <Animated.View
-                  key={item._id || `${activeFloor}-${item.seatNumber}`}
-                  entering={FadeInDown.delay(sIdx * 20).duration(400)}
-                  style={styles.seatWrapper}
+                <Pressable
+                  onPress={() => setIsModalOpen(true)}
+                  style={({ pressed }) => [
+                    styles.emptyBtn,
+                    { backgroundColor: theme.primary },
+                    pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
+                  ]}
                 >
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setSelectedSeat(item);
-                    }}
-                    style={({ pressed }) => [
-                      styles.seatCard,
-                      {
-                        backgroundColor: theme.surface,
-                        borderColor: selectedSeat?._id === item._id ? theme.primary : theme.border,
-                      },
-                      pressed && styles.cardPressed
-                    ]}
-                  >
-                    <View style={styles.seatTop}>
-                      <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
-                        <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
-                        <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
-                      </View>
-                    </View>
+                  <Text style={styles.emptyBtnText}>Setup Floor 1</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#fff" />
+                </Pressable>
+              </View>
+            ) : (
+              currentSeats.map((item, sIdx) => {
+                const occupant = resolveOccupant(item);
+                const available = !occupant;
+                const statusColor = available ? theme.success : theme.danger;
 
-                    <View style={styles.seatBodyInfo}>
-                      {item.students && item.students.length > 0 ? (
-                        <>
-                          <Text style={[styles.seatOccupantName, { color: theme.text }]} numberOfLines={1}>
-                            {item.students.length === 1
-                              ? item.students[0].name
-                              : `${item.students[0].name.split(' ')[0]} +${item.students.length - 1}`
-                            }
-                          </Text>
-                          <View style={styles.shiftRow}>
-                            <Ionicons name="time-outline" size={10} color={theme.primary} />
-                            <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
+                return (
+                  <Animated.View
+                    key={item._id || `${activeFloor}-${item.seatNumber}`}
+                    entering={FadeInDown.delay(sIdx * 20).duration(400)}
+                    style={styles.seatWrapper}
+                  >
+                    <Pressable
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedSeat(item);
+                      }}
+                      style={({ pressed }) => [
+                        styles.seatCard,
+                        {
+                          backgroundColor: theme.surface,
+                          borderColor: selectedSeat?._id === item._id ? theme.primary : theme.border,
+                        },
+                        pressed && styles.cardPressed
+                      ]}
+                    >
+                      <View style={styles.seatTop}>
+                        <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
+                          <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
+                          <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.seatBodyInfo}>
+                        {item.students && item.students.length > 0 ? (
+                          <>
+                            <Text style={[styles.seatOccupantName, { color: theme.text }]} numberOfLines={1}>
                               {item.students.length === 1
-                                ? item.students[0].shift
-                                : item.students.map((s: any) => s.shift?.[0]).join(', ')
+                                ? item.students[0].name
+                                : `${item.students[0].name.split(' ')[0]} +${item.students.length - 1}`
                               }
                             </Text>
-                          </View>
-                        </>
-                      ) : (
-                        <Text style={[styles.seatOccupantName, { color: theme.muted }]}>VACANT</Text>
-                      )}
-                    </View>
+                            <View style={styles.shiftRow}>
+                              <Ionicons name="time-outline" size={10} color={theme.primary} />
+                              <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
+                                {item.students.length === 1
+                                  ? item.students[0].shift
+                                  : item.students.map((s: any) => s.shift?.[0]).join(', ')
+                                }
+                              </Text>
+                            </View>
+                          </>
+                        ) : (
+                          <Text style={[styles.seatOccupantName, { color: theme.muted }]}>VACANT</Text>
+                        )}
+                      </View>
 
-                    <View style={[styles.indicatorLine, { backgroundColor: statusColor }]} />
-                  </Pressable>
-                </Animated.View>
-              );
-            })}
+                      <View style={[styles.indicatorLine, { backgroundColor: statusColor }]} />
+                    </Pressable>
+                  </Animated.View>
+                );
+              })
+            )}
           </Animated.View>
         </ScrollView>
 
@@ -805,4 +829,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sheetActions: { marginTop: 8 },
+  emptyContainer: {
+    padding: 32,
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 40,
+  },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 20,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 18,
+    marginTop: 12,
+  },
+  emptyBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
 });
