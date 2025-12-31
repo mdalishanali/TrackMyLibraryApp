@@ -184,20 +184,24 @@ export default function SeatsScreen() {
 
   const handleSingleDelete = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setConfirmConfig({
-      visible: true,
-      title: 'Delete Seat',
-      description: 'Are you sure you want to delete this seat? This will also remove any student assignments.',
-      onConfirm: async () => {
-        try {
-          await deleteSeats.mutateAsync([id]);
-          setSelectedSeat(null);
-          setConfirmConfig(prev => ({ ...prev, visible: false }));
-        } catch (error) {
-          console.error('Delete failed:', error);
+    setSelectedSeat(null); 
+    
+    // Tiny delay to let the detail modal close before opening confirmation
+    setTimeout(() => {
+      setConfirmConfig({
+        visible: true,
+        title: 'Delete Seat',
+        description: 'Are you sure you want to delete this seat? This will also remove any student assignments.',
+        onConfirm: async () => {
+          try {
+            await deleteSeats.mutateAsync([id]);
+            setConfirmConfig(prev => ({ ...prev, visible: false }));
+          } catch (error) {
+            console.error('Delete failed:', error);
+          }
         }
-      }
-    });
+      });
+    }, 350);
   };
 
   return (
