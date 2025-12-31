@@ -26,7 +26,7 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
-import { useCreateSeats, useSeatsQuery } from '@/hooks/use-seats';
+import { useCreateSeats, useSeatsQuery, useDeleteSeats } from '@/hooks/use-seats';
 import { useCreateStudent } from '@/hooks/use-students';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
@@ -39,15 +39,20 @@ export default function SeatsScreen() {
   const theme = useTheme();
   const seatsQuery = useSeatsQuery();
   const createSeats = useCreateSeats();
+  const deleteSeats = useDeleteSeats();
   const router = useRouter();
   const createStudent = useCreateStudent();
   const { setup } = useLocalSearchParams();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectionSet, setSelectionSet] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (setup === 'true') {
       setIsModalOpen(true);
+      // Clear the param so it doesn't open again on tab clicks
+      router.setParams({ setup: undefined } as any);
     }
   }, [setup]);
   const [floor, setFloor] = useState('1');
@@ -135,6 +140,40 @@ export default function SeatsScreen() {
       </SafeScreen>
     );
   }
+  const toggleSeatSelection = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectionSet(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectionSet.size === 0) return;
+    
+    Alert.alert(
+      'Delete Seats',
+      `Are you sure you want to delete ${selectionSet.size} selected seat(s)? This will also remove any student assignments.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteSeats.mutateAsync(Array.from(selectionSet));
+              setSelectionSet(new Set());
+              setIsSelectionMode(false);
+            } catch (error) {
+              console.error('Bulk delete failed:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeScreen edges={['top']}>
@@ -151,19 +190,59 @@ export default function SeatsScreen() {
                 <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
                 <Text style={[styles.title, { color: theme.text }]}>Space Grid</Text>
               </View>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setIsModalOpen(true);
-                }}
-                style={({ pressed }) => [
-                  styles.addBtn,
-                  { backgroundColor: theme.primary, shadowColor: theme.primary },
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }
-                ]}
-              >
-                <Ionicons name="add" size={24} color="#fff" />
-              </Pressable>
+              <View style={styles.headerActions}>
+                {isSelectionMode ? (
+                  <>
+                    <Pressable
+                      onPress={() => {
+                        setIsSelectionMode(false);
+                        setSelectionSet(new Set());
+                      }}
+                      style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
+                    >
+                      <Ionicons name="close" size={20} color={theme.text} />
+                    </Pressable>
+                    <Pressable
+                      onPress={handleBulkDelete}
+                      disabled={selectionSet.size === 0}
+                      style={[
+                        styles.headerIconBtn, 
+                        { backgroundColor: theme.danger + '15' },
+                        selectionSet.size === 0 && { opacity: 0.5 }
+                      ]}
+                    >
+                      <Ionicons name="trash" size={20} color={theme.danger} />
+                      {selectionSet.size > 0 && (
+                        <View style={[styles.selectionBadge, { backgroundColor: theme.danger }]}>
+                          <Text style={styles.selectionBadgeText}>{selectionSet.size}</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Pressable
+                      onPress={() => setIsSelectionMode(true)}
+                      style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={theme.text} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setIsModalOpen(true);
+                      }}
+                      style={({ pressed }) => [
+                        styles.addBtn,
+                        { backgroundColor: theme.primary, shadowColor: theme.primary },
+                        pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }
+                      ]}
+                    >
+                      <Ionicons name="add" size={24} color="#fff" />
+                    </Pressable>
+                  </>
+                )}
+              </View>
             </View>
 
             <View style={styles.summaryRow}>
@@ -253,6 +332,8 @@ export default function SeatsScreen() {
                 const available = !occupant;
                 const statusColor = available ? theme.success : theme.danger;
 
+                const isSelected = selectionSet.has(item._id);
+
                 return (
                   <Animated.View
                     key={item._id || `${activeFloor}-${item.seatNumber}`}
@@ -261,18 +342,36 @@ export default function SeatsScreen() {
                   >
                     <Pressable
                       onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setSelectedSeat(item);
+                        if (isSelectionMode) {
+                          toggleSeatSelection(item._id);
+                        } else {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedSeat(item);
+                        }
+                      }}
+                      onLongPress={() => {
+                        if (!isSelectionMode) {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          setIsSelectionMode(true);
+                          toggleSeatSelection(item._id);
+                        }
                       }}
                       style={({ pressed }) => [
                         styles.seatCard,
                         {
                           backgroundColor: theme.surface,
-                          borderColor: selectedSeat?._id === item._id ? theme.primary : theme.border,
+                          borderColor: isSelected ? theme.primary : (selectedSeat?._id === item._id ? theme.primary : theme.border),
                         },
+                        isSelected && styles.seatCardSelected,
                         pressed && styles.cardPressed
                       ]}
                     >
+                      {isSelectionMode && (
+                        <View style={[styles.seatSelectedIndicator, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
+                          <Ionicons name={isSelected ? "checkmark" : "add"} size={14} color={isSelected ? "#fff" : theme.muted} />
+                        </View>
+                      )}
+                      
                       <View style={styles.seatTop}>
                         <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
                           <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
@@ -546,6 +645,53 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  selectionBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  selectionBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  seatCardSelected: {
+    borderWidth: 2,
+  },
+  seatSelectedIndicator: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    zIndex: 10,
   },
   addBtn: {
     width: 48,

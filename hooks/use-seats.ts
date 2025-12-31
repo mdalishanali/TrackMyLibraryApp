@@ -30,3 +30,17 @@ export const useCreateSeats = () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
     },
   });
+
+export const useDeleteSeats = () =>
+  useMutation({
+    mutationFn: async (seatIds: string[]) => {
+      const { data } = await api.delete('/seats/bulk', {
+        data: { seatIds },
+        successToastMessage: 'Seats deleted successfully'
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+    },
+  });
