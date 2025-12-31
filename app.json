@@ -12,7 +12,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.librarymanager.trackmylibrary",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "whatsapp"
+        ]
       }
     },
     "android": {
