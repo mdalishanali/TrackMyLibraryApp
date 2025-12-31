@@ -52,7 +52,7 @@ export default function SeatsScreen() {
   const [activeFloor, setActiveFloor] = useState<string | null>(null);
 
   const seatsByFloor = useMemo(() => {
-    const data = seatsQuery.data ?? [];
+    const data = (seatsQuery.data ?? []).filter((f: any) => f.floor !== 0 && f.floor !== '0');
     return data.reduce<Record<string, any[]>>((acc, floorObj) => {
       const key = String(floorObj.floor ?? '1');
       if (!acc[key]) acc[key] = [];

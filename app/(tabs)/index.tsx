@@ -341,7 +341,8 @@ export default function DashboardScreen() {
     return <FullScreenLoader message="Preparing your dashboard..." />;
   }
 
-  const hasNoSeats = !seatsQuery.data || seatsQuery.data.length === 0;
+  const hasNoSeats = !seatsQuery.data ||
+    seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0;
 
   if (hasNoSeats) {
     return (
