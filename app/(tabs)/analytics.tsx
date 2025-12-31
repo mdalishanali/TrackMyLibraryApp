@@ -189,56 +189,92 @@ export default function AnalyticsScreen() {
 
         {/* Year Selector */}
         <View style={styles.selectors}>
-          <Text style={[styles.selectorLabel, { color: theme.muted }]}>SELECT YEAR</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: 8, gap: 6 }}>
+            <Ionicons name="calendar-outline" size={12} color={theme.muted} />
+            <Text style={[styles.selectorLabel, { paddingHorizontal: 0, marginBottom: 0, color: theme.muted }]}>SELECT YEAR</Text>
+          </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorRow}>
-                {yearOptions.map(y => (
+            {yearOptions.map(y => {
+              const isToday = y === new Date().getFullYear().toString();
+              const isSelected = selectedYear === y;
+              return (
                     <Pressable
                         key={y}
                         onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setSelectedYear(y);
                         }}
-                        style={[
+                  style={({ pressed }) => [
                             styles.selectorChip,
                             { 
-                                backgroundColor: selectedYear === y ? theme.primary : theme.surfaceAlt,
-                                borderColor: selectedYear === y ? theme.primary : theme.border 
+                              backgroundColor: isSelected ? theme.primary : theme.surfaceAlt,
+                              borderColor: isSelected ? theme.primary : theme.border,
+                              transform: [{ scale: pressed ? 0.96 : 1 }],
+                              overflow: 'hidden'
                             }
                         ]}
                     >
-                        <Text style={[styles.selectorText, { color: selectedYear === y ? '#fff' : theme.text }]}>{y}</Text>
+                  {isSelected && (
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.2)', 'transparent']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={[styles.selectorText, { color: isSelected ? '#fff' : theme.text }]}>{y}</Text>
+                    {isToday && <View style={[styles.todayDot, { backgroundColor: isSelected ? '#fff' : theme.primary }]} />}
+                  </View>
                     </Pressable>
-                ))}
+              );
+            })}
           </ScrollView>
         </View>
 
         {/* Month Selector */}
         <View style={[styles.selectors, { marginTop: -spacing.md, marginBottom: spacing.xl }]}>
-          <Text style={[styles.selectorLabel, { color: theme.muted }]}>SELECT MONTH</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xl, marginBottom: 8, gap: 6 }}>
+            <Ionicons name="time-outline" size={12} color={theme.muted} />
+            <Text style={[styles.selectorLabel, { paddingHorizontal: 0, marginBottom: 0, color: theme.muted }]}>SELECT MONTH</Text>
+          </View>
           <ScrollView
             ref={monthScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.selectorRow}
           >
-                {monthOptions.map(m => (
+            {monthOptions.map(m => {
+              const isToday = m.value === (new Date().getMonth() + 1).toString() && selectedYear === new Date().getFullYear().toString();
+              const isSelected = selectedMonth === m.value;
+              return (
                     <Pressable
                         key={m.value}
                         onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setSelectedMonth(m.value);
                         }}
-                        style={[
+                  style={({ pressed }) => [
                             styles.selectorChip,
                             { 
-                                backgroundColor: selectedMonth === m.value ? theme.primary : theme.surfaceAlt,
-                                borderColor: selectedMonth === m.value ? theme.primary : theme.border 
+                              backgroundColor: isSelected ? theme.primary : theme.surfaceAlt,
+                              borderColor: isSelected ? theme.primary : theme.border,
+                              transform: [{ scale: pressed ? 0.96 : 1 }],
+                              overflow: 'hidden'
                             }
                         ]}
                     >
-                        <Text style={[styles.selectorText, { color: selectedMonth === m.value ? '#fff' : theme.text }]}>{m.label}</Text>
+                  {isSelected && (
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.2)', 'transparent']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={[styles.selectorText, { color: isSelected ? '#fff' : theme.text }]}>{m.label}</Text>
+                    {isToday && <View style={[styles.todayDot, { backgroundColor: isSelected ? '#fff' : theme.primary }]} />}
+                  </View>
                     </Pressable>
-                ))}
+              );
+            })}
             </ScrollView>
         </View>
 
@@ -586,6 +622,11 @@ const styles = StyleSheet.create({
   selectorText: {
     fontSize: 13,
     fontWeight: '800',
+  },
+  todayDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   vDivider: {
     width: 1.5,
