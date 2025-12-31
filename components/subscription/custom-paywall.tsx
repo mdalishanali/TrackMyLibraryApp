@@ -18,6 +18,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/hooks/use-auth';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { logErrorToDiscord } from '@/lib/discord';
 
 const { width, height } = Dimensions.get('window');
 const ILLUSTRATION = require('../../assets/images/subscription_premium_illustration.jpg');
@@ -71,6 +72,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
       }
     } catch (e: any) {
       if (!e.userCancelled) {
+        logErrorToDiscord(e, `Purchase Failed: ${selectedPackage.product.identifier}`);
         Alert.alert('Error', 'Failed to process purchase. Please try again.');
       }
     } finally {
