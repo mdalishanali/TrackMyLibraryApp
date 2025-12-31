@@ -46,6 +46,7 @@ const yearOptions = [(currentYear - 1).toString(), currentYear.toString(), (curr
 export default function AnalyticsScreen() {
   const theme = useTheme();
   const monthScrollRef = useRef<ScrollView>(null);
+  const chartScrollRef = useRef<ScrollView>(null);
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState(currentMonth.toString());
 
@@ -57,13 +58,22 @@ export default function AnalyticsScreen() {
   const { width: screenWidth } = useWindowDimensions();
 
   useEffect(() => {
-    // Scroll to the selected month to center it
+    // Scroll to the selected month to center it in both selectors and chart
     const timer = setTimeout(() => {
+      // 1. Center in Month Selector
       if (monthScrollRef.current) {
         const index = parseInt(selectedMonth) - 1;
         const chipWidth = 75; // Approx chip width + margin
         const offset = (index * chipWidth) - (screenWidth / 2) + (chipWidth / 2);
         monthScrollRef.current.scrollTo({ x: Math.max(0, offset), animated: true });
+      }
+
+      // 2. Center in Chart
+      if (chartScrollRef.current) {
+        const index = parseInt(selectedMonth) - 1;
+        const columnTotalWidth = 56; // Column(40) + Gap(16)
+        const offset = (index * columnTotalWidth) - (screenWidth / 2) + (columnTotalWidth / 2) + spacing.xl;
+        chartScrollRef.current.scrollTo({ x: Math.max(0, offset), animated: true });
       }
     }, 400);
     return () => clearTimeout(timer);
@@ -216,7 +226,12 @@ export default function AnalyticsScreen() {
             </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chartScroll}>
+          <ScrollView
+            ref={chartScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chartScroll}
+          >
             <View style={styles.chartWrapper}>
               {/* Subtle Grid Lines */}
               <View style={styles.gridLines}>
@@ -226,7 +241,7 @@ export default function AnalyticsScreen() {
                     style={[
                       styles.gridLine,
                       {
-                        bottom: p * 140 + 35,
+                        bottom: p * 120 + 35, // Matches maxBarHeight(120) + offset(35)
                         backgroundColor: theme.border + (p === 0 ? '80' : '30')
                       }
                     ]}
@@ -236,7 +251,7 @@ export default function AnalyticsScreen() {
 
               <View style={styles.chartContainer}>
                 {data?.monthWise.map((item, idx) => {
-                  const maxBarHeight = 140;
+                  const maxBarHeight = 120;
                   const height = (item.revenue / maxRevenue) * maxBarHeight;
                   const isSelected = item.monthName === monthOptions[parseInt(selectedMonth) - 1]?.label;
                   const displayRevenue = item.revenue >= 1000 ? `₹${(item.revenue / 1000).toFixed(1)}k` : item.revenue > 0 ? `₹${item.revenue}` : '';
@@ -246,7 +261,10 @@ export default function AnalyticsScreen() {
                       <View style={styles.barWrapper}>
                         {item.revenue > 0 && (
                           <View style={[styles.barValueContainer, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
-                            <Text style={[styles.barValueText, { color: isSelected ? '#fff' : theme.text }]}>
+                            <Text
+                              numberOfLines={1}
+                              style={[styles.barValueText, { color: isSelected ? '#fff' : theme.text }]}
+                            >
                               {displayRevenue}
                             </Text>
                           </View>
@@ -562,12 +580,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     height: 180,
-    gap: 16,
+    gap: 12,
     paddingBottom: 24,
   },
   chartColumn: {
     alignItems: 'center',
-    width: 40,
+    width: 44,
   },
   barWrapper: {
     height: 170,
@@ -581,21 +599,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   bar: {
-    width: 14,
+    width: 16,
     overflow: 'hidden',
   },
   barValueContainer: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 2,
+    paddingVertical: 3,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 1.5,
     marginBottom: 4,
-    minWidth: 34,
+    minWidth: 46,
     alignItems: 'center',
+    zIndex: 10,
   },
   barValueText: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 8.5,
+    fontWeight: '900',
   },
   barLabel: {
     fontSize: 10,
