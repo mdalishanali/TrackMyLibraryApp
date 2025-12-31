@@ -27,7 +27,7 @@ export const useAnalyticsQuery = (params?: { year?: string; month?: string }) =>
   useQuery<AnalyticsData>({
     queryKey: [...queryKeys.revenue, params],
     queryFn: async () => {
-      const { data } = await api.get('/revenue/dashboard', { params });
+      const { data } = await api.get('/revenues/dashboard', { params });
       return data as AnalyticsData;
     },
   });

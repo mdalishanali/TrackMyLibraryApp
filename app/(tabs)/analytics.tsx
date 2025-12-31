@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,7 @@ const yearOptions = [(currentYear - 1).toString(), currentYear.toString(), (curr
 
 export default function AnalyticsScreen() {
   const theme = useTheme();
+  const monthScrollRef = useRef<ScrollView>(null);
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState(currentMonth.toString());
 
@@ -51,6 +52,18 @@ export default function AnalyticsScreen() {
     year: selectedYear,
     month: selectedMonth,
   });
+
+  useEffect(() => {
+    // Scroll to the current month after a short delay
+    const timer = setTimeout(() => {
+      if (monthScrollRef.current) {
+        const index = parseInt(selectedMonth) - 1;
+        // Approximation of chip width + gap
+        monthScrollRef.current.scrollTo({ x: index * 60, animated: true });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const stats = [
     {
@@ -109,8 +122,9 @@ export default function AnalyticsScreen() {
             </View>
         </Animated.View>
 
-        {/* Global Selectors */}
+        {/* Year Selector */}
         <View style={styles.selectors}>
+          <Text style={[styles.selectorLabel, { color: theme.muted }]}>SELECT YEAR</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectorRow}>
                 {yearOptions.map(y => (
                     <Pressable
@@ -130,7 +144,18 @@ export default function AnalyticsScreen() {
                         <Text style={[styles.selectorText, { color: selectedYear === y ? '#fff' : theme.text }]}>{y}</Text>
                     </Pressable>
                 ))}
-                <View style={[styles.vDivider, { backgroundColor: theme.border }]} />
+          </ScrollView>
+        </View>
+
+        {/* Month Selector */}
+        <View style={[styles.selectors, { marginTop: -spacing.md, marginBottom: spacing.xl }]}>
+          <Text style={[styles.selectorLabel, { color: theme.muted }]}>SELECT MONTH</Text>
+          <ScrollView
+            ref={monthScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.selectorRow}
+          >
                 {monthOptions.map(m => (
                     <Pressable
                         key={m.value}
@@ -342,8 +367,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   selectors: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
     marginHorizontal: -spacing.xl,
+  },
+  selectorLabel: {
+    paddingHorizontal: spacing.xl,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   selectorRow: {
     paddingHorizontal: spacing.xl,
