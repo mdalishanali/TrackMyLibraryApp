@@ -67,16 +67,9 @@ export default function StudentDetailScreen() {
   const handleSharePdf = async (paymentId: string) => {
     try {
       setSharingPaymentId(paymentId);
-      // Wait for notifications to sync if needed, or find in existing
-      const notification = notifications?.find((n: any) =>
-        n.metadata?.paymentId === paymentId
-      );
 
-      const url = getNotificationPdfUrl(notification?._id);
-      if (!url || !notification?.metadata?.pdfPath) {
-        showToast('PDF not ready, please wait a moment...', 'info');
-        return;
-      }
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL;
+      const url = `${baseUrl}/public/invoice/${paymentId}`;
 
       const fileUri = `${FileSystem.cacheDirectory}invoice_${paymentId}.pdf`;
       const downloadResumable = FileSystem.createDownloadResumable(url, fileUri);
