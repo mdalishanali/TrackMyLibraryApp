@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
@@ -14,6 +15,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const designTheme = useTheme();
   const { hydrated, isAuthenticated } = useAuth();
+  const insets = useSafeAreaInsets();
 
   if (!hydrated) {
     return <FullScreenLoader message="Restoring your session..." />;
@@ -22,6 +24,9 @@ export default function TabLayout() {
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
+
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 14);
+  const tabHeight = Platform.OS === 'ios' ? 64 + bottomInset : 74 + (insets.bottom > 0 ? insets.bottom / 2 : 0);
 
   return (
     <Tabs
@@ -33,9 +38,9 @@ export default function TabLayout() {
           backgroundColor: designTheme.background,
           borderTopWidth: 0,
           elevation: 0,
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-          paddingTop: 10,
+          height: tabHeight,
+          paddingBottom: bottomInset,
+          paddingTop: 12,
         },
         tabBarItemStyle: {
           paddingTop: 0,
