@@ -59,7 +59,7 @@ export default function SeatsScreen() {
   const [activeFloor, setActiveFloor] = useState<string | null>(null);
 
   const seatsByFloor = useMemo(() => {
-    const data = (seatsQuery.data ?? []).filter((f: any) => f.floor !== 0 && f.floor !== '0');
+    const data = (seatsQuery.data ?? []);
     return data.reduce<Record<string, any[]>>((acc, floorObj) => {
       const key = String(floorObj.floor ?? '1');
       if (!acc[key]) acc[key] = [];
@@ -75,7 +75,9 @@ export default function SeatsScreen() {
 
   useEffect(() => {
     if (floors.length > 0 && !activeFloor) {
-      setActiveFloor(floors[0]);
+      // Prioritize Floor 1 or first real floor over Floor 0
+      const defaultFloor = floors.find(f => f !== '0') || floors[0];
+      setActiveFloor(defaultFloor);
     }
   }, [floors, activeFloor]);
 
@@ -203,7 +205,9 @@ export default function SeatsScreen() {
                     active && styles.floorTabActive
                   ]}
                 >
-                  <Text style={[styles.floorTabText, { color: active ? '#fff' : theme.text }]}>LEVEL {f}</Text>
+                  <Text style={[styles.floorTabText, { color: active ? '#fff' : theme.text }]}>
+                    {f === '0' ? 'OTHERS' : `LEVEL ${f}`}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -221,7 +225,7 @@ export default function SeatsScreen() {
             entering={FadeIn.duration(400)}
             style={styles.seatsGrid}
           >
-            {floors.length === 0 && !seatsQuery.isLoading ? (
+            {floors.filter(f => f !== '0').length === 0 && !seatsQuery.isLoading ? (
               <View style={styles.emptyContainer}>
                 <View style={[styles.emptyIconCircle, { backgroundColor: theme.primary + '10' }]}>
                   <Ionicons name="grid-outline" size={48} color={theme.primary} />
