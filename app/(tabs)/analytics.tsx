@@ -8,6 +8,7 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,17 +54,20 @@ export default function AnalyticsScreen() {
     month: selectedMonth,
   });
 
+  const { width: screenWidth } = useWindowDimensions();
+
   useEffect(() => {
-    // Scroll to the current month after a short delay
+    // Scroll to the selected month to center it
     const timer = setTimeout(() => {
       if (monthScrollRef.current) {
         const index = parseInt(selectedMonth) - 1;
-        // Approximation of chip width + gap
-        monthScrollRef.current.scrollTo({ x: index * 60, animated: true });
+        const chipWidth = 75; // Approx chip width + margin
+        const offset = (index * chipWidth) - (screenWidth / 2) + (chipWidth / 2);
+        monthScrollRef.current.scrollTo({ x: Math.max(0, offset), animated: true });
       }
-    }, 500);
+    }, 400);
     return () => clearTimeout(timer);
-  }, []);
+  }, [selectedMonth, screenWidth]);
 
   const stats = [
     {
@@ -213,36 +217,64 @@ export default function AnalyticsScreen() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chartScroll}>
-            <View style={styles.chartContainer}>
-              {data?.monthWise.map((item, idx) => {
-                const height = (item.revenue / maxRevenue) * 150;
-                const isSelected = item.monthName === monthOptions[parseInt(selectedMonth) - 1]?.label;
-                return (
-                  <View key={item.monthName} style={styles.chartColumn}>
-                    <View style={styles.barWrapper}>
-                      <Animated.View 
-                        layout={Layout.springify()}
-                        style={[
-                          styles.bar, 
-                          { 
-                            height: Math.max(height, 4), 
-                            backgroundColor: isSelected ? theme.primary : theme.primary + '30',
-                            borderRadius: 6,
-                          }
-                        ]}
-                      >
-                         <LinearGradient
-                            colors={['rgba(255,255,255,0.2)', 'transparent']}
+            <View style={styles.chartWrapper}>
+              {/* Subtle Grid Lines */}
+              <View style={styles.gridLines}>
+                {[0, 0.25, 0.5, 0.75, 1].map((p) => (
+                  <View
+                    key={p}
+                    style={[
+                      styles.gridLine,
+                      {
+                        bottom: p * 140 + 35,
+                        backgroundColor: theme.border + (p === 0 ? '80' : '30')
+                      }
+                    ]}
+                  />
+                ))}
+              </View>
+
+              <View style={styles.chartContainer}>
+                {data?.monthWise.map((item, idx) => {
+                  const maxBarHeight = 140;
+                  const height = (item.revenue / maxRevenue) * maxBarHeight;
+                  const isSelected = item.monthName === monthOptions[parseInt(selectedMonth) - 1]?.label;
+                  const displayRevenue = item.revenue >= 1000 ? `₹${(item.revenue / 1000).toFixed(1)}k` : item.revenue > 0 ? `₹${item.revenue}` : '';
+
+                  return (
+                    <View key={item.monthName} style={styles.chartColumn}>
+                      <View style={styles.barWrapper}>
+                        {item.revenue > 0 && (
+                          <View style={[styles.barValueContainer, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
+                            <Text style={[styles.barValueText, { color: isSelected ? '#fff' : theme.text }]}>
+                              {displayRevenue}
+                            </Text>
+                          </View>
+                        )}
+                        <Animated.View
+                          layout={Layout.springify()}
+                          style={[
+                            styles.bar,
+                            { 
+                              height: Math.max(height, 6),
+                              backgroundColor: isSelected ? theme.primary : theme.primary + '25',
+                              borderRadius: 8,
+                            }
+                          ]}
+                        >
+                          <LinearGradient
+                            colors={['rgba(255,255,255,0.3)', 'transparent']}
                             style={StyleSheet.absoluteFill}
                           />
-                      </Animated.View>
-                    </View>
-                    <Text style={[styles.barLabel, { color: isSelected ? theme.primary : theme.muted, fontWeight: isSelected ? '900' : '800' }]}>
+                        </Animated.View>
+                      </View>
+                      <Text style={[styles.barLabel, { color: isSelected ? theme.text : theme.muted, fontWeight: isSelected ? '900' : '700' }]}>
                         {item.monthName}
-                    </Text>
-                  </View>
-                );
-              })}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
             </View>
           </ScrollView>
         </View>
@@ -538,13 +570,32 @@ const styles = StyleSheet.create({
     width: 40,
   },
   barWrapper: {
-    height: 150,
+    height: 170,
     justifyContent: 'flex-end',
-    width: 14,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  barValue: {
+    fontSize: 9,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   bar: {
     width: 14,
     overflow: 'hidden',
+  },
+  barValueContainer: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 4,
+    minWidth: 34,
+    alignItems: 'center',
+  },
+  barValueText: {
+    fontSize: 9,
+    fontWeight: '800',
   },
   barLabel: {
     fontSize: 10,
@@ -647,6 +698,25 @@ const styles = StyleSheet.create({
   pAmount: {
     fontSize: 16,
     fontWeight: '900',
+  },
+  chartWrapper: {
+    height: 200,
+    paddingTop: 20,
+    justifyContent: 'flex-end',
+  },
+  gridLines: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 25,
+    justifyContent: 'space-between',
+  },
+  gridLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
   },
   emptyContainer: {
     alignItems: 'center',
