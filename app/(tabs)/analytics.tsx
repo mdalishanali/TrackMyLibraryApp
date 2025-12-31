@@ -13,7 +13,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  Layout,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming
+} from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { useTheme } from '@/hooks/use-theme';
@@ -79,24 +87,67 @@ export default function AnalyticsScreen() {
     return () => clearTimeout(timer);
   }, [selectedMonth, screenWidth]);
 
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(0.4, { duration: 1500 }), -1, true);
+  }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: pulse.value,
+  }));
+
+  const { monthTrend, annualTrend, topCollectorName } = useMemo(() => {
+    if (!data?.monthWise) return { monthTrend: 0, annualTrend: 0, topCollectorName: null };
+
+    // Month Trend
+    const currentIdx = parseInt(selectedMonth) - 1;
+    const prevIdx = currentIdx - 1;
+    const currentRev = data.monthWise[currentIdx]?.revenue || 0;
+    const prevRev = prevIdx >= 0 ? data.monthWise[prevIdx]?.revenue : null;
+    let mTrend = 0;
+    if (prevRev !== null && prevRev > 0) {
+      mTrend = ((currentRev - prevRev) / prevRev) * 100;
+    }
+
+    // Annual Trend (Current Year vs Previous month average if we don't have last year's total)
+    // For now, let's keep it 0 or calculate average growth
+
+    // Top Collector
+    let topName = null;
+    let maxVal = 0;
+    data.revenueBreakdownByUser?.forEach((admin: any) => {
+      const total = admin.total || admin.value || 0;
+      if (total > maxVal) {
+        maxVal = total;
+        topName = admin.name;
+      }
+    });
+
+    return { monthTrend: mTrend, annualTrend: 0, topCollectorName: topName };
+  }, [data?.monthWise, data?.revenueBreakdownByUser, selectedMonth]);
+
   const stats = [
     {
       label: 'Monthly Revenue',
       value: data?.currentMonthRevenue || 0,
       icon: 'calendar-outline',
       color: '#4C6EF5',
+      trend: monthTrend,
     },
     {
       label: 'Annual Revenue',
       value: data?.annualRevenue || 0,
       icon: 'stats-chart-outline',
       color: '#22C55E',
+      trend: annualTrend,
     },
     {
       label: 'Total Revenue',
       value: data?.totalRevenue || 0,
       icon: 'wallet-outline',
       color: '#EAB308',
+      trend: 0,
     },
   ];
 
@@ -131,7 +182,7 @@ export default function AnalyticsScreen() {
                 <Text style={[styles.title, { color: theme.text }]}>Analytics</Text>
             </View>
             <View style={[styles.badge, { backgroundColor: theme.primary + '15' }]}>
-                <Ionicons name="trending-up" size={16} color={theme.primary} />
+            <Animated.View style={[styles.pulseDot, { backgroundColor: theme.primary }, pulseStyle]} />
                 <Text style={[styles.badgeText, { color: theme.primary }]}>Live Data</Text>
             </View>
         </Animated.View>
@@ -207,23 +258,39 @@ export default function AnalyticsScreen() {
                 {formatCurrency(item.value)}
               </Text>
               <View style={styles.statFooter}>
-                <Ionicons name="arrow-up" size={12} color="#22C55E" />
-                <Text style={styles.statTrend}>0% from last period</Text>
+                {item.trend !== 0 && (
+                  <>
+                    <Ionicons
+                      name={item.trend > 0 ? "arrow-up" : "arrow-down"}
+                      size={12}
+                      color={item.trend > 0 ? "#22C55E" : "#EF4444"}
+                    />
+                    <Text style={[styles.statTrend, { color: item.trend > 0 ? "#22C55E" : "#EF4444" }]}>
+                      {item.trend > 0 ? '+' : ''}{item.trend.toFixed(1)}% vs last month
+                    </Text>
+                  </>
+                )}
+                {item.trend === 0 && (
+                  <Text style={[styles.statTrend, { color: theme.muted }]}>Stable this period</Text>
+                )}
               </View>
             </Animated.View>
           ))}
         </View>
 
         {/* Monthly Trend Chart */}
-        <View style={[styles.chartSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.chartCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.chartHeader}>
             <View>
               <Text style={[styles.chartTitle, { color: theme.text }]}>Monthly Revenue</Text>
               <Text style={[styles.chartSubtitle, { color: theme.muted }]}>Trend for {selectedYear}</Text>
             </View>
-            <View style={[styles.chartBadge, { backgroundColor: theme.primary + '10' }]}>
-              <Ionicons name="bar-chart" size={12} color={theme.primary} />
-            </View>
+            <Pressable
+              onPress={() => refetch()}
+              style={({ pressed }) => [styles.chartBadge, { backgroundColor: theme.primary + '10', opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Ionicons name="refresh-outline" size={16} color={theme.primary} />
+            </Pressable>
           </View>
 
           <ScrollView
@@ -253,11 +320,19 @@ export default function AnalyticsScreen() {
                 {data?.monthWise.map((item, idx) => {
                   const maxBarHeight = 120;
                   const height = (item.revenue / maxRevenue) * maxBarHeight;
-                  const isSelected = item.monthName === monthOptions[parseInt(selectedMonth) - 1]?.label;
+                  const monthVal = (idx + 1).toString();
+                  const isSelected = selectedMonth === monthVal;
                   const displayRevenue = item.revenue >= 1000 ? `₹${(item.revenue / 1000).toFixed(1)}k` : item.revenue > 0 ? `₹${item.revenue}` : '';
 
                   return (
-                    <View key={item.monthName} style={styles.chartColumn}>
+                    <Pressable
+                      key={item.monthName}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedMonth(monthVal);
+                      }}
+                      style={styles.chartColumn}
+                    >
                       <View style={styles.barWrapper}>
                         {item.revenue > 0 && (
                           <View style={[styles.barValueContainer, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
@@ -289,7 +364,7 @@ export default function AnalyticsScreen() {
                       <Text style={[styles.barLabel, { color: isSelected ? theme.text : theme.muted, fontWeight: isSelected ? '900' : '700' }]}>
                         {item.monthName}
                       </Text>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -374,7 +449,15 @@ export default function AnalyticsScreen() {
                           <Text style={{ color: theme.primary, fontWeight: '800' }}>{(admin.name || 'U').charAt(0)}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.adminName, { color: theme.text }]}>{admin.name || 'Unknown'}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[styles.adminName, { color: theme.text }]}>{admin.name || 'Unknown'}</Text>
+                            {admin.name === topCollectorName && (
+                              <View style={[styles.topBadge, { backgroundColor: '#EAB308' }]}>
+                                <Ionicons name="trophy" size={10} color="#fff" />
+                                <Text style={styles.topBadgeText}>TOP</Text>
+                              </View>
+                            )}
+                          </View>
                           <Text style={[styles.adminSub, { color: theme.muted }]}>{admin.paymentMode ? admin.paymentMode.toUpperCase() : 'Collector'}</Text>
                         </View>
                         <Text style={[styles.adminTotal, { color: theme.primary }]}>{formatCurrency(totalAmount)}</Text>
@@ -416,11 +499,14 @@ export default function AnalyticsScreen() {
           </View>
 
           <View style={styles.paymentsList}>
-            {data?.latestPayments.length === 0 ? (
+            {(!data?.latestPayments || data.latestPayments.length === 0) ? (
                  <Text style={[styles.emptyText, { color: theme.muted, textAlign: 'center' }]}>No recent activity</Text>
-            ) : data?.latestPayments.slice(0, 5).map((payment, idx) => (
-              <View key={payment._id} style={[styles.paymentRow, idx > 0 && { borderTopWidth: 1, borderTopColor: theme.border + '50' }]}>
+            ) : data.latestPayments.map((payment: any) => (
+              <View key={payment._id} style={[styles.paymentRow, { borderBottomWidth: 1, borderBottomColor: theme.border + '30' }]}>
                 <View style={styles.paymentMain}>
+                  <View style={[styles.avatarSmall, { backgroundColor: theme.primary + '15' }]}>
+                    <Text style={{ color: theme.primary, fontSize: 10, fontWeight: '800' }}>{(payment.student?.name || 'S').charAt(0)}</Text>
+                  </View>
                     <View style={{ flex: 1 }}>
                         <Text style={[styles.pStudent, { color: theme.text }]} numberOfLines={1}>{payment.student?.name}</Text>
                         <Text style={[styles.pDate, { color: theme.muted }]}>{formatDate(payment.paymentDate)} • {payment.paymentMode.toUpperCase()}</Text>
@@ -469,6 +555,11 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '800',
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   selectors: {
     marginBottom: spacing.md,
@@ -542,7 +633,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#22C55E',
   },
-  chartSection: {
+  chartCard: {
     padding: spacing.xl,
     borderRadius: 28,
     borderWidth: 1.5,
@@ -654,6 +745,27 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  topBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 2,
+  },
+  topBadgeText: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: '900',
   },
   adminName: {
     fontSize: 15,
