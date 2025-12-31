@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,6 +47,7 @@ export default function StudentsScreen() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState('recent');
+  const [days, setDays] = useState<number | undefined>(undefined);
 
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
@@ -64,7 +65,8 @@ export default function StudentsScreen() {
 
   const studentsQuery = useInfiniteStudentsQuery({
     name: debouncedSearch,
-    filter
+    filter,
+    days
   });
 
   const dashboardQuery = useDashboardQuery();
@@ -279,11 +281,33 @@ export default function StudentsScreen() {
       <View style={styles.searchLayer}>
         <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
         <View style={styles.filterRow}>
-          <StudentFilters selected={filter} setSelected={setFilter} theme={theme} />
+          <StudentFilters selected={filter} setSelected={(v) => { setFilter(v); setDays(undefined); }} theme={theme} />
         </View>
+        {(filter === 'dues' || filter === 'defaulter') && (
+          <Animated.View entering={FadeInDown} style={styles.daysFilterRow}>
+            <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysScroll}>
+              {[3, 7, 15, 30, 45, 60].map(d => (
+                <TouchableOpacity
+                  key={d}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setDays(days === d ? undefined : d);
+                  }}
+                  style={[
+                    styles.daysChip,
+                    { backgroundColor: days === d ? theme.primary : theme.surfaceAlt, borderColor: days === d ? theme.primary : theme.border }
+                  ]}
+                >
+                  <Text style={[styles.daysText, { color: days === d ? '#fff' : theme.text }]}>{d}+ Days</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
       </View>
     </Animated.View>
-  ), [theme, search, filter, totalCount]);
+  ), [theme, search, filter, filteredCount, countLabel]);
 
   return (
     <SafeScreen edges={['top']}>
@@ -445,5 +469,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: -0.5,
+  },
+  daysFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  daysLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    width: 60,
+  },
+  daysScroll: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  daysChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  daysText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
