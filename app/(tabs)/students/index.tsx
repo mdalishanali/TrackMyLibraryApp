@@ -267,7 +267,7 @@ export default function StudentsScreen() {
 
   const listHeader = useMemo(() => (
     <Animated.View entering={FadeInDown.duration(800)} style={styles.header}>
-      <View style={styles.headerTop}>
+      <View style={[styles.headerTop, styles.px_xl]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
           <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
@@ -279,14 +279,22 @@ export default function StudentsScreen() {
       </View>
 
       <View style={styles.searchLayer}>
-        <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
+        <View style={styles.px_xl}>
+          <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
+        </View>
         <View style={styles.filterRow}>
           <StudentFilters selected={filter} setSelected={(v) => { setFilter(v); setDays(undefined); }} theme={theme} />
         </View>
         {(filter === 'dues' || filter === 'defaulter') && (
-          <Animated.View entering={FadeInDown} style={styles.daysFilterRow}>
-            <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysScroll}>
+          <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
+            <View style={styles.px_xl}>
+              <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.daysScroll}
+            >
               {[3, 7, 15, 30, 45, 60].map(d => (
                 <TouchableOpacity
                   key={d}
@@ -399,10 +407,12 @@ export default function StudentsScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: spacing.xl,
     paddingTop: 0,
     paddingBottom: spacing.md,
     gap: spacing.lg,
+  },
+  px_xl: {
+    paddingHorizontal: spacing.xl,
   },
   headerPreTitle: {
     fontSize: 10,
@@ -470,9 +480,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.5,
   },
-  daysFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  daysFilterContainer: {
     gap: 12,
     marginTop: 4,
   },
@@ -480,11 +488,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-    width: 60,
   },
   daysScroll: {
     gap: 8,
-    paddingRight: 20,
+    paddingHorizontal: spacing.xl,
+    paddingRight: 40,
   },
   daysChip: {
     paddingHorizontal: 12,
