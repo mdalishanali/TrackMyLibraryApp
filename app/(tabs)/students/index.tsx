@@ -85,11 +85,13 @@ export default function StudentsScreen() {
   }, [dashboardQuery.data, studentsQuery.data, students.length]);
 
   const seats = useMemo(
-    () => (seatsQuery.data ?? []).map(s => ({
-      _id: s._id as string,
-      seatNumber: String(s.seatNumber),
-      floor: s.floor
-    })),
+    () => (seatsQuery.data ?? []).flatMap((f: any) =>
+      (f.seats || []).map((s: any) => ({
+        _id: s._id as string,
+        seatNumber: String(s.seatNumber),
+        floor: f.floor
+      }))
+    ),
     [seatsQuery.data]
   );
 

@@ -577,7 +577,13 @@ export default function StudentDetailScreen() {
             notes: student.notes || '',
             profilePicture: student.profilePicture || ''
           }}
-          seats={(seatsQuery.data ?? []).map((s: any) => ({ _id: s._id, seatNumber: String(s.seatNumber), floor: s.floor }))}
+          seats={(seatsQuery.data ?? []).flatMap((f: any) =>
+            (f.seats || []).map((s: any) => ({
+              _id: s._id,
+              seatNumber: String(s.seatNumber),
+              floor: f.floor
+            }))
+          )}
           theme={theme}
           isSubmitting={updateStudent.isPending}
           title="Edit Member"
