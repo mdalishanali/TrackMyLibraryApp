@@ -483,7 +483,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 15,
-    elevation: 5,
   },
   searchBox: {
     flexDirection: 'row',
@@ -536,7 +535,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 2,
   },
   itemMain: {
     flexDirection: 'row',
@@ -662,7 +660,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 8,
     overflow: 'hidden',
   },
   footerLoader: {

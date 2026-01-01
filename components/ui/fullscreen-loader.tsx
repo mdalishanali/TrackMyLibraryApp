@@ -105,7 +105,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
-    elevation: 8,
   },
   textContainer: {
     alignItems: 'center',

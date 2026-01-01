@@ -315,7 +315,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
-    elevation: 10,
   },
   logoGradient: {
     flex: 1,
@@ -354,7 +353,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.1,
     shadowRadius: 30,
-    elevation: 20,
   },
   cardTitle: {
     fontSize: 22,
@@ -420,7 +418,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
-    elevation: 8,
   },
   submitBtnText: {
     color: '#fff',

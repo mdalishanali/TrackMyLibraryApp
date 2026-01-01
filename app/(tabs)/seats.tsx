@@ -758,7 +758,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 4,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -776,7 +775,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 2,
   },
   summaryVal: {
     fontSize: 18,
@@ -807,7 +805,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
   },
   floorTabText: {
     fontSize: 13,
@@ -839,7 +836,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 2,
   },
   seatTop: {
     flexDirection: 'row',
@@ -941,7 +937,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 20,
   },
   sheetHandle: {
     width: 40,

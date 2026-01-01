@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.08,
       shadowOffset: { width: 0, height: 8 },
       shadowRadius: 16,
-      elevation: 3,
     },
   },
   skeleton: {

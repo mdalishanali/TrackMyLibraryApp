@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
-    elevation: 8,
   },
   queueIconBox: {
     width: 64,

@@ -92,12 +92,10 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 16,
     borderWidth: 1.5,
-    elevation: 2,
   },
   activeChip: {
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
-    elevation: 4,
   }
 });

@@ -580,7 +580,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
     position: 'relative',
   },
   avatarText: {
@@ -622,7 +621,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 2,
   },
   bannerIconBox: {
     width: 48,
@@ -682,7 +680,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 6,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -742,7 +739,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 2,
     gap: spacing.lg,
   },
   studentCardHeader: {
@@ -845,7 +841,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 2,
   },
   paymentHeader: {
     flexDirection: 'row',
@@ -962,7 +957,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 8,
-    elevation: 1,
   },
   onboardingStepIcon: {
     width: 36,
@@ -990,7 +984,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 5,
   },
   onboardingBtnText: {
     color: '#fff',

@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
   },
   headerTitle: {
     fontSize: 24,
@@ -283,7 +282,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 15,
-    elevation: 5,
   },
   heroContent: {
     flexDirection: 'row',

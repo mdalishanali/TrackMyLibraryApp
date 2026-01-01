@@ -384,7 +384,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 20,
   },
   sheetGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -526,7 +525,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
-    elevation: 5,
   },
   saveBtnText: {
     color: '#fff',

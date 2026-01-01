@@ -683,7 +683,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.03,
     shadowRadius: 20,
-    elevation: 2,
   },
   chartHeader: {
     flexDirection: 'row',
