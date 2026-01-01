@@ -92,19 +92,13 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
         <View style={styles.studentCardHeader}>
           <View style={styles.studentInfo}>
             <View style={[styles.studentAvatar, { backgroundColor: theme.primary + '10' }]}>
-              {student.profilePicture ? (
-                <Image
-                  source={{ uri: student.profilePicture }}
-                  style={styles.studentAvatarImage}
-                  transition={1000}
-                  placeholder={BLURHASH}
-                  contentFit="cover"
-                />
-              ) : (
-                <Text style={[styles.studentAvatarText, { color: theme.primary }]}>
-                  {student.name?.[0]?.toUpperCase() || 'S'}
-                </Text>
-              )}
+              <Image
+                source={{ uri: student.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
+                style={styles.studentAvatarImage}
+                transition={1000}
+                placeholder={BLURHASH}
+                contentFit="cover"
+              />
             </View>
             <View style={styles.studentDetails}>
               <Text style={[styles.studentName, { color: theme.text }]} numberOfLines={1}>

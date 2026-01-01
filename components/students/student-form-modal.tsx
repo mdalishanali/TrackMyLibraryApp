@@ -389,11 +389,11 @@ export function StudentFormModal({
                                         <AppCard style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                                             <View style={styles.reviewAvatarContainer}>
                                                 <View style={[styles.reviewAvatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.primary }]}>
-                                                    {values.profilePicture ? (
-                                                        <Image source={{ uri: values.profilePicture }} style={styles.reviewImg} />
-                                                    ) : (
-                                                        <Text style={{ fontSize: 32, fontWeight: '900', color: theme.primary }}>{values.name?.[0]}</Text>
-                                                    )}
+                                                    <Image
+                                                        source={{ uri: values.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(values.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
+                                                        style={styles.reviewImg}
+                                                        contentFit="cover"
+                                                    />
                                                 </View>
                                                 <Text style={[styles.reviewName, { color: theme.text }]}>{values.name}</Text>
                                                 <Text style={[styles.reviewPhone, { color: theme.muted }]}>{values.number}</Text>

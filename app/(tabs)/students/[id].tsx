@@ -291,20 +291,14 @@ export default function StudentDetailScreen() {
                     pressed && { transform: [{ scale: 0.95 }] }
                   ]}
                 >
-                  <View style={[styles.heroAvatar, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
-                    {student.profilePicture ? (
-                      <Image
-                        source={{ uri: student.profilePicture }}
-                        style={styles.fullImg}
-                        contentFit="cover"
-                        transition={1000}
-                        placeholder={BLURHASH}
-                      />
-                    ) : (
-                      <Text style={[styles.avatarText, { color: theme.primary }]}>
-                        {student.name?.[0]?.toUpperCase() || 'S'}
-                      </Text>
-                    )}
+                <View style={[styles.heroAvatar, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
+                  <Image
+                    source={{ uri: student.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
+                    style={styles.fullImg}
+                    contentFit="cover"
+                    transition={1000}
+                    placeholder={BLURHASH}
+                  />
                   </View>
                   <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]}>
                     <Ionicons name="camera" size={10} color="#fff" />

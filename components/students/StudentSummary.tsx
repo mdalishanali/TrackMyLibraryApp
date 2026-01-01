@@ -77,17 +77,15 @@ export function StudentHeader({
         style={[styles.avatarWrapper, { shadowColor: theme.primary }]}
       >
         <View style={[styles.avatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
-          {student.profilePicture ? (
-            <>
-              <Image source={{ uri: student.profilePicture }} style={styles.avatarImg} />
-              <View style={[styles.imageActionOverlay, { backgroundColor: theme.primary }]}>
-                <Ionicons name="expand" size={10} color="#fff" />
-              </View>
-            </>
-          ) : (
-            <Text style={[styles.avatarText, { color: theme.primary }]}>
-              {student.name?.[0]?.toUpperCase() ?? '?'}
-            </Text>
+          <Image
+            source={{ uri: student.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
+            style={styles.avatarImg}
+            contentFit="cover"
+          />
+          {student.profilePicture && (
+            <View style={[styles.imageActionOverlay, { backgroundColor: theme.primary }]}>
+              <Ionicons name="expand" size={10} color="#fff" />
+            </View>
           )}
         </View>
       </TouchableOpacity>
