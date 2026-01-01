@@ -22,7 +22,7 @@ import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
-import { useSendTemplate, useWhatsappStatus, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useSendTemplate, useWhatsappTemplates } from '@/hooks/use-whatsapp';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -76,10 +76,8 @@ export default function StudentsScreen() {
   const updateStudent = useUpdateStudent(editingStudent?._id);
   const createPayment = useCreatePayment();
   const feeReminder = useSendTemplate();
-  const { data: whatsappStatus } = useWhatsappStatus();
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
-  const isWhatsappConnected = whatsappStatus?.status === 'CONNECTED';
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
   const totalCount = useMemo(() => {
@@ -133,8 +131,8 @@ export default function StudentsScreen() {
       });
       setReminderTarget(null);
 
-      if (res.notification) {
-        openWhatsappWithMessage(res.notification.phone, res.notification.message);
+      if (res.phone && res.message) {
+        openWhatsappWithMessage(res.phone, res.message);
       }
     } catch (e) {
       showToast('Failed to prepare reminder', 'error');

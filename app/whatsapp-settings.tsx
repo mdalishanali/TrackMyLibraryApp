@@ -8,9 +8,6 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius } from '@/constants/design';
-import {
-  useWhatsappTemplates
-} from '@/hooks/use-whatsapp';
 
 export default function WhatsappSettingsScreen() {
   const theme = useTheme();
@@ -30,8 +27,6 @@ export default function WhatsappSettingsScreen() {
               We've switched to manual sending to ensure 100% delivery and better control.
           </Text>
         </View>
-
-
 
           {/* Info Card */}
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -120,55 +115,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     gap: spacing.md,
   },
-  queueCard: {
-    padding: spacing.xl,
-    borderRadius: radius.xxl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-  },
-  queueIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  queueTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#fff',
-  },
-  queueDesc: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-    fontWeight: '600',
-  },
-  badge: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '900',
-  },
   iconRow: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -195,3 +141,4 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 });
+

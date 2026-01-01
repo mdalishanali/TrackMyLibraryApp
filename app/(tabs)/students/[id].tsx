@@ -23,7 +23,7 @@ import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
-import { useWhatsappStatus, useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt, useNotifications, useMarkNotificationSent, getNotificationPdfUrl } from '@/hooks/use-whatsapp';
+import { useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt } from '@/hooks/use-whatsapp';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
@@ -52,17 +52,13 @@ export default function StudentDetailScreen() {
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
 
   const feeReminderMutation = useSendTemplate();
-  const { data: whatsappStatus } = useWhatsappStatus();
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
-  const isWhatsappConnected = whatsappStatus?.status === 'CONNECTED';
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const sendReceiptMutation = useSendPaymentReceipt();
   const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
 
-  const { data: notifications } = useNotifications();
-  const markSentMutation = useMarkNotificationSent();
 
   const handleSharePdf = async (paymentId: string) => {
     try {
@@ -198,8 +194,8 @@ export default function StudentDetailScreen() {
         templateType: tpl.type
       });
 
-      if (res.notification) {
-        openWhatsappWithMessage(res.notification.phone, res.notification.message);
+      if (res.phone && res.message) {
+        openWhatsappWithMessage(res.phone, res.message);
       }
     } catch (error) {
       showToast('Failed to prepare reminder', 'error');
@@ -212,13 +208,14 @@ export default function StudentDetailScreen() {
       const res = await sendReceiptMutation.mutateAsync(paymentId);
       showToast('Prepared!', 'success');
 
-      if (res.notification) {
-        openWhatsappWithMessage(res.notification.phone, res.notification.message);
+      if (res.phone && res.message) {
+        openWhatsappWithMessage(res.phone, res.message);
       }
     } catch (e) {
       showToast('Failed to prepare receipt', 'error');
     }
   };
+
 
 
 

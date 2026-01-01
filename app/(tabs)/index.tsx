@@ -17,7 +17,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
-import { useNotifications } from '@/hooks/use-whatsapp';
 import { useSeatsQuery } from '@/hooks/use-seats';
 
 const { width, height } = Dimensions.get('window');
