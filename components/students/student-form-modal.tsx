@@ -553,7 +553,8 @@ const toDisplayTime = (t?: string) => {
     const hour = Number(h);
     const suffix = hour >= 12 ? 'PM' : 'AM';
     const h12 = ((hour + 11) % 12) + 1;
-    return `${h12}:${m} ${suffix}`;
+    const hStr = String(h12).padStart(2, '0');
+    return `${hStr}:${m} ${suffix}`;
 };
 
 const parseDate = (v?: string) => {

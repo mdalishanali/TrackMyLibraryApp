@@ -8,6 +8,12 @@ import { AppButton } from '@/components/ui/app-button';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
 import { formatCurrency, formatDate, formatTime } from '@/utils/format';
 
+const formatShift = (shift?: string | null) => {
+  if (!shift) return '—';
+  // Matches HH:mm and replaces with formatted AM/PM time
+  return shift.replace(/(\d{1,2}:\d{2})/g, (match) => formatTime(match));
+};
+
 type StudentTime = { start?: string; end?: string };
 
 type Student = {
@@ -126,7 +132,7 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
       <InfoItem icon="call-outline" label="Phone" value={student.number} theme={theme} index={0} />
       <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={1} />
       <InfoItem icon="location-outline" label="Seat" value={student.seatNumber ? `Seat ${student.seatNumber}` : 'Unallocated'} theme={theme} index={2} />
-      <InfoItem icon="time-outline" label="Shift" value={student.shift} theme={theme} index={3} />
+      <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={3} />
     </View>
   );
 }

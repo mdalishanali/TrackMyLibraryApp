@@ -6,7 +6,7 @@ export const formatDate = (value?: string | Date | null) => {
   const day = String(date.getDate()).padStart(2, '0');
   const month = months[date.getMonth()];
   const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
+  return `${day} ${month} ${year}`;
 };
 
 export const formatCurrency = (amount?: number | null) => {
@@ -23,6 +23,7 @@ export const formatTime = (value?: string | null) => {
 
   const period = hours >= 12 ? 'PM' : 'AM';
   const normalizedHours = ((hours + 11) % 12) + 1; // converts 0 -> 12, 13 -> 1, etc.
+  const hourStr = String(normalizedHours).padStart(2, '0');
   const minuteStr = String(minutes).padStart(2, '0');
-  return `${normalizedHours}:${minuteStr} ${period}`;
+  return `${hourStr}:${minuteStr} ${period}`;
 };
