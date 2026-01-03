@@ -403,11 +403,21 @@ export default function SeatsScreen() {
                         </View>
                       )}
                       
-                      <View style={styles.seatTop}>
+                      <View style={styles.seatCardHeader}>
                         <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
                           <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
                           <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
                         </View>
+
+                        {occupant && (
+                          <Image
+                            source={{ uri: occupant.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(occupant.name)}&background=0D8ABC&color=fff` }}
+                            style={styles.miniAvatar}
+                            contentFit="cover"
+                            transition={500}
+                            placeholder={BLURHASH}
+                          />
+                        )}
                       </View>
 
                       <View style={styles.seatBodyInfo}>
@@ -424,13 +434,13 @@ export default function SeatsScreen() {
                               <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
                                 {item.students.length === 1
                                   ? item.students[0].shift
-                                  : item.students.map((s: any) => s.shift?.[0]).join(', ')
+                                  : item.students.map((s: any) => s.shift?.[0]?.toUpperCase()).join(', ')
                                 }
                               </Text>
                             </View>
                           </>
                         ) : (
-                          <Text style={[styles.seatOccupantName, { color: theme.muted }]}>VACANT</Text>
+                            <Text style={[styles.seatOccupantName, { color: theme.muted, opacity: 0.5 }]}>VACANT</Text>
                         )}
                       </View>
 
@@ -827,10 +837,10 @@ const styles = StyleSheet.create({
     width: (width - spacing.xl * 2 - 24) / 3,
   },
   seatCard: {
-    borderRadius: 22,
-    padding: 14,
+    borderRadius: 24,
+    padding: 12,
     borderWidth: 1.5,
-    height: 110,
+    height: 125,
     justifyContent: 'space-between',
     position: 'relative',
     overflow: 'hidden',
@@ -839,6 +849,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 10,
   },
+  seatCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  miniAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
   seatTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -846,10 +868,10 @@ const styles = StyleSheet.create({
   seatStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    gap: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 9,
   },
   statusMiniDot: {
     width: 6,
