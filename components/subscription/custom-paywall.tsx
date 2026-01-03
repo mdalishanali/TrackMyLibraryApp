@@ -177,6 +177,29 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
               );
             })}
           </View>
+
+          <View style={styles.contactSection}>
+            <Text style={[styles.contactTitle, { color: theme.text }]}>Need Help?</Text>
+            <Text style={[styles.contactSubtitle, { color: theme.muted }]}>
+              Contact us for bulk pricing, support or custom features.
+            </Text>
+            <View style={styles.contactButtons}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://wa.me/916391417248')}
+                style={[styles.contactBtn, { backgroundColor: '#25D366' }]}
+              >
+                <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                <Text style={styles.contactBtnText}>WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('mailto:md.alishanali88@gmail.com')}
+                style={[styles.contactBtn, { backgroundColor: theme.info || '#4FACFE' }]}
+              >
+                <Ionicons name="mail" size={20} color="#fff" />
+                <Text style={styles.contactBtnText}>Email</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
 
@@ -250,5 +273,43 @@ const styles = StyleSheet.create({
   legalText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  contactSection: {
+    marginTop: 32,
+    paddingTop: 32,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+  },
+  contactTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  contactSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  contactButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  contactBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

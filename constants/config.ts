@@ -9,4 +9,4 @@ const localAPIBaseUrl =
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || localAPIBaseUrl;
 
-export const BRAND_FOOTER_TEXT = 'Track My Library by Modal Library';
+export const BRAND_FOOTER_TEXT = 'Made with ❤️ by TrackMyLibrary';

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Image } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Image, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -249,6 +249,28 @@ export default function SettingsScreen() {
               description="Edit welcome and reminder texts"
               onPress={() => router.push('/whatsapp-templates')}
               themeTint={theme.primary}
+            />
+          </View>
+
+          {/* Support Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Support & Feedback</Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ActionRow
+              icon="logo-whatsapp"
+              label="Contact on WhatsApp"
+              description="+91 63914 17248"
+              onPress={() => Linking.openURL('https://wa.me/916391417248')}
+              themeTint="#25D366"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="mail"
+              label="Email Support"
+              description="md.alishanali88@gmail.com"
+              onPress={() => Linking.openURL('mailto:md.alishanali88@gmail.com')}
+              themeTint={theme.info || '#4FACFE'}
             />
           </View>
 
