@@ -10,6 +10,7 @@ import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
+import { ActivityProvider } from '@/providers/activity-provider';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -25,12 +26,14 @@ export default function RootLayout() {
         <QueryProvider>
           <SubscriptionProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="profile" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              </Stack>
+              <ActivityProvider>
+                <Stack>
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="profile" options={{ headerShown: false }} />
+                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                </Stack>
+              </ActivityProvider>
               <StatusBar style="auto" />
             </ThemeProvider>
             <Toast config={toastConfig} />
