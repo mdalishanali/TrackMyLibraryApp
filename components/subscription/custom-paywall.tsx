@@ -185,14 +185,14 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
             </Text>
             <View style={styles.contactButtons}>
               <TouchableOpacity
-                onPress={() => Linking.openURL('https://wa.me/916391417248')}
+                onPress={() => Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with my account/subscription.')}`)}
                 style={[styles.contactBtn, { backgroundColor: '#25D366' }]}
               >
                 <Ionicons name="logo-whatsapp" size={20} color="#fff" />
                 <Text style={styles.contactBtnText}>WhatsApp</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => Linking.openURL('mailto:md.alishanali88@gmail.com')}
+                onPress={() => Linking.openURL(`mailto:md.alishanali88@gmail.com?subject=${encodeURIComponent('TrackMyLibrary Support Request')}&body=${encodeURIComponent('Hello Team,\n\nI need help with...')}`)}
                 style={[styles.contactBtn, { backgroundColor: theme.info || '#4FACFE' }]}
               >
                 <Ionicons name="mail" size={20} color="#fff" />

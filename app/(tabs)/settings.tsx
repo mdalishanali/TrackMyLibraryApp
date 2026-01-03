@@ -261,7 +261,7 @@ export default function SettingsScreen() {
               icon="logo-whatsapp"
               label="Contact on WhatsApp"
               description="+91 63914 17248"
-              onPress={() => Linking.openURL('https://wa.me/916391417248')}
+              onPress={() => Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with...')}`)}
               themeTint="#25D366"
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
@@ -269,7 +269,7 @@ export default function SettingsScreen() {
               icon="mail"
               label="Email Support"
               description="md.alishanali88@gmail.com"
-              onPress={() => Linking.openURL('mailto:md.alishanali88@gmail.com')}
+              onPress={() => Linking.openURL(`mailto:md.alishanali88@gmail.com?subject=${encodeURIComponent('TrackMyLibrary Support Request')}&body=${encodeURIComponent('Hello Team,\n\nI need help with...')}`)}
               themeTint={theme.info || '#4FACFE'}
             />
           </View>
