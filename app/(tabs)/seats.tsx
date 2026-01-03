@@ -87,7 +87,9 @@ export default function SeatsScreen() {
   }, [seatsQuery.data]);
 
   const floors = useMemo(() =>
-    Object.keys(seatsByFloor).sort((a, b) => Number(a) - Number(b)),
+    Object.keys(seatsByFloor)
+      .filter(f => f !== '0')
+      .sort((a, b) => Number(a) - Number(b)),
     [seatsByFloor]);
 
   useEffect(() => {
