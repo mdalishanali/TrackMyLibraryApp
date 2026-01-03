@@ -7,6 +7,8 @@ const localAPIBaseUrl =
     default: 'https://api.trackmylibrary.in/api',
   }) || 'https://api.trackmylibrary.in/api';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || localAPIBaseUrl;
+export const API_BASE_URL = __DEV__
+  ? localAPIBaseUrl
+  : (process.env.EXPO_PUBLIC_API_URL || 'https://api.trackmylibrary.in/api');
 
 export const BRAND_FOOTER_TEXT = 'Made with ❤️ by TrackMyLibrary';
