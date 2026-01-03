@@ -10,6 +10,7 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing } from '@/constants/design';
 import { api } from '@/lib/api-client';
+import { formatDate, formatTime } from '@/utils/format';
 
 const { width } = Dimensions.get('window');
 
@@ -37,26 +38,7 @@ export default function SubscriptionHistoryScreen() {
   const renderItem = ({ item, index }: { item: SubscriptionHistoryItem, index: number }) => {
     const isExpiration = item.revenueCatType === 'EXPIRATION';
     const isRenewal = item.revenueCatType === 'RENEWAL' || item.revenueCatType === 'INITIAL_PURCHASE';
-    
-    const formatDate = (dateString: string) => {
-      if (!dateString) return '';
-      const d = new Date(dateString);
-      return d.toLocaleDateString(undefined, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    };
 
-    const formatTime = (dateString: string) => {
-      if (!dateString) return '';
-      const d = new Date(dateString);
-      return d.toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
-    };
 
     const dateRange = item.subscriptionEnd
       ? `${formatDate(item.subscriptionStart)} — ${formatDate(item.subscriptionEnd)}`
