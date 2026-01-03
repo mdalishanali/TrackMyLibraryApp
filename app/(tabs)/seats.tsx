@@ -33,7 +33,12 @@ import { StudentFormModal, StudentFormValues } from '@/components/students/stude
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDate } from '@/utils/format';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const isTablet = width > 500;
+const numColumns = isTablet ? 3 : 2;
+const gridGap = 12;
+const sidePadding = spacing.xl;
+const cardWidth = (width - (sidePadding * 2) - (gridGap * (numColumns - 1))) / numColumns;
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 export default function SeatsScreen() {
@@ -369,7 +374,7 @@ export default function SeatsScreen() {
                   <Animated.View
                     key={item._id || `${activeFloor}-${item.seatNumber}`}
                     entering={FadeInDown.delay(sIdx * 20).duration(400)}
-                    style={styles.seatWrapper}
+                    style={{ width: cardWidth, marginBottom: gridGap }}
                   >
                     <Pressable
                       onPress={() => {
@@ -434,7 +439,7 @@ export default function SeatsScreen() {
                               <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
                                 {item.students.length === 1
                                   ? item.students[0].shift
-                                  : item.students.map((s: any) => s.shift?.[0]?.toUpperCase()).join(', ')
+                                  : Array.from(new Set(item.students.map((s: any) => s.shift))).join(', ')
                                 }
                               </Text>
                             </View>
@@ -831,16 +836,13 @@ const styles = StyleSheet.create({
   seatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-  },
-  seatWrapper: {
-    width: (width - spacing.xl * 2 - 24) / 3,
+    gap: gridGap,
   },
   seatCard: {
     borderRadius: 24,
-    padding: 12,
+    padding: 14,
     borderWidth: 1.5,
-    height: 125,
+    height: 135,
     justifyContent: 'space-between',
     position: 'relative',
     overflow: 'hidden',
