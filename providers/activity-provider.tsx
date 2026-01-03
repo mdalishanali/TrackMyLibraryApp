@@ -1,59 +1,47 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import { MMKV } from 'react-native-mmkv';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
 
-// Ping every 5 minutes when active
-const PING_INTERVAL = 5 * 60 * 1000;
+const storage = new MMKV();
+const LAST_PING_KEY = 'last_activity_ping_date';
 
 export function ActivityProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const sendPing = async () => {
     if (!isAuthenticated) return;
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const lastPing = storage.getString(LAST_PING_KEY);
+
+    // Only ping if we haven't pinged today
+    if (lastPing === today) return;
+
     try {
       await api.get('/user/ping');
+      storage.set(LAST_PING_KEY, today);
     } catch (error) {
-      console.warn('Silent ping failed', error);
+      console.warn('Silent activity update failed', error);
     }
   };
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
-        // App came to foreground, send immediate ping
         sendPing();
-        // Resume interval
-        startInterval();
-      } else {
-        // App went to background, stop interval
-        stopInterval();
-      }
-    };
-
-    const startInterval = () => {
-      stopInterval();
-      intervalRef.current = setInterval(sendPing, PING_INTERVAL) as any;
-    };
-
-    const stopInterval = () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
       }
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     if (isAuthenticated) {
-      sendPing(); // Initial ping
-      startInterval();
+      sendPing();
     }
 
     return () => {
       subscription.remove();
-      stopInterval();
     };
   }, [isAuthenticated]);
 
