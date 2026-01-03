@@ -145,7 +145,26 @@ export default function StudentDetailScreen() {
 
 
   const openPayment = () => {
-    setPaymentDefaults({ ...basePaymentValues, rupees: student.fees ?? 0 });
+    const allPayments = paymentsQuery.data?.pages?.flatMap(p => p.payments) || [];
+    const lastPayment = allPayments[0];
+
+    let startDate = todayIso;
+    let endDate = todayIso;
+
+    if (lastPayment && lastPayment.endDate) {
+      startDate = lastPayment.endDate.slice(0, 10);
+
+      const d = new Date(startDate);
+      d.setMonth(d.getMonth() + 1);
+      endDate = d.toISOString().slice(0, 10);
+    }
+
+    setPaymentDefaults({
+      ...basePaymentValues,
+      rupees: student.fees ?? 0,
+      startDate,
+      endDate
+    });
     setEditingPaymentId(null);
     setIsPaymentOpen(true);
   };
