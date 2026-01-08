@@ -10,7 +10,6 @@ const FILTERS = [
   { value: 'paid', label: 'Paid', icon: 'checkmark-done-outline' },
   { value: 'dues', label: 'Dues', icon: 'alert-circle-outline' },
   { value: 'trial', label: 'Trial', icon: 'flask-outline' },
-  { value: 'defaulter', label: 'Defaulter', icon: 'alert-circle-outline' },
   { value: 'active', label: 'Active', icon: 'people-outline' },
   { value: 'inactive', label: 'Inactive', icon: 'pause-circle-outline' },
   { value: 'unallocated', label: 'Unallocated', icon: 'cube-outline' },

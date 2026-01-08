@@ -285,7 +285,7 @@ export default function StudentsScreen() {
         <View style={styles.filterRow}>
           <StudentFilters selected={filter} setSelected={(v) => { setFilter(v); setDays(undefined); }} theme={theme} />
         </View>
-        {(filter === 'dues' || filter === 'defaulter') && (
+        {(filter === 'dues') && (
           <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
             <View style={styles.px_xl}>
               <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
