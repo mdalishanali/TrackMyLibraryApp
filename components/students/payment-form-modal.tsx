@@ -43,6 +43,7 @@ type Props = {
   studentName?: string;
   studentOptions?: PaymentStudent[];
   title?: string;
+  onSearchStudent?: (text: string) => void;
 };
 
 export function PaymentFormModal({
@@ -57,6 +58,7 @@ export function PaymentFormModal({
   studentName,
   studentOptions,
   title = 'Record Payment',
+  onSearchStudent,
 }: Props) {
   const {
     control,
@@ -190,6 +192,7 @@ export function PaymentFormModal({
                                         placeholder="Select student"
                                         value={value}
                                         onChange={(item) => onChange(item.value)}
+                          onChangeText={onSearchStudent}
                                         placeholderStyle={{ color: theme.muted }}
                                         selectedTextStyle={{ color: theme.text }}
                                         inputSearchStyle={{ color: theme.text }}

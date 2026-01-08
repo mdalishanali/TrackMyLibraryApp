@@ -49,18 +49,30 @@ const yearOptions = ['2025', currentYear.toString()];
 
 export default function PaymentsScreen() {
   const theme = useTheme();
-  const studentsQuery = useStudentsQuery();
+  // Student Dropdown Search
+  const [studentDropdownSearch, setStudentDropdownSearch] = useState('');
+  const [debouncedStudentDropdownSearch, setDebouncedStudentDropdownSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedStudentDropdownSearch(studentDropdownSearch.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [studentDropdownSearch]);
+
+  const studentsQuery = useStudentsQuery({ name: debouncedStudentDropdownSearch, limit: 20 });
   const createPayment = useCreatePayment();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const buildPaymentDefaults = (student?: string): PaymentFormValues => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    const isoDate = today.toISOString();
     return {
       student: student ?? '',
       rupees: 0,
-      startDate: today,
-      endDate: today,
-      paymentDate: today,
+      startDate: isoDate,
+      endDate: isoDate,
+      paymentDate: isoDate,
       paymentMode: 'cash',
       notes: '',
     };
@@ -116,6 +128,7 @@ export default function PaymentsScreen() {
   const payments = paymentsQuery.data?.pages.flatMap((page) => page.payments) ?? [];
 
   const openPaymentModal = (student?: string) => {
+    setStudentDropdownSearch(''); // Reset search when opening
     setPaymentDefaults(buildPaymentDefaults(student));
     setIsModalOpen(true);
   };
@@ -383,7 +396,6 @@ export default function PaymentsScreen() {
             <Ionicons name="add" size={32} color="#fff" />
           </Pressable>
         </Animated.View>
-
         <PaymentFormModal
           visible={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -392,6 +404,7 @@ export default function PaymentsScreen() {
           isSubmitting={createPayment.isPending}
           onSubmit={onCreatePayment}
           studentOptions={(studentsQuery.data ?? []).map((s) => ({ id: s._id, name: s.name }))}
+          onSearchStudent={setStudentDropdownSearch}
           title="Record Payment"
         />
       </View>

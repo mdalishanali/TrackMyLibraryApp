@@ -29,7 +29,7 @@ type StudentsPage = {
   };
 };
 
-export const useStudentsQuery = (params?: { name?: string; filter?: string }) =>
+export const useStudentsQuery = (params?: { name?: string; filter?: string; limit?: number }) =>
   useQuery({
     queryKey: queryKeys.students(params),
     queryFn: async () => {
