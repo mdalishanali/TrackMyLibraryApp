@@ -126,11 +126,18 @@ const InfoItem = ({ icon, label, value, theme, index = 0 }: { icon: keyof typeof
 );
 
 export function StudentMeta({ student, theme }: { student: Student; theme: Theme }) {
+  // Debug to check what we are receiving
+  console.log('Student Data:', JSON.stringify(student, null, 2));
+
+  const seatValue = student.seatNumber
+    ? `${student.floorNumber ?? '?'}(${student.seatNumber})`
+    : 'Unallocated';
+
   return (
     <View style={styles.metaGrid}>
       <InfoItem icon="call-outline" label="Phone" value={student.number} theme={theme} index={0} />
       <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={1} />
-      <InfoItem icon="location-outline" label="Seat" value={student.seatNumber ? `Floor ${student.floorNumber ?? '?'} · Seat ${student.seatNumber}` : 'Unallocated'} theme={theme} index={2} />
+      <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={2} />
       <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={3} />
       <InfoItem icon="information-circle-outline" label="Status" value={student.status} theme={theme} index={4} />
     </View>
