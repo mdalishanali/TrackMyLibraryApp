@@ -388,7 +388,15 @@ function DateField({ label, name, control, errors, theme, onOpen }: any) {
     );
 }
 
-const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
+const toDisplayTime = (t?: string) => {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hour = Number(h);
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const h12 = ((hour + 11) % 12) + 1;
+  const hStr = String(h12).padStart(2, '0');
+  return `${hStr}:${m} ${suffix}`;
+};
 
 const styles = StyleSheet.create({
   sheet: {
