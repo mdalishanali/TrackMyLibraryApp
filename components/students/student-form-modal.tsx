@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { pickOrCaptureImage, uploadImageToCloud } from '@/utils/image';
 import { ImagePickerSheet } from '../ui/image-picker-sheet';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -24,6 +24,9 @@ const studentSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     number: z.string().min(8, 'Enter a valid phone'),
     joiningDate: z.string().min(1, 'Joining date is required'),
+    fatherName: z.string().optional(),
+    address: z.string().optional(),
+    aadharNumber: z.string().optional(),
     seat: z.string().optional(),
     shift: z.string().optional(),
     startTime: z.string().min(1, 'Start time is required'),
@@ -91,6 +94,7 @@ export function StudentFormModal({
     });
 
     const [currentStep, setCurrentStep] = useState(0);
+    const scrollRef = useRef<ScrollView>(null);
     const values = watch();
     const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [timePickerType, setTimePickerType] = useState<'startTime' | 'endTime' | null>(null);
@@ -135,9 +139,13 @@ export function StudentFormModal({
         }
     }, [visible, initialValues, reset]);
 
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }, [currentStep]);
+
     const steps = useMemo(() => [
-        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'gender'] as (keyof StudentFormValues)[] },
-        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'status'] as (keyof StudentFormValues)[] },
+        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'aadharNumber', 'notes'] as (keyof StudentFormValues)[] },
+        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'status', 'fees'] as (keyof StudentFormValues)[] },
         { key: 'review', title: 'Review', fields: [] as (keyof StudentFormValues)[] },
     ], []);
 
@@ -243,6 +251,7 @@ export function StudentFormModal({
                         </View>
 
                         <ScrollView
+                            ref={scrollRef}
                             style={styles.modalScroll}
                             contentContainerStyle={styles.scrollContent}
                             showsVerticalScrollIndicator={false}
@@ -291,6 +300,9 @@ export function StudentFormModal({
                                                 {errors.joiningDate?.message && <Text style={styles.errorText}>{String(errors.joiningDate.message)}</Text>}
                                             </View>
 
+                                            <FormField label="Father Name (Optional)" name="fatherName" control={control} errors={errors} theme={theme} placeholder="Enter father's name" />
+                                            <FormField label="Address (Optional)" name="address" control={control} errors={errors} theme={theme} placeholder="Enter full address" multiline />
+
                                             <View style={styles.formGroup}>
                                                 <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
                                                 <Dropdown
@@ -307,6 +319,12 @@ export function StudentFormModal({
                                                     activeColor={theme.primary + '10'}
                                                 />
                                             </View>
+                                        </AppCard>
+
+                                        <Text style={[styles.label, { fontSize: 16, color: theme.text, marginLeft: 4 }]}>Additional Details (Optional)</Text>
+                                        <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <FormField label="Aadhar Number (Optional)" name="aadharNumber" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="12-digit UID" />
+                                            <FormField label="Notes (Optional)" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
                                         </AppCard>
                                     </View>
                                 )}
@@ -378,8 +396,7 @@ export function StudentFormModal({
                                                 </View>
                                             </View>
 
-                                            <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 500" />
-                                            <FormField label="Internal Notes" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
+                                            <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 0" />
                                         </AppCard>
                                     </View>
                                 )}
@@ -405,7 +422,9 @@ export function StudentFormModal({
                                                 <ReviewItem label="JOINED" value={formatDate(values.joiningDate)} theme={theme} />
                                                 <ReviewItem label="GENDER" value={values.gender} theme={theme} />
                                                 <ReviewItem label="SHIFT" value={`${toDisplayTime(values.startTime)} - ${toDisplayTime(values.endTime)}`} theme={theme} />
-                                                <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : 'Free'} theme={theme} />
+                                                <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : '0'} theme={theme} />
+                                                {values.fatherName && <ReviewItem label="FATHER" value={values.fatherName} theme={theme} />}
+                                                {values.address && <ReviewItem label="ADDRESS" value={values.address} theme={theme} />}
                                             </View>
 
                                             {values.seat && (
