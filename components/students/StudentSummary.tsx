@@ -169,10 +169,10 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
         index={0}
         onPress={handleCall}
       />
-      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={1} />
+      <InfoItem icon="information-circle-outline" label="Status" value={student.status} theme={theme} index={1} />
       <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={2} />
       <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={3} />
-      <InfoItem icon="information-circle-outline" label="Status" value={student.status} theme={theme} index={4} />
+      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={4} />
     </View>
   );
 }
