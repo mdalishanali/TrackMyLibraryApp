@@ -158,7 +158,7 @@ export default function StudentsScreen() {
   }, [studentsQuery.refetch]);
 
   const mapToForm = (s: Student | null): StudentFormValues => {
-    const d = new Date().toISOString().slice(0, 10);
+    const d = new Date().toISOString();
     if (!s)
       return {
         name: '',
@@ -177,7 +177,7 @@ export default function StudentsScreen() {
     return {
       name: s.name,
       number: s.number,
-      joiningDate: s.joiningDate?.slice(0, 10) || d,
+      joiningDate: s.joiningDate || d,
       seat: s.seat ?? '',
       shift: s.shift ?? 'Morning',
       startTime: s.time?.[0]?.start ?? '09:00',

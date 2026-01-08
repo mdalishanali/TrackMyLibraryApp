@@ -478,7 +478,11 @@ export function StudentFormModal({
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                     value={parseDate(values.joiningDate)}
                                     onChange={(e, d) => {
-                                        if (d) setValue('joiningDate', d.toISOString().split('T')[0]);
+                                        if (d) {
+                                            const now = new Date();
+                                            d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+                                            setValue('joiningDate', d.toISOString());
+                                        }
                                         if (Platform.OS === 'android') setDatePickerOpen(false);
                                     }}
                                 />
