@@ -36,6 +36,7 @@ export const useStudentsQuery = (params?: { name?: string; filter?: string; limi
       const { data } = await api.get('/students', { params });
       return data.students as Student[];
     },
+    placeholderData: (previousData) => previousData,
   });
 
 export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number }) =>
