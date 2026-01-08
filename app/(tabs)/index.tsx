@@ -368,10 +368,10 @@ export default function DashboardScreen() {
 
       await createStudent.mutateAsync({ payload });
       setIsStudentFormOpen(false);
-      showToast('success', 'Student Added');
+      showToast('success' as any, 'Student Added');
     } catch (error: any) {
       console.error(error);
-      showToast('error', 'Failed to save student');
+      showToast('error' as any, 'Failed to save student');
     }
   };
 
@@ -442,32 +442,49 @@ export default function DashboardScreen() {
           <View style={styles.header}>
             <Animated.View entering={FadeInDown.duration(800)}>
               <View style={styles.greetingRow}>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={[styles.greetingText, { color: theme.muted }]}>{getGreeting()}</Text>
-                  <Text style={[styles.userName, { color: theme.text }]}>
+                  <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
                     {user?.name?.split(' ')[0] || 'User'}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/settings');
-                  }}
-                  style={({ pressed }) => [
-                    styles.avatarBtn,
-                    { borderColor: theme.border, backgroundColor: theme.surface },
-                    pressed && { transform: [{ scale: 0.95 }] }
-                  ]}
-                >
-                  <Text style={[styles.avatarText, { color: theme.primary }]}>
-                    {user?.name?.[0]?.toUpperCase() || 'U'}
-                  </Text>
-                  {isPro && (
-                    <View style={styles.proIndicator}>
-                      <Ionicons name="star" size={10} color="#fff" />
-                    </View>
-                  )}
-                </Pressable>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setIsStudentFormOpen(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.headerActionBtn,
+                      { borderColor: theme.border, backgroundColor: theme.surface },
+                      pressed && { transform: [{ scale: 0.95 }], opacity: 0.8 }
+                    ]}
+                  >
+                    <Ionicons name="add" size={26} color={theme.primary} />
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/settings');
+                    }}
+                    style={({ pressed }) => [
+                      styles.avatarBtn,
+                      { borderColor: theme.border, backgroundColor: theme.surface },
+                      pressed && { transform: [{ scale: 0.95 }] }
+                    ]}
+                  >
+                    <Text style={[styles.avatarText, { color: theme.primary }]}>
+                      {user?.name?.[0]?.toUpperCase() || 'U'}
+                    </Text>
+                    {isPro && (
+                      <View style={styles.proIndicator}>
+                        <Ionicons name="star" size={10} color="#fff" />
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
               </View>
             </Animated.View>
           </View>
@@ -572,30 +589,6 @@ export default function DashboardScreen() {
           </View>
         </ScrollView>
 
-        {/* Floating Action Button for Add Student */}
-        <Animated.View
-          entering={FadeInDown.delay(600).springify()}
-          style={styles.fabContainer}
-        >
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setIsStudentFormOpen(true);
-            }}
-            style={({ pressed }) => [
-              styles.fab,
-              { backgroundColor: theme.primary },
-              pressed && { transform: [{ scale: 0.9 }], opacity: 0.9 }
-            ]}
-          >
-            <LinearGradient
-              colors={['rgba(255,255,255,0.3)', 'transparent']}
-              style={StyleSheet.absoluteFill}
-            />
-            <Ionicons name="add" size={32} color="#fff" />
-          </Pressable>
-        </Animated.View>
-
         <StudentFormModal
           visible={isStudentFormOpen}
           onClose={() => setIsStudentFormOpen(false)}
@@ -650,6 +643,15 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -1,
+  },
+  headerActionBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   avatarBtn: {
     width: 60,
