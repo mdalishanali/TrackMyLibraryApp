@@ -320,6 +320,7 @@ function OnboardingOverlay({ theme }: { theme: any }) {
 }
 
 export default function DashboardScreen() {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = useTheme();
   const router = useRouter();
@@ -373,7 +374,7 @@ export default function DashboardScreen() {
     },
   ];
 
-  const insets = useSafeAreaInsets();
+
 
   return (
     <SafeScreen edges={['left', 'right']}>
