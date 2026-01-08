@@ -48,6 +48,7 @@ const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onR
                 actions={{
                   onView: onView ? () => onView(student._id) : undefined,
                   onEdit: () => onEdit(student._id),
+                  onDelete: () => onDelete(student._id),
                   onPay: () => onPay(student),
                   onRemind: () => onRemind(student),
                 }}

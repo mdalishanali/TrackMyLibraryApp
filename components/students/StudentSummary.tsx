@@ -337,6 +337,14 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
           <Ionicons name="logo-whatsapp" size={20} color={theme.primary} />
         </TouchableOpacity>
       ) : null}
+      {actions.onDelete ? (
+        <TouchableOpacity
+          onPress={actions.onDelete}
+          style={[styles.actionIconBtn, { backgroundColor: theme.danger + '10', borderColor: theme.border }]}
+        >
+          <Ionicons name="trash-outline" size={20} color={theme.danger} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
