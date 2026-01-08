@@ -177,7 +177,7 @@ export function PaymentFormModal({
             <Animated.View entering={FadeInDown.delay(200).duration(600)}>
               <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 {studentOptions?.length ? (
-                  <View style={styles.formGroup}>
+                    <View style={[styles.formGroup, { zIndex: 9999 }]}>
                     <Text style={[styles.label, { color: theme.text }]}>Member</Text>
                     <Controller
                       control={control}
