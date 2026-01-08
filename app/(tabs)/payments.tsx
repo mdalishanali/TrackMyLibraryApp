@@ -374,7 +374,7 @@ export default function PaymentsScreen() {
         />
 
         {/* Floating Action Button */}
-        <Animated.View
+        {/* <Animated.View
           entering={FadeInDown.delay(600).springify()}
           style={styles.fabContainer}
         >
@@ -395,7 +395,7 @@ export default function PaymentsScreen() {
             />
             <Ionicons name="add" size={32} color="#fff" />
           </Pressable>
-        </Animated.View>
+        </Animated.View> */}
         <PaymentFormModal
           visible={isModalOpen}
           onClose={() => setIsModalOpen(false)}
