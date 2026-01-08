@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
@@ -110,20 +110,41 @@ export function StudentHeader({
   );
 }
 
-const InfoItem = ({ icon, label, value, theme, index = 0 }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string | number | null; theme: Theme; index?: number }) => (
-  <Animated.View
-    entering={FadeInRight.delay(index * 100).duration(500)}
-    style={[styles.infoItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
-  >
-    <View style={[styles.infoIconWrap, { backgroundColor: theme.primary + '10' }]}>
-      <Ionicons name={icon} size={16} color={theme.primary} />
-    </View>
-    <View style={{ flex: 1 }}>
-      <Text style={[styles.infoLabel, { color: theme.muted }]}>{label}</Text>
-      <Text style={[styles.infoValue, { color: theme.text }]} numberOfLines={1}>{value ?? '—'}</Text>
-    </View>
-  </Animated.View>
-);
+const InfoItem = ({ icon, label, value, theme, index = 0, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string | number | null; theme: Theme; index?: number; onPress?: () => void }) => {
+  const content = (
+    <>
+      <View style={[styles.infoIconWrap, { backgroundColor: theme.primary + '10' }]}>
+        <Ionicons name={icon} size={16} color={theme.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.infoLabel, { color: theme.muted }]}>{label}</Text>
+        <Text style={[styles.infoValue, { color: theme.text }]} numberOfLines={1}>{value ?? '—'}</Text>
+      </View>
+    </>
+  );
+
+  return (
+    <Animated.View
+      entering={FadeInRight.delay(index * 100).duration(500)}
+      style={[
+        styles.infoItem,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        onPress && { padding: 0 }
+      ]}
+    >
+      {onPress ? (
+        <TouchableOpacity
+          onPress={onPress}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, flex: 1 }}
+        >
+          {content}
+        </TouchableOpacity>
+      ) : (
+        content
+      )}
+    </Animated.View>
+  );
+};
 
 export function StudentMeta({ student, theme }: { student: Student; theme: Theme }) {
   // Debug to check what we are receiving
@@ -133,9 +154,22 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
     ? `${student.floorNumber ?? '?'}(${student.seatNumber})`
     : 'Unallocated';
 
+  const handleCall = () => {
+    if (student.number) {
+      Linking.openURL(`tel:${student.number}`);
+    }
+  };
+
   return (
     <View style={styles.metaGrid}>
-      <InfoItem icon="call-outline" label="Phone" value={student.number} theme={theme} index={0} />
+      <InfoItem
+        icon="call-outline"
+        label="Phone"
+        value={student.number}
+        theme={theme}
+        index={0}
+        onPress={handleCall}
+      />
       <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={1} />
       <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={2} />
       <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={3} />
