@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -19,6 +20,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
 import { useSeatsQuery } from '@/hooks/use-seats';
+import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
+import { useCreateStudent } from '@/hooks/use-students';
+import { showToast } from '@/lib/toast';
 
 const { width, height } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
@@ -327,10 +331,49 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { isPro } = useSubscription();
 
+  const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
+
   const dashboardQuery = useDashboardQuery();
   const seatsQuery = useSeatsQuery();
+  const createStudent = useCreateStudent();
 
   const isLoading = dashboardQuery.isLoading || seatsQuery.isLoading;
+
+  const seats = (seatsQuery.data ?? []).flatMap((f: any) =>
+    (f.seats || []).map((s: any) => ({
+      _id: s._id as string,
+      seatNumber: String(s.seatNumber),
+      floor: f.floor
+    }))
+  );
+
+  const saveStudent = async (data: StudentFormValues) => {
+    try {
+      const payload: any = {
+        name: data.name,
+        number: data.number,
+        joiningDate: data.joiningDate,
+        seat: data.seat,
+        shift: data.shift,
+        time: [{ start: data.startTime, end: data.endTime }],
+        fees: data.fees ? Number(data.fees) : 0,
+        notes: data.notes,
+        status: data.status,
+        profilePicture: data.profilePicture, // Pass the URI or base64
+        fatherName: data.fatherName,
+        address: data.address,
+        aadharNumber: data.aadharNumber,
+        gender: data.gender
+      };
+
+      await createStudent.mutateAsync({ payload });
+      setIsStudentFormOpen(false);
+      showToast('success', 'Student Added');
+    } catch (error: any) {
+      console.error(error);
+      showToast('error', 'Failed to save student');
+    }
+  };
 
   if (isLoading) {
     return <FullScreenLoader message="Preparing your dashboard..." />;
@@ -373,8 +416,6 @@ export default function DashboardScreen() {
       icon: 'wallet-outline'
     },
   ];
-
-
 
   return (
     <SafeScreen edges={['left', 'right']}>
@@ -530,6 +571,49 @@ export default function DashboardScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Floating Action Button for Add Student */}
+        <Animated.View
+          entering={FadeInDown.delay(600).springify()}
+          style={styles.fabContainer}
+        >
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setIsStudentFormOpen(true);
+            }}
+            style={({ pressed }) => [
+              styles.fab,
+              { backgroundColor: theme.primary },
+              pressed && { transform: [{ scale: 0.9 }], opacity: 0.9 }
+            ]}
+          >
+            <LinearGradient
+              colors={['rgba(255,255,255,0.3)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+            />
+            <Ionicons name="add" size={32} color="#fff" />
+          </Pressable>
+        </Animated.View>
+
+        <StudentFormModal
+          visible={isStudentFormOpen}
+          onClose={() => setIsStudentFormOpen(false)}
+          onSubmit={saveStudent}
+          theme={theme}
+          isSubmitting={createStudent.isPending}
+          seats={seats}
+          initialValues={{
+            name: '',
+            number: '',
+            joiningDate: new Date().toISOString(),
+            startTime: '06:00',
+            endTime: '18:00',
+            status: 'Active',
+            gender: 'Male',
+            fees: '0',
+          } as StudentFormValues}
+        />
       </View>
     </SafeScreen>
   );
