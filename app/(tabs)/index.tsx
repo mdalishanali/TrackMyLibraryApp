@@ -1,4 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInUp, FadeInDown, Layout, SlideInRight } from 'react-native-reanimated';
@@ -372,8 +373,10 @@ export default function DashboardScreen() {
     },
   ];
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeScreen edges={['top']}>
+    <SafeScreen edges={['left', 'right']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
           colors={[theme.primary + '15', 'transparent']}
@@ -382,13 +385,14 @@ export default function DashboardScreen() {
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={dashboardQuery.isRefetching}
               onRefresh={dashboardQuery.refetch}
               tintColor={theme.primary}
+              progressViewOffset={insets.top}
             />
           }>
 
