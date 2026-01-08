@@ -89,14 +89,19 @@ export function PaymentFormModal({
   const handleDateChange = (_: any, selected?: Date) => {
     if (!datePicker) return;
     const chosen = selected ?? datePicker.value;
-    const isoDate = toIsoDate(chosen);
+
+    const now = new Date();
+    chosen.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    const isoDate = chosen.toISOString();
+
     setValue(datePicker.field, isoDate);
 
     // Automatically set end date to 1 month after start date when start date is changed
     if (datePicker.field === 'startDate') {
       const nextMonth = new Date(chosen);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
-      setValue('endDate', toIsoDate(nextMonth));
+      nextMonth.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      setValue('endDate', nextMonth.toISOString());
     }
 
     if (Platform.OS === 'android') setDatePicker(null);
@@ -107,9 +112,9 @@ export function PaymentFormModal({
       ...initialValues,
       rupees: 0,
       notes: '',
-      startDate: toIsoDate(new Date()),
-      endDate: toIsoDate(new Date()),
-      paymentDate: toIsoDate(new Date()),
+      startDate: new Date().toISOString(),
+      endDate: new Date().toISOString(),
+      paymentDate: new Date().toISOString(),
     };
 
   const submitForm = handleSubmit(async (vals) => {

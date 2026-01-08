@@ -220,7 +220,7 @@ export default function StudentsScreen() {
   };
 
   const buildPaymentDefaults = (s: Student | null) => {
-    const d = new Date().toISOString().slice(0, 10);
+    const d = new Date().toISOString();
     return {
       student: s?._id || '',
       rupees: 0,
