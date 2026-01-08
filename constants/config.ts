@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-const localAPIBaseUrl = "https://ea13c7dcea2a.ngrok-free.app/api"
+const localAPIBaseUrl = "http://localhost:4000/api"
 
 export const API_BASE_URL = __DEV__
   ? localAPIBaseUrl
