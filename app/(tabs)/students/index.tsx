@@ -191,6 +191,7 @@ export default function StudentsScreen() {
   };
 
   const saveStudent = async (values: any, onProgress?: (p: number) => void) => {
+    console.log('DEBUG: Student Submission:', JSON.stringify(values, null, 2));
     const payload = {
       name: values.name,
       number: values.number,
@@ -233,6 +234,7 @@ export default function StudentsScreen() {
   };
 
   const savePayment = async (values: any) => {
+    console.log('DEBUG: Payment Submission:', JSON.stringify(values, null, 2));
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
