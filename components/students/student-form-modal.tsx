@@ -153,10 +153,12 @@ export function StudentFormModal({
 
     const seatData = useMemo(() => [
         { label: 'Unallocated', value: '' },
-        ...seats.map((s) => ({
-            label: `Floor ${s.floor ?? '?'} · Seat ${s.seatNumber}`,
-            value: s._id,
-        })),
+        ...seats
+            .filter(s => String(s.seatNumber) !== '0')
+            .map((s) => ({
+                label: `Floor ${s.floor ?? '?'} · Seat ${s.seatNumber}`,
+                value: s._id,
+            })),
     ], [seats]);
 
     const handleClose = () => {
