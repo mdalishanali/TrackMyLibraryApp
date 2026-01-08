@@ -147,8 +147,7 @@ const InfoItem = ({ icon, label, value, theme, index = 0, onPress }: { icon: key
 };
 
 export function StudentMeta({ student, theme }: { student: Student; theme: Theme }) {
-  // Debug to check what we are receiving
-  console.log('Student Data:', JSON.stringify(student, null, 2));
+
 
   const seatValue = student.seatNumber
     ? `${student.floorNumber ?? '?'}(${student.seatNumber})`
