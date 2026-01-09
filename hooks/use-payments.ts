@@ -68,6 +68,7 @@ const invalidatePaymentRelatedQueries = () => {
   queryClient.invalidateQueries({ queryKey: ['payments'] });
   queryClient.invalidateQueries({ queryKey: ['students'] });
   queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+  queryClient.invalidateQueries({ queryKey: queryKeys.revenue });
 };
 
 export const useCreatePayment = () =>
