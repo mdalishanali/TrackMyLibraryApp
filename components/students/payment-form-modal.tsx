@@ -68,7 +68,7 @@ export function PaymentFormModal({
     watch,
     formState: { errors },
   } = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentSchema),
+    resolver: zodResolver(paymentSchema) as any,
     defaultValues: initialValues,
   });
 

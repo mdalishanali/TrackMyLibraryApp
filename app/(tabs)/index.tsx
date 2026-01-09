@@ -368,10 +368,10 @@ export default function DashboardScreen() {
 
       await createStudent.mutateAsync({ payload });
       setIsStudentFormOpen(false);
-      showToast('success' as any, 'Student Added');
+      showToast('Student Added', 'success');
     } catch (error: any) {
       console.error(error);
-      showToast('error' as any, 'Failed to save student');
+      showToast('Failed to save student', 'error');
     }
   };
 

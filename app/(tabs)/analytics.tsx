@@ -24,9 +24,13 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
+import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
 import { useAnalyticsQuery } from '@/hooks/use-analytics';
+import { useExpensesQuery, useCreateExpense, useDeleteExpense } from '@/hooks/use-expenses'; // Import expenses hooks
+import { ExpenseFormModal } from '@/components/expenses/expense-form-modal';
+import { showToast } from '@/lib/toast';
 import { formatCurrency, formatDate } from '@/utils/format';
 
 const { width } = Dimensions.get('window');
@@ -57,11 +61,21 @@ export default function AnalyticsScreen() {
   const chartScrollRef = useRef<ScrollView>(null);
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState(currentMonth.toString());
+  const [viewMode, setViewMode] = useState<'income' | 'expenses'>('income');
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
 
   const { data, isLoading, isRefetching, refetch } = useAnalyticsQuery({
     year: selectedYear,
     month: selectedMonth,
   });
+
+  const expensesQuery = useExpensesQuery({
+    year: selectedYear,
+    month: selectedMonth,
+  });
+
+  const createExpense = useCreateExpense();
+  const deleteExpense = useDeleteExpense();
 
   const { width: screenWidth } = useWindowDimensions();
 
@@ -125,7 +139,11 @@ export default function AnalyticsScreen() {
     });
 
     return { monthTrend: mTrend, annualTrend: 0, topCollectorName: topName };
+    return { monthTrend: mTrend, annualTrend: 0, topCollectorName: topName };
   }, [data?.monthWise, data?.revenueBreakdownByUser, selectedMonth]);
+
+  const totalExpenses = expensesQuery.data?.totalAmount || 0;
+  const netProfit = (data?.currentMonthRevenue || 0) - totalExpenses;
 
   const stats = [
     {
@@ -136,19 +154,26 @@ export default function AnalyticsScreen() {
       trend: monthTrend,
     },
     {
+      label: 'Monthly Expenses',
+      value: totalExpenses,
+      icon: 'trending-down-outline',
+      color: '#EF4444',
+      trend: 0,
+    },
+    {
+      label: 'Net Profit',
+      value: netProfit,
+      icon: 'wallet-outline',
+      color: netProfit >= 0 ? '#22C55E' : '#EF4444',
+      trend: 0,
+    },
+    {
       label: 'Annual Revenue',
       value: data?.annualRevenue || 0,
       icon: 'stats-chart-outline',
-      color: '#22C55E',
-      trend: annualTrend,
-    },
-    {
-      label: 'Total Revenue',
-      value: data?.totalRevenue || 0,
-      icon: 'wallet-outline',
       color: '#EAB308',
-      trend: 0,
-    },
+      trend: annualTrend,
+    }
   ];
 
   const maxRevenue = useMemo(() => {
@@ -185,6 +210,27 @@ export default function AnalyticsScreen() {
             <Animated.View style={[styles.pulseDot, { backgroundColor: theme.primary }, pulseStyle]} />
                 <Text style={[styles.badgeText, { color: theme.primary }]}>Live Data</Text>
             </View>
+
+          <Pressable
+            onPress={() => setIsExpenseModalOpen(true)}
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 0,
+              backgroundColor: theme.surface,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: theme.border,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            <Ionicons name="add-circle" size={16} color={'#EF4444'} />
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.text }}>Expense</Text>
+          </Pressable>
         </Animated.View>
 
         {/* Year Selector */}
@@ -408,7 +454,31 @@ export default function AnalyticsScreen() {
           </ScrollView>
         </View>
 
-        {/* Filters & Breakdown */}
+        {/* View Toggle */}
+        <View style={{ flexDirection: 'row', backgroundColor: theme.surfaceAlt, padding: 4, borderRadius: 16, marginBottom: spacing.xl, borderColor: theme.border, borderWidth: 1 }}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setViewMode('income');
+            }}
+            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, backgroundColor: viewMode === 'income' ? theme.background : 'transparent', borderWidth: viewMode === 'income' ? 1 : 0, borderColor: theme.border }}
+          >
+            <Text style={{ fontWeight: '700', color: viewMode === 'income' ? theme.primary : theme.muted }}>Income</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setViewMode('expenses');
+            }}
+            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, backgroundColor: viewMode === 'expenses' ? theme.background : 'transparent', borderWidth: viewMode === 'expenses' ? 1 : 0, borderColor: theme.border }}
+          >
+            <Text style={{ fontWeight: '700', color: viewMode === 'expenses' ? '#EF4444' : theme.muted }}>Expenses</Text>
+          </Pressable>
+        </View>
+
+        {viewMode === 'income' ? (
+          <>
+            {/* Filters & Breakdown (Income) */}
         <Animated.View 
             layout={Layout}
             style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -421,6 +491,15 @@ export default function AnalyticsScreen() {
                 </Text>
             </View>
           </View>
+              {/* ... existing code content ... */}
+              {/* Note: I will just render the existing content here, but since I replaced the start of this block, I need to check where it ends. */}
+              {/* Wait, multi_replace replaces the chunk. I need to keep the content inside the "Filters & Breakdown" if I don't want to rewrite it all. */}
+              {/* Ah, I can wrap the existing block in the conditional? But I can't easily reference 'existing code' in replacement. */}
+              {/* I will assume I need to REWRITE the breakdown section OR just insert the toggle above it. */}
+              {/* Let's try to insert the toggle above 'Filters & Breakdown' and wrap the 'Filters & Breakdown' in a conditionally rendered block? */}
+              {/* That's risky with line numbers. */}
+              {/* Alternative: Use a smaller chunk to insert the toggle, then a separate replacement to wrap the content? */}
+              {/* Best way: Replace the layout to include the toggle and then conditionally render the different lists. */}
 
           <View style={styles.breakdownList}>
             {(!data?.revenueBreakdownByUser || data.revenueBreakdownByUser.length === 0) ? (
@@ -428,8 +507,7 @@ export default function AnalyticsScreen() {
                     <Ionicons name="pie-chart-outline" size={48} color={theme.muted + '40'} />
                     <Text style={[styles.emptyText, { color: theme.muted }]}>No transactions recorded</Text>
                 </View>
-            ) : (
-              <>
+                ) : (<>
                 {/* Company Total Row */}
                 {(() => {
                   const companyTotal = data.revenueBreakdownByUser.reduce((acc, admin: any) => ({
@@ -473,7 +551,7 @@ export default function AnalyticsScreen() {
                 })()}
 
                 {/* Individual Breakdown List */}
-                {data.revenueBreakdownByUser.map((admin: any, idx) => {
+                    {data.revenueBreakdownByUser.map((admin: any, idx: number) => {
                   const totalAmount = admin.total || admin.value || 0;
                   const cashAmount = admin.cash || (admin.paymentMode === 'cash' ? admin.value : 0) || 0;
                   const upiAmount = admin.upi || (admin.paymentMode === 'upi' ? admin.value : 0) || 0;
@@ -520,9 +598,85 @@ export default function AnalyticsScreen() {
                   )
                 })}
               </>
-            )}
-          </View>
-        </Animated.View>
+                )}
+
+              </View>
+            </Animated.View>
+          </>
+        ) : (
+          // Expenses List View
+          <Animated.View
+            layout={Layout}
+            style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          >
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Expenses</Text>
+                <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>
+                  Recorded expenses for this month
+                </Text>
+              </View>
+              <AppButton
+                onPress={() => setIsExpenseModalOpen(true)}
+                variant="outline"
+                style={{ height: 36, paddingVertical: 0 }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.text }}>+ Add</Text>
+              </AppButton>
+            </View>
+
+            <View style={styles.breakdownList}>
+              {(!expensesQuery.data?.expenses || expensesQuery.data.expenses.length === 0) ? (
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="receipt-outline" size={48} color={theme.muted + '40'} />
+                  <Text style={[styles.emptyText, { color: theme.muted }]}>No expenses recorded</Text>
+                </View>
+              ) : (
+                <>
+                  {expensesQuery.data.expenses.map((expense, idx) => (
+                    <View key={expense._id} style={[styles.breakdownItem, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: theme.border + '50', paddingTop: 16 }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                        <View style={[styles.avatar, { backgroundColor: '#EF444420' }]}>
+                          <Ionicons name="pricetag" size={16} color="#EF4444" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.adminName, { color: theme.text }]}>{expense.title}</Text>
+                          <Text style={[styles.adminSub, { color: theme.muted }]}>{formatDate(expense.date)} • {expense.category}</Text>
+                        </View>
+                      </View>
+                      <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                        <Text style={[styles.adminTotal, { color: '#EF4444' }]}>{formatCurrency(expense.amount)}</Text>
+                        <Pressable hitSlop={10} onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          deleteExpense.mutate(expense._id);
+                        }}>
+                          <Ionicons name="trash-outline" size={14} color={theme.muted} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+              </View>
+            </Animated.View>
+        )}
+
+
+        <ExpenseFormModal
+          visible={isExpenseModalOpen}
+          onClose={() => setIsExpenseModalOpen(false)}
+          onSubmit={async (data) => {
+            try {
+              await createExpense.mutateAsync(data);
+              setIsExpenseModalOpen(false);
+              showToast('Expense Added', 'success');
+            } catch (err) {
+              showToast('Failed to add expense', 'error');
+            }
+          }}
+          theme={theme}
+          isSubmitting={createExpense.isPending}
+        />
 
         {/* Latest Payments */}
         <Animated.View 
