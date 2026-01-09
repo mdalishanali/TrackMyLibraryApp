@@ -25,6 +25,9 @@ export type Student = {
   paymentStatus?: string;
   profilePicture?: string;
   gender?: string;
+  fatherName?: string;
+  address?: string;
+  aadhaarNumber?: string;
   floor?: number | string;
 };
 

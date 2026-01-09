@@ -186,6 +186,9 @@ export default function StudentsScreen() {
       fees: s.fees ? String(s.fees) : '',
       gender: s.gender ?? 'Male',
       notes: s.notes ?? '',
+      fatherName: s.fatherName ?? '',
+      address: s.address ?? '',
+      aadharNumber: s.aadhaarNumber ?? '',
       profilePicture: s.profilePicture || ''
     };
   };
@@ -203,6 +206,9 @@ export default function StudentsScreen() {
       fees: Number(values.fees) || 0,
       notes: values.notes,
       gender: values.gender,
+      fatherName: values.fatherName,
+      address: values.address,
+      aadhaarNumber: values.aadharNumber,
       profilePicture: values.profilePicture,
     };
 
