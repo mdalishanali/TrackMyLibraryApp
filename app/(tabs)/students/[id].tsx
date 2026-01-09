@@ -417,6 +417,9 @@ export default function StudentDetailScreen() {
             <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Bio & Space</Text>
             <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
+            {student.fatherName && <DetailRow icon="person" label="Father Name" value={student.fatherName} theme={theme} />}
+            {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
+            {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
             <DetailRow icon="business" label="Workspace" value={(student.seatNumber !== undefined && student.seatNumber !== null) ? `Level ${student.floor ?? '1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
               <DetailRow icon="time" label="Schedule" value={student.shift || 'Morning Shift'} theme={theme} />
               <DetailRow icon="calendar" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last />
