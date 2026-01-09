@@ -89,7 +89,7 @@ export function AppToast({
     >
       <View style={[styles.innerCard, { backgroundColor: colors.bg, borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
         <LinearGradient
-          colors={colors.gradient}
+          colors={colors.gradient as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradientFill}
