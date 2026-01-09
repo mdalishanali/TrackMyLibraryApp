@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View, Dimensions, Platform } from 'react-native';
 import Toast, { BaseToastProps } from 'react-native-toast-message';
-import Animated, { FadeInUp, MoveIn } from 'react-native-reanimated';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { radius, spacing, themeFor } from '@/constants/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
