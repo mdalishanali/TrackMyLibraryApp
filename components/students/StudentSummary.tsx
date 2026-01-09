@@ -30,6 +30,9 @@ type Student = {
   dueAmount?: number;
   daysOverdue?: number;
   profilePicture?: string;
+  aadhaarNumber?: string;
+  address?: string;
+  fatherName?: string; // Added field
   lastPayment?: {
     paymentDate?: string;
     startDate?: string;
@@ -169,10 +172,11 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
         index={0}
         onPress={handleCall}
       />
-      <InfoItem icon="information-circle-outline" label="Status" value={student.status} theme={theme} index={1} />
-      <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={2} />
-      <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={3} />
-      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={4} />
+      {student.fatherName && <InfoItem icon="person-outline" label="Father" value={student.fatherName} theme={theme} index={1} />}
+      <InfoItem icon="information-circle-outline" label="Status" value={student.status} theme={theme} index={2} />
+      <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={3} />
+      <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={4} />
+      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={5} />
     </View>
   );
 }
