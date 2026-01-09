@@ -588,6 +588,9 @@ export default function StudentDetailScreen() {
             fees: String(student.fees || ''),
             gender: student.gender || 'Male',
             notes: student.notes || '',
+            fatherName: student.fatherName || '',
+            address: student.address || '',
+            aadharNumber: student.aadhaarNumber || '',
             profilePicture: student.profilePicture || ''
           }}
           seats={(seatsQuery.data ?? []).flatMap((f: any) =>
