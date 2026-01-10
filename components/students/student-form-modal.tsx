@@ -68,6 +68,11 @@ const statusOptions = [
     { label: 'Inactive', value: 'Inactive' },
 ];
 
+const shiftOptions = [
+    { label: 'First', value: 'First' },
+    { label: 'Second', value: 'Second' },
+];
+
 export function StudentFormModal({
     visible,
     onClose,
@@ -133,7 +138,10 @@ export function StudentFormModal({
 
     useEffect(() => {
         if (visible) {
-            reset(initialValues);
+            reset({
+                ...initialValues,
+                shift: initialValues.shift || 'First'
+            });
         } else {
             setCurrentStep(0);
         }
@@ -372,6 +380,32 @@ export function StudentFormModal({
                                                     containerStyle={{ backgroundColor: theme.surface }}
                                                     activeColor={theme.primary + '10'}
                                                 />
+                                            </View>
+
+
+
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Shift</Text>
+                                                <View style={styles.statusGrid}>
+                                                    {shiftOptions.map(opt => {
+                                                        const active = values.shift === opt.value;
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={opt.value}
+                                                                onPress={() => setValue('shift', opt.value)}
+                                                                style={[
+                                                                    styles.statusBtn,
+                                                                    {
+                                                                        backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                                                                        borderColor: active ? theme.primary : theme.border
+                                                                    }
+                                                                ]}
+                                                            >
+                                                                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{opt.label}</Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+                                                </View>
                                             </View>
 
                                             <View style={styles.formGroup}>

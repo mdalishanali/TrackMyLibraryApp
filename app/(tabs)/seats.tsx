@@ -73,11 +73,13 @@ export default function SeatsScreen() {
     title: string;
     description: string;
     onConfirm: () => void;
+    type: 'create' | 'delete';
   }>({
     visible: false,
     title: '',
     description: '',
     onConfirm: () => {},
+    type: 'delete',
   });
 
   const seatsByFloor = useMemo(() => {
@@ -125,17 +127,27 @@ export default function SeatsScreen() {
     setActiveFloor(f);
   };
 
-  const onCreateSeats = async () => {
-    try {
-      await createSeats.mutateAsync({
-        floor: Number(floor),
-        startSeat: Number(startSeat),
-        endSeat: Number(endSeat),
-      });
-      setIsModalOpen(false);
-    } catch (error) {
-      Alert.alert('Error', (error as Error).message);
-    }
+  const onCreateSeats = () => {
+    setIsModalOpen(false);
+
+    setConfirmConfig({
+      visible: true,
+      title: 'Create Seats',
+      description: `Are you sure you want to create seats on floor ${floor} starting from seat ${startSeat} to ${endSeat}?`,
+      type: 'create',
+      onConfirm: async () => {
+        try {
+          await createSeats.mutateAsync({
+            floor: Number(floor),
+            startSeat: Number(startSeat),
+            endSeat: Number(endSeat),
+          });
+          setConfirmConfig(prev => ({ ...prev, visible: false }));
+        } catch (error) {
+          Alert.alert('Error', (error as Error).message);
+        }
+      }
+    });
   };
 
   const saveStudent = async (values: any) => {
@@ -176,6 +188,7 @@ export default function SeatsScreen() {
       visible: true,
       title: 'Delete Seats',
       description: `Are you sure you want to delete ${selectionSet.size} selected seat(s)? This will also remove any student assignments.`,
+      type: 'delete',
       onConfirm: async () => {
         try {
           await deleteSeats.mutateAsync(Array.from(selectionSet));
@@ -199,6 +212,7 @@ export default function SeatsScreen() {
         visible: true,
         title: 'Delete Seat',
         description: 'Are you sure you want to delete this seat? This will also remove any student assignments.',
+        type: 'delete',
         onConfirm: async () => {
           try {
             await deleteSeats.mutateAsync([id]);
@@ -680,8 +694,8 @@ export default function SeatsScreen() {
           description={confirmConfig.description}
           onConfirm={confirmConfig.onConfirm}
           onCancel={() => setConfirmConfig(prev => ({ ...prev, visible: false }))}
-          destructive
-          loading={deleteSeats.isPending}
+          destructive={confirmConfig.type === 'delete'}
+          loading={confirmConfig.type === 'delete' ? deleteSeats.isPending : createSeats.isPending}
         />
       </View>
     </SafeScreen>

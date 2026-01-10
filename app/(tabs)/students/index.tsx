@@ -165,14 +165,17 @@ export default function StudentsScreen() {
         number: '',
         joiningDate: d,
         seat: '',
-        shift: 'Morning',
+        shift: 'First',
         startTime: '09:00',
         endTime: '18:00',
         status: 'Active',
         fees: '',
         gender: 'Male',
         notes: '',
-        profilePicture: ''
+        profilePicture: '',
+        fatherName: '',
+        address: '',
+        aadharNumber: ''
       };
     return {
       name: s.name,

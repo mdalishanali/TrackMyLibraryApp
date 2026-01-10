@@ -327,10 +327,10 @@ export default function StudentDetailScreen() {
                 <View style={styles.heroMeta}>
                   <Text style={[styles.heroName, { color: theme.text }]}>{student.name}</Text>
                   <View style={styles.heroRow}>
-                    <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.warning) + '15' }]}>
-                      <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.warning }]} />
-                      <Text style={[styles.statusText, { color: student.status === 'Active' ? theme.success : theme.warning }]}>
-                        {student.status?.toUpperCase() || 'ACTIVE'}
+                  <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.danger) + '15' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.danger }]} />
+                    <Text style={[styles.statusText, { color: student.status === 'Active' ? theme.success : theme.danger }]}>
+                      {student.status === 'Active' ? 'ACTIVE' : 'DELETED'}
                       </Text>
                     </View>
                     <Text style={[styles.heroId, { color: theme.muted }]}>ID: {student.id || '—'}</Text>

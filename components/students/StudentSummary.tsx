@@ -113,7 +113,7 @@ export function StudentHeader({
   );
 }
 
-const InfoItem = ({ icon, label, value, theme, index = 0, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string | number | null; theme: Theme; index?: number; onPress?: () => void }) => {
+const InfoItem = ({ icon, label, value, theme, index = 0, onPress, valueColor }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string | number | null; theme: Theme; index?: number; onPress?: () => void; valueColor?: string }) => {
   const content = (
     <>
       <View style={[styles.infoIconWrap, { backgroundColor: theme.primary + '10' }]}>
@@ -121,7 +121,7 @@ const InfoItem = ({ icon, label, value, theme, index = 0, onPress }: { icon: key
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.infoLabel, { color: theme.muted }]}>{label}</Text>
-        <Text style={[styles.infoValue, { color: theme.text }]} numberOfLines={1}>{value ?? '—'}</Text>
+        <Text style={[styles.infoValue, { color: valueColor || theme.text }]} numberOfLines={1}>{value ?? '—'}</Text>
       </View>
     </>
   );
@@ -173,7 +173,14 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
         onPress={handleCall}
       />
       {student.fatherName && <InfoItem icon="person-outline" label="Father" value={student.fatherName} theme={theme} index={1} />}
-      <InfoItem icon="information-circle-outline" label="Status" value={student.status} theme={theme} index={2} />
+      <InfoItem
+        icon="information-circle-outline"
+        label="Status"
+        value={student.status === 'Active' ? 'Active' : 'Deleted'}
+        valueColor={student.status === 'Active' ? undefined : theme.danger}
+        theme={theme}
+        index={2}
+      />
       <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={3} />
       <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={4} />
       <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={5} />
