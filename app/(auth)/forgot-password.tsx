@@ -12,7 +12,6 @@ import {
   Text,
   TextInput,
   View,
-  Dimensions,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,38 +21,33 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withSequence,
   withDelay
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { spacing, radius, typography } from '@/constants/design';
-import { useAuth } from '@/hooks/use-auth';
-import { getErrorMessage, useLoginMutation } from '@/hooks/use-auth-mutations';
+import { spacing, radius } from '@/constants/design';
+import { getErrorMessage, useForgotPasswordMutation } from '@/hooks/use-auth-mutations';
 import { useTheme } from '@/hooks/use-theme';
-import { LoginFormValues, loginSchema } from '@/schemas/auth';
+import { ForgotPasswordFormValues, forgotPasswordSchema } from '@/schemas/auth';
 
-const { width } = Dimensions.get('window');
-
-export default function Login() {
+export default function ForgotPassword() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isEmailSent, setIsEmailSent] = useState(false);
 
   // Setup form
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: '', password: '' },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
   });
 
-  const loginMutation = useLoginMutation();
+  const forgotPasswordMutation = useForgotPasswordMutation();
 
   // Animation values
   const logoScale = useSharedValue(0);
@@ -66,14 +60,92 @@ export default function Login() {
     transform: [{ scale: logoScale.value }]
   }));
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const onSubmit = async (values: ForgotPasswordFormValues) => {
     try {
-      await loginMutation.mutateAsync(values);
-      router.replace('/(tabs)');
+      await forgotPasswordMutation.mutateAsync(values);
+      setIsEmailSent(true);
     } catch (error) {
-      Alert.alert('Login failed', getErrorMessage(error));
+      Alert.alert('Request failed', getErrorMessage(error));
     }
   };
+
+  if (isEmailSent) {
+    return (
+        <View style={styles.container}>
+             <LinearGradient
+                colors={[theme.primary, theme.primary, theme.background]}
+                locations={[0, 0.3, 0.8]}
+                style={StyleSheet.absoluteFill}
+            />
+             <LinearGradient
+                colors={['rgba(255,255,255,0.1)', 'transparent']}
+                style={[StyleSheet.absoluteFill, { height: '40%' }]}
+            />
+
+             <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.flex}
+            >
+                <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl }
+                ]}
+                alwaysBounceVertical={false}
+                >
+                      {/* Header Section */}
+                    <View style={styles.header}>
+                        <Animated.View style={[styles.logoBadge, logoAnimatedStyle]}>
+                        <LinearGradient
+                            colors={['#fff', '#f0f0f0']}
+                            style={styles.logoGradient}
+                        >
+                            <Ionicons name="mail-unread-outline" size={32} color={theme.primary} />
+                        </LinearGradient>
+                        </Animated.View>
+
+                        <Animated.View entering={FadeInUp.delay(500).duration(800)}>
+                            <Text style={styles.title}>Check your email</Text>
+                            <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
+                                We have sent a password reset link to your email address.
+                            </Text>
+                        </Animated.View>
+                    </View>
+
+                      {/* Success Card */}
+                    <Animated.View
+                        entering={FadeInDown.delay(700).duration(800)}
+                        style={[
+                        styles.card,
+                        {
+                            backgroundColor: theme.surface === '#ffffff' ? 'rgba(255,255,255,0.92)' : 'rgba(30,41,59,0.95)',
+                            borderColor: 'rgba(255,255,255,0.2)'
+                        }
+                        ]}
+                    >
+                         <View style={styles.form}>
+                            <Link href="/(auth)/login" asChild>
+                                <Pressable
+                                    style={({ pressed }) => [
+                                    styles.submitBtn,
+                                    { 
+                                        backgroundColor: theme.primary,
+                                        transform: [{ scale: pressed ? 0.98 : 1 }]
+                                    }
+                                    ]}
+                                >
+                                    <Ionicons name="arrow-back" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={styles.submitBtnText}>Back to Login</Text>
+                                </Pressable>
+                            </Link>
+                         </View>
+                    </Animated.View>
+
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -108,20 +180,20 @@ export default function Login() {
                 colors={['#fff', '#f0f0f0']}
                 style={styles.logoGradient}
               >
-                <Ionicons name="library" size={32} color={theme.primary} />
+                <Ionicons name="key-outline" size={32} color={theme.primary} />
               </LinearGradient>
             </Animated.View>
 
             <Animated.View entering={FadeInUp.delay(500).duration(800)}>
-              <Text style={styles.kicker}>SECURE ACCESS</Text>
-              <Text style={styles.title}>Track My Library</Text>
+              <Text style={styles.kicker}>ACCOUNT RECOVERY</Text>
+              <Text style={styles.title}>Forgot Password?</Text>
               <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
-                Experience the next generation of library management.
+                Enter your email address and we'll send you a link to reset your password.
               </Text>
             </Animated.View>
           </View>
 
-          {/* Login Card */}
+          {/* Form Card */}
           <Animated.View
             entering={FadeInDown.delay(700).duration(800)}
             style={[
@@ -132,31 +204,30 @@ export default function Login() {
               }
             ]}
           >
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Welcome Back</Text>
-
             <View style={styles.form}>
-              {/* Identifier Input */}
+              {/* Email Input */}
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.muted }]}>Identifier</Text>
+                <Text style={[styles.label, { color: theme.muted }]}>Email Address</Text>
                 <Controller
                   control={control}
-                  name="identifier"
+                  name="email"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[
                       styles.inputWrapper,
                       {
                         backgroundColor: theme.surfaceAlt,
-                        borderColor: errors.identifier ? '#ef4444' : focusedField === 'identifier' ? theme.primary : 'transparent',
+                        borderColor: errors.email ? '#ef4444' : focusedField === 'email' ? theme.primary : 'transparent',
                         borderWidth: 1.5
                       }
                     ]}>
-                      <Ionicons name="mail-outline" size={20} color={focusedField === 'identifier' ? theme.primary : theme.muted} style={styles.inputIcon} />
+                      <Ionicons name="mail-outline" size={20} color={focusedField === 'email' ? theme.primary : theme.muted} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.input, { color: theme.text }]}
-                        placeholder="Email or phone number"
+                        placeholder="name@example.com"
                         placeholderTextColor={theme.muted}
                         autoCapitalize="none"
-                        onFocus={() => setFocusedField('identifier')}
+                        keyboardType="email-address"
+                        onFocus={() => setFocusedField('email')}
                         onBlur={() => {
                           setFocusedField(null);
                           onBlur();
@@ -167,114 +238,43 @@ export default function Login() {
                     </View>
                   )}
                 />
-                {errors.identifier && (
-                  <Text style={styles.errorText}>{errors.identifier.message}</Text>
-                )}
-              </View>
-
-              {/* Password Input */}
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={[styles.label, { color: theme.muted }]}>Password</Text>
-                  <Link href="/(auth)/forgot-password" asChild>
-                    <Pressable>
-                      <Text style={[styles.forgotLabel, { color: theme.primary }]}>Forgot?</Text>
-                    </Pressable>
-                  </Link>
-                </View>
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View style={[
-                      styles.inputWrapper,
-                      {
-                        backgroundColor: theme.surfaceAlt,
-                        borderColor: errors.password ? '#ef4444' : focusedField === 'password' ? theme.primary : 'transparent',
-                        borderWidth: 1.5
-                      }
-                    ]}>
-                      <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? theme.primary : theme.muted} style={styles.inputIcon} />
-                      <TextInput
-                        style={[styles.input, { color: theme.text }]}
-                        placeholder="Enter password"
-                        placeholderTextColor={theme.muted}
-                        secureTextEntry={!showPassword}
-                        onFocus={() => setFocusedField('password')}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          onBlur();
-                        }}
-                        onChangeText={onChange}
-                        value={value}
-                        onSubmitEditing={handleSubmit(onSubmit)}
-                      />
-                      <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                        <Ionicons
-                          name={showPassword ? "eye-off-outline" : "eye-outline"}
-                          size={20}
-                          color={theme.muted}
-                        />
-                      </Pressable>
-                    </View>
-                  )}
-                />
-                {errors.password && (
-                  <Text style={styles.errorText}>{errors.password.message}</Text>
+                {errors.email && (
+                  <Text style={styles.errorText}>{errors.email.message}</Text>
                 )}
               </View>
 
               {/* Submit Button */}
               <Pressable
                 onPress={handleSubmit(onSubmit)}
-                disabled={loginMutation.isPending}
+                disabled={forgotPasswordMutation.isPending}
                 style={({ pressed }) => [
                   styles.submitBtn,
                   { 
                     backgroundColor: theme.primary,
-                    opacity: loginMutation.isPending ? 0.7 : 1,
+                    opacity: forgotPasswordMutation.isPending ? 0.7 : 1,
                     transform: [{ scale: pressed ? 0.98 : 1 }]
                   }
                 ]}
               >
-                {loginMutation.isPending ? (
+                {forgotPasswordMutation.isPending ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Text style={styles.submitBtnText}>Sign In</Text>
+                    <Text style={styles.submitBtnText}>Send Reset Link</Text>
                     <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
                   </>
                 )}
               </Pressable>
 
-              {/* Signup Link */}
+              {/* Back to Login */}
               <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: theme.muted }]}>New here?</Text>
-                <Link href="/(auth)/signup" replace={isAuthenticated} asChild>
+                <Link href="/(auth)/login" asChild>
                   <Pressable>
-                    <Text style={[styles.signUpLink, { color: theme.primary }]}>Create Account</Text>
+                    <Text style={[styles.signUpLink, { color: theme.primary }]}>Back to Login</Text>
                   </Pressable>
                 </Link>
               </View>
             </View>
-          </Animated.View>
-
-          {/* Security Indicator */}
-          <Animated.View
-            entering={FadeInDown.delay(1000).duration(800)}
-            style={styles.securityInfo}
-          >
-            <Ionicons
-              name="shield-checkmark"
-              size={14}
-              color={theme.surface === '#ffffff' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.5)'}
-            />
-            <Text style={[
-              styles.securityText,
-              { color: theme.surface === '#ffffff' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.5)' }
-            ]}>
-              AES-256 Bit Encrypted Connection
-            </Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -348,31 +348,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 30,
   },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: spacing.xl,
-  },
   form: {
     gap: spacing.lg,
   },
   inputGroup: {
     gap: 6,
   },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   label: {
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  forgotLabel: {
-    fontSize: 13,
-    fontWeight: '700',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -388,9 +374,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-  },
-  eyeBtn: {
-    padding: 10,
   },
   errorText: {
     color: '#ef4444',
@@ -424,24 +407,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     gap: 6,
   },
-  footerText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
   signUpLink: {
     fontSize: 14,
     fontWeight: '800',
-  },
-  securityInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.xl,
-    gap: 6,
-  },
-  securityText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
   },
 });

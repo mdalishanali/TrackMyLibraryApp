@@ -62,3 +62,16 @@ export const useSignupMutation = () => {
     },
   });
 };
+
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export const useForgotPasswordMutation = () => {
+  return useMutation<{ success: boolean; data: string }, AxiosError<ApiError>, ForgotPasswordPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await api.post('/auth/forgot-password', payload, { successToastMessage: 'Reset link sent' });
+      return data;
+    },
+  });
+};
