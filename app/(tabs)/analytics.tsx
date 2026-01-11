@@ -28,7 +28,7 @@ import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
 import { useAnalyticsQuery } from '@/hooks/use-analytics';
-import { useExpensesQuery, useCreateExpense, useDeleteExpense } from '@/hooks/use-expenses'; // Import expenses hooks
+import { useExpensesQuery, useCreateExpense, useDeleteExpense, useUpdateExpense, Expense } from '@/hooks/use-expenses'; // Import expenses hooks
 import { ExpenseFormModal } from '@/components/expenses/expense-form-modal';
 import { showToast } from '@/lib/toast';
 import { formatCurrency, formatDate } from '@/utils/format';
@@ -63,6 +63,7 @@ export default function AnalyticsScreen() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth.toString());
   const [viewMode, setViewMode] = useState<'income' | 'expenses'>('income');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
   const { data, isLoading, isRefetching, refetch } = useAnalyticsQuery({
     year: selectedYear,
@@ -76,6 +77,7 @@ export default function AnalyticsScreen() {
 
   const createExpense = useCreateExpense();
   const deleteExpense = useDeleteExpense();
+  const updateExpense = useUpdateExpense();
 
   const { width: screenWidth } = useWindowDimensions();
 
@@ -212,7 +214,10 @@ export default function AnalyticsScreen() {
             </View>
 
           <Pressable
-            onPress={() => setIsExpenseModalOpen(true)}
+            onPress={() => {
+              setSelectedExpense(null);
+              setIsExpenseModalOpen(true);
+            }}
             style={{
               position: 'absolute',
               top: 10,
@@ -617,7 +622,10 @@ export default function AnalyticsScreen() {
                 </Text>
               </View>
               <AppButton
-                onPress={() => setIsExpenseModalOpen(true)}
+                  onPress={() => {
+                    setSelectedExpense(null);
+                    setIsExpenseModalOpen(true);
+                  }}
                 variant="outline"
                 style={{ height: 36, paddingVertical: 0 }}
               >
@@ -633,7 +641,7 @@ export default function AnalyticsScreen() {
                 </View>
               ) : (
                 <>
-                  {expensesQuery.data.expenses.map((expense, idx) => (
+                      {expensesQuery.data.expenses.map((expense: any, idx: number) => (
                     <View key={expense._id} style={[styles.breakdownItem, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: theme.border + '50', paddingTop: 16 }]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                         <View style={[styles.avatar, { backgroundColor: '#EF444420' }]}>
@@ -646,12 +654,21 @@ export default function AnalyticsScreen() {
                       </View>
                       <View style={{ alignItems: 'flex-end', gap: 4 }}>
                         <Text style={[styles.adminTotal, { color: '#EF4444' }]}>{formatCurrency(expense.amount)}</Text>
-                        <Pressable hitSlop={10} onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                          deleteExpense.mutate(expense._id);
-                        }}>
-                          <Ionicons name="trash-outline" size={14} color={theme.muted} />
-                        </Pressable>
+                        <View style={{ flexDirection: 'row', gap: 16 }}>
+                          <Pressable hitSlop={10} onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setSelectedExpense(expense as unknown as Expense);
+                            setIsExpenseModalOpen(true);
+                          }}>
+                            <Ionicons name="create-outline" size={14} color={theme.primary} />
+                          </Pressable>
+                          <Pressable hitSlop={10} onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            deleteExpense.mutate(expense._id);
+                          }}>
+                            <Ionicons name="trash-outline" size={14} color={theme.muted} />
+                          </Pressable>
+                        </View>
                       </View>
                     </View>
                   ))}
@@ -664,18 +681,32 @@ export default function AnalyticsScreen() {
 
         <ExpenseFormModal
           visible={isExpenseModalOpen}
-          onClose={() => setIsExpenseModalOpen(false)}
+          initialValues={selectedExpense}
+          title={selectedExpense ? 'Edit Expense' : 'Add Expense'}
+          onClose={() => {
+            setIsExpenseModalOpen(false);
+            setSelectedExpense(null);
+          }}
           onSubmit={async (data) => {
             try {
-              await createExpense.mutateAsync(data);
+              if (selectedExpense) {
+                await updateExpense.mutateAsync({
+                  id: selectedExpense._id,
+                  payload: data
+                });
+                showToast('Expense Updated', 'success');
+              } else {
+                await createExpense.mutateAsync(data);
+                showToast('Expense Added', 'success');
+              }
               setIsExpenseModalOpen(false);
-              showToast('Expense Added', 'success');
+              setSelectedExpense(null);
             } catch (err) {
-              showToast('Failed to add expense', 'error');
+              showToast(selectedExpense ? 'Failed to update expense' : 'Failed to add expense', 'error');
             }
           }}
           theme={theme}
-          isSubmitting={createExpense.isPending}
+          isSubmitting={createExpense.isPending || updateExpense.isPending}
         />
 
         {/* Latest Payments */}

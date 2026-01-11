@@ -42,9 +42,11 @@ type Props = {
   onSubmit: (values: ExpenseFormValues) => void | Promise<void>;
   theme: ReturnType<typeof themeFor>;
   isSubmitting: boolean;
+  initialValues?: ExpenseFormValues | null;
+  title?: string;
 };
 
-export function ExpenseFormModal({ visible, onClose, onSubmit, theme, isSubmitting }: Props) {
+export function ExpenseFormModal({ visible, onClose, onSubmit, theme, isSubmitting, initialValues, title }: Props) {
   const insets = useSafeAreaInsets();
   
   const {
@@ -70,15 +72,19 @@ export function ExpenseFormModal({ visible, onClose, onSubmit, theme, isSubmitti
 
   useEffect(() => {
     if (visible) {
-      reset({
-        title: '',
-        amount: 0,
-        category: 'Other',
-        date: new Date().toISOString(),
-        description: '',
-      });
+      if (initialValues) {
+        reset(initialValues);
+      } else {
+        reset({
+          title: '',
+          amount: 0,
+          category: 'Other',
+          date: new Date().toISOString(),
+          description: '',
+        });
+      }
     }
-  }, [visible, reset]);
+  }, [visible, reset, initialValues]);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -100,7 +106,7 @@ export function ExpenseFormModal({ visible, onClose, onSubmit, theme, isSubmitti
               {/* Header */}
               <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <View>
-                   <Text style={[styles.title, { color: theme.text }]}>Add Expense</Text>
+                  <Text style={[styles.title, { color: theme.text }]}>{title || 'Add Expense'}</Text>
                    <Text style={[styles.subtitle, { color: theme.muted }]}>Track where your money is going</Text>
                 </View>
                 <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: theme.surfaceAlt }]}>

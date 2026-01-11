@@ -44,3 +44,17 @@ export const useDeleteSeats = () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
     },
   });
+
+export const useDeleteFloor = () =>
+  useMutation({
+    mutationFn: async (floor: number) => {
+      const { data } = await api.delete('/seats/floor', {
+        data: { floor },
+        successToastMessage: 'Floor deleted successfully'
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+    },
+  });

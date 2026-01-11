@@ -69,3 +69,18 @@ export const useDeleteExpense = () => {
       },
     });
   };
+
+export const useUpdateExpense = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: CreateExpenseInput }) => {
+      const { data } = await api.put(`/expenses/${id}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.revenue });
+    },
+  });
+};

@@ -607,6 +607,28 @@ export default function DashboardScreen() {
             fees: '0',
           } as StudentFormValues}
         />
+
+        <Animated.View
+          entering={FadeInDown.delay(1000).duration(800)}
+          style={styles.fabContainer}
+        >
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setIsStudentFormOpen(true);
+            }}
+            style={({ pressed }) => [
+              styles.fabButton,
+              { backgroundColor: theme.primary },
+              pressed && { transform: [{ scale: 0.95 }] }
+            ]}
+          >
+            <View style={styles.fabIcon}>
+              <Ionicons name="add" size={32} color="#fff" />
+            </View>
+            <Text style={styles.fabText}>New Member</Text>
+          </Pressable>
+        </Animated.View>
       </View>
     </SafeScreen>
   );
@@ -672,8 +694,33 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 24,
     right: 24,
+    zIndex: 100,
+  },
+  fabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    gap: 8,
+  },
+  fabIcon: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
   proIndicator: {
     position: 'absolute',

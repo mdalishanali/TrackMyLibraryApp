@@ -26,7 +26,7 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
-import { useCreateSeats, useSeatsQuery, useDeleteSeats } from '@/hooks/use-seats';
+import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor } from '@/hooks/use-seats';
 import { useCreateStudent } from '@/hooks/use-students';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
@@ -46,6 +46,7 @@ export default function SeatsScreen() {
   const seatsQuery = useSeatsQuery();
   const createSeats = useCreateSeats();
   const deleteSeats = useDeleteSeats();
+  const deleteFloor = useDeleteFloor();
   const router = useRouter();
   const createStudent = useCreateStudent();
   const { setup } = useLocalSearchParams();
@@ -73,7 +74,7 @@ export default function SeatsScreen() {
     title: string;
     description: string;
     onConfirm: () => void;
-    type: 'create' | 'delete';
+    type: 'create' | 'delete' | 'deleteFloor';
   }>({
     visible: false,
     title: '',
@@ -253,6 +254,22 @@ export default function SeatsScreen() {
                       <Ionicons name="close" size={20} color={theme.text} />
                     </Pressable>
                     <Pressable
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        const allIds = currentSeats.map(s => s._id);
+                        const isAllSelected = allIds.every(id => selectionSet.has(id));
+
+                        if (isAllSelected) {
+                          setSelectionSet(new Set());
+                        } else {
+                          setSelectionSet(new Set(allIds));
+                        }
+                      }}
+                      style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
+                    >
+                      <Ionicons name="checkmark-done-outline" size={20} color={theme.primary} />
+                    </Pressable>
+                    <Pressable
                       onPress={handleBulkDelete}
                       disabled={selectionSet.size === 0}
                       style={[
@@ -324,6 +341,29 @@ export default function SeatsScreen() {
                 <Pressable
                   key={f}
                   onPress={() => handleFloorSelect(f)}
+                  onLongPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    setConfirmConfig({
+                      visible: true,
+                      title: `Delete Level ${f}?`,
+                      description: `Are you sure you want to delete Level ${f}? All seats and student assignments on this floor will be permanently removed.`,
+                      type: 'deleteFloor',
+                      onConfirm: async () => {
+                        try {
+                          await deleteFloor.mutateAsync(Number(f));
+                          setConfirmConfig(prev => ({ ...prev, visible: false }));
+
+                          // Switch to another floor if available
+                          const remaining = floors.filter(fl => fl !== f && fl !== '0');
+                          if (remaining.length > 0) setActiveFloor(remaining[0]);
+                          else setActiveFloor(null);
+
+                        } catch (error) {
+                          Alert.alert('Error', (error as Error).message);
+                        }
+                      }
+                    });
+                  }}
                   style={({ pressed }) => [
                     styles.floorTab,
                     {
@@ -694,8 +734,8 @@ export default function SeatsScreen() {
           description={confirmConfig.description}
           onConfirm={confirmConfig.onConfirm}
           onCancel={() => setConfirmConfig(prev => ({ ...prev, visible: false }))}
-          destructive={confirmConfig.type === 'delete'}
-          loading={confirmConfig.type === 'delete' ? deleteSeats.isPending : createSeats.isPending}
+          destructive={confirmConfig.type === 'delete' || confirmConfig.type === 'deleteFloor'}
+          loading={confirmConfig.type === 'delete' ? deleteSeats.isPending : confirmConfig.type === 'deleteFloor' ? deleteFloor.isPending : createSeats.isPending}
         />
       </View>
     </SafeScreen>
