@@ -17,8 +17,11 @@ export const unstable_settings = {
 };
 
 
+import { useOTAUpdates } from '@/hooks/use-updates';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  useOTAUpdates();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

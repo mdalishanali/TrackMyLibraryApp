@@ -25,6 +25,7 @@ import { useUpdateProfile } from '@/hooks/use-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { showToast } from '@/lib/toast';
+import { useOTAUpdates } from '@/hooks/use-updates';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const updateProfile = useUpdateProfile();
   const router = useRouter();
+  const { checkManual } = useOTAUpdates({ autoCheck: false });
 
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -185,6 +187,27 @@ export default function ProfileScreen() {
                 >
                   Save Profile Changes
                 </AppButton>
+              </Animated.View>
+            </View>
+
+            <View style={styles.form}>
+              <Animated.View entering={FadeInDown.delay(700).duration(600)} style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>App Settings</Text>
+              </Animated.View>
+
+              <Animated.View entering={FadeInDown.delay(800).duration(600)}>
+                <AppButton
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    checkManual();
+                  }}
+                  variant="outline"
+                >
+                  Check for Updates
+                </AppButton>
+                <Text style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: theme.muted }}>
+                  Version 1.0.7
+                </Text>
               </Animated.View>
             </View>
         </ScrollView>
