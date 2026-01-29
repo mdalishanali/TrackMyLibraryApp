@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 const localAPIBaseUrl = "http://localhost:4000/api"
 
-export const API_BASE_URL = __DEV__
+export const API_BASE_URL = false
   ? localAPIBaseUrl
   : (process.env.EXPO_PUBLIC_API_URL || 'https://library-server-623984863088.asia-south1.run.app/api');
 

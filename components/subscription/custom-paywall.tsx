@@ -150,18 +150,15 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
                 >
                   <View style={styles.planInfo}>
                     <Text style={[styles.planTitle, { color: theme.text }]}>
-                      {isYearly ? 'Annual Plan' : 'Monthly Plan'}
+                      {isYearly ? 'Library Manager Pro Yearly' : 'Library Manager Pro Monthly'}
                     </Text>
-                    <Text style={[styles.planPrice, { color: theme.muted }]}>
+                    <Text style={[styles.planPrice, { color: theme.text }]}>
                       {pkg.product.priceString}
                     </Text>
-                    {isYearly && isSelected && (
-                      <View style={{ backgroundColor: theme.primary + '15', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 8, alignSelf: 'flex-start' }}>
-                        <Text style={{ fontSize: 13, color: theme.primary, fontWeight: '800' }}>
-                          {pkg.product.priceString.replace(/[0-9.,\s]/g, '')}{(pkg.product.price / 12).toFixed(2)} / month
-                        </Text>
-                      </View>
-                    )}
+                    <Text style={[styles.planPeriod, { color: theme.muted }]}>
+                      per {isYearly ? 'year' : 'month'}
+                    </Text>
+                    {/* Calculated monthly price removed per user request */}
                   </View>
                   {isYearly && (
                     <View style={[styles.badge, { backgroundColor: theme.primary }]}>
@@ -216,13 +213,19 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
               <Text style={styles.buyButtonText}>Unlock Pro Access</Text>
           )}
         </TouchableOpacity>
+        <View style={styles.billingNotice}>
+          <Text style={[styles.billingText, { color: theme.muted }]}>
+            Recurring billing. Cancel anytime.
+          </Text>
+        </View>
+
         <TouchableOpacity onPress={() => Purchases.restorePurchases()} style={styles.restoreBtn}>
           <Text style={[styles.restoreText, { color: theme.muted }]}>Restore Enrollment</Text>
         </TouchableOpacity>
 
         <View style={styles.legalLinks}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://lumbar-hyssop-0ce.notion.site/Terms-of-Service-2d3ce51ccc328015b6d7eac567dc03d7?source=copy_link')}>
-            <Text style={[styles.legalText, { color: theme.muted }]}>Terms of Service</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/')}>
+            <Text style={[styles.legalText, { color: theme.muted }]}>Terms of Use (EULA)</Text>
           </TouchableOpacity>
           <Text style={[styles.legalText, { color: theme.muted }]}>  •  </Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://lumbar-hyssop-0ce.notion.site/Privacy-Policy-2d3ce51ccc32800ea087fc6d0422511c?source=copy_link')}>
@@ -254,8 +257,11 @@ const styles = StyleSheet.create({
   plans: { gap: 12 },
   planCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 20, borderWidth: 2, justifyContent: 'space-between' },
   planInfo: { gap: 4 },
-  planTitle: { fontSize: 18, fontWeight: '800' },
-  planPrice: { fontSize: 15, fontWeight: '600' },
+  planTitle: { fontSize: 16, fontWeight: '700', opacity: 0.9, marginBottom: 2 },
+  planPrice: { fontSize: 24, fontWeight: '900' },
+  planPeriod: { fontSize: 14, fontWeight: '600', opacity: 0.7 },
+  billingNotice: { marginTop: 16, alignItems: 'center' },
+  billingText: { fontSize: 12, fontWeight: '600', opacity: 0.7 },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   footer: { padding: 24, paddingBottom: 40, borderTopWidth: 1 },
