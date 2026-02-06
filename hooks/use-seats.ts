@@ -58,3 +58,16 @@ export const useDeleteFloor = () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
     },
   });
+
+export const useRenameSection = () =>
+  useMutation({
+    mutationFn: async ({ oldFloor, newFloor }: { oldFloor: string; newFloor: string }) => {
+      const { data } = await api.put('/seats/floor/rename', { oldFloor, newFloor }, {
+        successToastMessage: 'Section renamed successfully'
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+    },
+  });

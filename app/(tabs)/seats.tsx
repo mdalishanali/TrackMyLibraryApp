@@ -30,7 +30,7 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
-import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor } from '@/hooks/use-seats';
+import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor, useRenameSection } from '@/hooks/use-seats';
 import { useCreateStudent, useUpdateStudent, useDeleteStudent } from '@/hooks/use-students';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
@@ -52,6 +52,7 @@ export default function SeatsScreen() {
   const createSeats = useCreateSeats();
   const deleteSeats = useDeleteSeats();
   const deleteFloor = useDeleteFloor();
+  const renameSection = useRenameSection();
   const router = useRouter();
   const createStudent = useCreateStudent();
   const { setup } = useLocalSearchParams();
@@ -77,6 +78,9 @@ export default function SeatsScreen() {
   const [selectedSeat, setSelectedSeat] = useState<null | any>(null);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isChangeSeatModalOpen, setIsChangeSeatModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [renamingSection, setRenamingSection] = useState<string | null>(null);
   const [seatChangeTarget, setSeatChangeTarget] = useState<any>(null);
   const [activeFloor, setActiveFloor] = useState<string | null>(null);
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -137,6 +141,23 @@ export default function SeatsScreen() {
   const handleFloorSelect = (f: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveFloor(f);
+  };
+
+  const handleRenameSection = async () => {
+    if (!renamingSection || !newSectionName.trim()) return;
+    
+    try {
+      await renameSection.mutateAsync({
+        oldFloor: renamingSection,
+        newFloor: newSectionName.trim()
+      });
+      setActiveFloor(newSectionName.trim());
+      setIsRenameModalOpen(false);
+      setRenamingSection(null);
+      setNewSectionName('');
+    } catch (error) {
+      Alert.alert('Error', (error as Error).message);
+    }
   };
 
   const onCreateSeats = () => {
@@ -431,27 +452,45 @@ export default function SeatsScreen() {
                   key={f}
                   onPress={() => handleFloorSelect(f)}
                   onLongPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                    setConfirmConfig({
-                      visible: true,
-                      title: `Delete Section ${f}?`,
-                      description: `Are you sure you want to delete Section ${f}? All seats and student assignments in this section will be permanently removed.`,
-                      type: 'deleteFloor',
-                      onConfirm: async () => {
-                        try {
-                          await deleteFloor.mutateAsync(Number(f));
-                          setConfirmConfig(prev => ({ ...prev, visible: false }));
-
-                          // Switch to another floor if available
-                          const remaining = floors.filter(fl => fl !== f && fl !== '0');
-                          if (remaining.length > 0) setActiveFloor(remaining[0]);
-                          else setActiveFloor(null);
-
-                        } catch (error) {
-                          Alert.alert('Error', (error as Error).message);
-                        }
-                      }
-                    });
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    Alert.alert(
+                      `Section: ${f}`,
+                      "Manage this section's name or layout.",
+                      [
+                        { 
+                          text: "Rename Section", 
+                          onPress: () => {
+                            setRenamingSection(f);
+                            setNewSectionName(f);
+                            setIsRenameModalOpen(true);
+                          }
+                        },
+                        { 
+                          text: "Delete Section", 
+                          style: "destructive", 
+                          onPress: () => {
+                            setConfirmConfig({
+                              visible: true,
+                              title: `Delete Section ${f}?`,
+                              description: `Are you sure you want to delete Section ${f}? All seats and student assignments in this section will be permanently removed.`,
+                              type: 'deleteFloor',
+                              onConfirm: async () => {
+                                try {
+                                  await deleteFloor.mutateAsync(f);
+                                  setConfirmConfig(prev => ({ ...prev, visible: false }));
+                                  const remaining = floors.filter(fl => fl !== f);
+                                  if (remaining.length > 0) setActiveFloor(remaining[0]);
+                                  else setActiveFloor(null);
+                                } catch (error) {
+                                  Alert.alert('Error', (error as Error).message);
+                                }
+                              }
+                            });
+                          }
+                        },
+                        { text: "Cancel", style: "cancel" }
+                      ]
+                    );
                   }}
                   style={({ pressed }) => [
                     styles.floorTab,
@@ -883,6 +922,57 @@ export default function SeatsScreen() {
           isSubmitting={updateStudent.isPending}
           studentName={seatChangeTarget?.name || ''}
         />
+
+        <Modal
+          visible={isRenameModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsRenameModalOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Animated.View entering={FadeInUp} style={[styles.modalContent, { backgroundColor: theme.surface, width: '90%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Rename Section</Text>
+                <Pressable onPress={() => setIsRenameModalOpen(false)}>
+                  <Ionicons name="close" size={24} color={theme.muted} />
+                </Pressable>
+              </View>
+
+              <View style={styles.form}>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: theme.muted }]}>New Section Name</Text>
+                  <TextInput
+                    value={newSectionName}
+                    onChangeText={setNewSectionName}
+                    autoFocus
+                    autoCapitalize="words"
+                    placeholder="e.g. Ground A, Hall 1"
+                    placeholderTextColor={theme.muted}
+                    style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt }]}
+                  />
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                  <AppButton
+                    variant="outline"
+                    onPress={() => setIsRenameModalOpen(false)}
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </AppButton>
+                  <AppButton
+                    onPress={handleRenameSection}
+                    loading={renameSection.isPending}
+                    style={{ flex: 1 }}
+                    disabled={!newSectionName.trim() || newSectionName === renamingSection}
+                  >
+                    Rename
+                  </AppButton>
+                </View>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
 
         <ConfirmDialog
           visible={confirmConfig.visible}
