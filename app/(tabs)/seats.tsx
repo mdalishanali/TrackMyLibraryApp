@@ -36,6 +36,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { showToast } from '@/lib/toast';
+import { useScreenView } from '@/hooks/use-screen-view';
 import { formatDate } from '@/utils/format';
 
 const { width, height } = Dimensions.get('window');
@@ -48,6 +50,10 @@ const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 export default function SeatsScreen() {
   const theme = useTheme();
+
+  // Track screen view
+  useScreenView('Seats');
+
   const seatsQuery = useSeatsQuery();
   const createSeats = useCreateSeats();
   const deleteSeats = useDeleteSeats();

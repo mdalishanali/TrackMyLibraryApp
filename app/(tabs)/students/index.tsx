@@ -36,6 +36,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
 import { formatDate } from '@/utils/format';
 import { openWhatsappWithMessage } from '@/utils/whatsapp';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +44,9 @@ export default function StudentsScreen() {
   const router = useRouter();
   const color = useColorScheme();
   const theme = useTheme();
+
+  // Track screen view
+  useScreenView('Students');
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');

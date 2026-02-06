@@ -33,6 +33,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getErrorMessage, useLoginMutation } from '@/hooks/use-auth-mutations';
 import { useTheme } from '@/hooks/use-theme';
 import { LoginFormValues, loginSchema } from '@/schemas/auth';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width } = Dimensions.get('window');
 
@@ -42,6 +43,9 @@ export default function Login() {
   const { isAuthenticated } = useAuth();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Track screen view
+  useScreenView('Login');
 
   // Setup form
   const {
@@ -137,7 +141,7 @@ export default function Login() {
             <View style={styles.form}>
               {/* Identifier Input */}
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.muted }]}>Identifier</Text>
+                <Text style={[styles.label, { color: theme.muted }]}>Mobile or Email</Text>
                 <Controller
                   control={control}
                   name="identifier"
@@ -153,7 +157,7 @@ export default function Login() {
                       <Ionicons name="mail-outline" size={20} color={focusedField === 'identifier' ? theme.primary : theme.muted} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.input, { color: theme.text }]}
-                        placeholder="Email or phone number"
+                        placeholder="Enter mobile no. or email"
                         placeholderTextColor={theme.muted}
                         autoCapitalize="none"
                         onFocus={() => setFocusedField('identifier')}
@@ -197,7 +201,7 @@ export default function Login() {
                       <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? theme.primary : theme.muted} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.input, { color: theme.text }]}
-                        placeholder="Enter password"
+                        placeholder="Enter your password"
                         placeholderTextColor={theme.muted}
                         secureTextEntry={!showPassword}
                         onFocus={() => setFocusedField('password')}

@@ -28,6 +28,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useCreatePayment, useInfinitePaymentsQuery } from '@/hooks/use-payments';
 import { useStudentsQuery } from '@/hooks/use-students';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 const monthOptions = [
   { label: 'Jan', value: '1' },
@@ -49,6 +50,10 @@ const yearOptions = ['2025', currentYear.toString()];
 
 export default function PaymentsScreen() {
   const theme = useTheme();
+
+  // Track screen view
+  useScreenView('Payments');
+
   // Student Dropdown Search
   const [studentDropdownSearch, setStudentDropdownSearch] = useState('');
   const [debouncedStudentDropdownSearch, setDebouncedStudentDropdownSearch] = useState('');

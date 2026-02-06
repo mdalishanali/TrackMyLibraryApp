@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-react-native';
 
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -20,19 +21,29 @@ export const useSeatsQuery = () =>
     },
   });
 
-export const useCreateSeats = () =>
-  useMutation({
+export const useCreateSeats = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async (payload: SeatRangePayload) => {
       const { data } = await api.post('/seats', payload, { successToastMessage: 'Seats created' });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('seats_created', {
+        floor: variables.floor,
+        seat_count: variables.endSeat - variables.startSeat + 1,
+      });
     },
   });
+};
 
-export const useDeleteSeats = () =>
-  useMutation({
+export const useDeleteSeats = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async (seatIds: string[]) => {
       const { data } = await api.delete('/seats/bulk', {
         data: { seatIds },
@@ -40,10 +51,15 @@ export const useDeleteSeats = () =>
       });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, seatIds) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('seats_deleted', {
+        seat_count: seatIds.length,
+      });
     },
   });
+};
 
 export const useDeleteFloor = () =>
   useMutation({

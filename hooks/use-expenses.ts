@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-react-native';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -42,45 +43,62 @@ export const useExpensesQuery = (params?: { year?: string; month?: string; calcu
 
 export const useCreateExpense = () => {
   const queryClient = useQueryClient();
+  const posthog = usePostHog();
 
   return useMutation({
     mutationFn: async (payload: CreateExpenseInput) => {
       const { data } = await api.post('/expenses', payload);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       // Also potentially invalidate dashboard data if it shows net profit
       queryClient.invalidateQueries({ queryKey: queryKeys.revenue });
+
+      posthog?.capture('expense_created', {
+        category: variables.category,
+        amount: variables.amount,
+      });
     },
   });
 };
 
 export const useDeleteExpense = () => {
     const queryClient = useQueryClient();
+  const posthog = usePostHog();
   
     return useMutation({
       mutationFn: async (id: string) => {
         await api.delete(`/expenses/${id}`);
       },
-      onSuccess: () => {
+      onSuccess: (data, id) => {
         queryClient.invalidateQueries({ queryKey: ['expenses'] });
         queryClient.invalidateQueries({ queryKey: queryKeys.revenue });
+
+        posthog?.capture('expense_deleted', {
+          expense_id: id,
+        });
       },
     });
   };
 
 export const useUpdateExpense = () => {
   const queryClient = useQueryClient();
+  const posthog = usePostHog();
 
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: CreateExpenseInput }) => {
       const { data } = await api.put(`/expenses/${id}`, payload);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.revenue });
+
+      posthog?.capture('expense_updated', {
+        expense_id: variables.id,
+        category: variables.payload.category,
+      });
     },
   });
 };

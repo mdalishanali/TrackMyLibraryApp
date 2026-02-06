@@ -19,6 +19,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAppearanceStore, AppearanceMode } from '@/hooks/use-appearance';
 import { getErrorMessage } from '@/hooks/use-auth-mutations';
 import { showToast } from '@/lib/toast';
+import { usePostHog } from 'posthog-react-native';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width } = Dimensions.get('window');
 
@@ -30,8 +32,12 @@ export default function SettingsScreen() {
   const { isPro, presentPaywall, restorePurchases, presentCustomerCenter, isExpiringSoon, daysRemainingText } = useSubscription();
   const deleteAccount = useDeleteAccount();
   const { mode } = useAppearanceStore();
+  const posthog = usePostHog();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Track screen view
+  useScreenView('Settings');
 
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
@@ -209,6 +215,7 @@ export default function SettingsScreen() {
               description="Recover your premium status"
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                posthog?.capture('restore_purchases_clicked', { source: 'settings' });
                 restorePurchases();
               }}
               themeTint={theme.info || '#63B3ED'}
@@ -334,6 +341,7 @@ export default function SettingsScreen() {
         onCancel={() => setShowLogoutConfirm(false)}
         onConfirm={() => {
           setShowLogoutConfirm(false);
+          posthog?.capture('user_logged_out');
           logout();
           router.replace('/(auth)/login');
         }}

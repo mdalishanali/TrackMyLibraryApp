@@ -32,6 +32,7 @@ import { useExpensesQuery, useCreateExpense, useDeleteExpense, useUpdateExpense,
 import { ExpenseFormModal } from '@/components/expenses/expense-form-modal';
 import { showToast } from '@/lib/toast';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width } = Dimensions.get('window');
 
@@ -57,6 +58,10 @@ const yearOptions = ['2025', currentYear.toString()];
 
 export default function AnalyticsScreen() {
   const theme = useTheme();
+
+  // Track screen view
+  useScreenView('Analytics');
+
   const monthScrollRef = useRef<ScrollView>(null);
   const chartScrollRef = useRef<ScrollView>(null);
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());

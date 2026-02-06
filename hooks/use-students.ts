@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-react-native';
 
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -58,8 +59,10 @@ export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: stri
     },
   });
 
-export const useCreateStudent = () =>
-  useMutation({
+export const useCreateStudent = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async ({ payload, onProgress }: { payload: StudentPayload; onProgress?: (p: number) => void }) => {
       let finalProfilePicture = payload.profilePicture;
 
@@ -71,15 +74,26 @@ export const useCreateStudent = () =>
       const { data } = await api.post('/students', { ...payload, profilePicture: finalProfilePicture }, { successToastMessage: 'Student created' });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('student_created', {
+        student_name: variables.payload.name,
+        has_seat: !!variables.payload.seat,
+        shift: variables.payload.shift || 'none',
+        fees: variables.payload.fees || 0,
+        has_profile_picture: !!variables.payload.profilePicture,
+      });
     },
   });
+};
 
-export const useUpdateStudent = (id?: string) =>
-  useMutation({
+export const useUpdateStudent = (id?: string) => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async ({ payload, id: overrideId, onProgress }: { payload: Partial<StudentPayload>; id?: string; onProgress?: (p: number) => void }) => {
       const targetId = overrideId || id;
       if (!targetId) throw new Error('Missing student id');
@@ -94,22 +108,35 @@ export const useUpdateStudent = (id?: string) =>
       const { data } = await api.put(`/students/${targetId}`, { ...payload, profilePicture: finalProfilePicture });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('student_updated', {
+        student_id: variables.id || id || 'unknown',
+        fields_updated: Object.keys(variables.payload),
+      });
     },
   });
+};
 
-export const useDeleteStudent = () =>
-  useMutation({
+export const useDeleteStudent = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.delete(`/students/${id}`);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('student_deleted', {
+        student_id: id,
+      });
     },
   });
+};

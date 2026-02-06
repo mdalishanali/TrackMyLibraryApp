@@ -30,12 +30,16 @@ import { spacing, radius } from '@/constants/design';
 import { getErrorMessage, useForgotPasswordMutation } from '@/hooks/use-auth-mutations';
 import { useTheme } from '@/hooks/use-theme';
 import { ForgotPasswordFormValues, forgotPasswordSchema } from '@/schemas/auth';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 export default function ForgotPassword() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isEmailSent, setIsEmailSent] = useState(false);
+
+  // Track screen view
+  useScreenView('Forgot Password');
 
   // Setup form
   const {

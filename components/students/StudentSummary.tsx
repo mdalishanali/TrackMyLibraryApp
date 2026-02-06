@@ -2,6 +2,7 @@ import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
+import { usePostHog } from 'posthog-react-native';
 
 import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
@@ -311,11 +312,16 @@ export function TimeSlots({ student, theme }: { student: Student; theme: Theme }
 }
 
 export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }) {
+  const posthog = usePostHog();
+
   return (
     <View style={styles.actions}>
       {actions.onView ? (
         <TouchableOpacity
-          onPress={actions.onView}
+          onPress={() => {
+            posthog?.capture('student_view_clicked');
+            actions.onView?.();
+          }}
           style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
         >
           <Ionicons name="eye-outline" size={18} color={theme.text} />
@@ -324,7 +330,10 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
       ) : null}
       {actions.onEdit ? (
         <TouchableOpacity
-          onPress={actions.onEdit}
+          onPress={() => {
+            posthog?.capture('student_edit_clicked');
+            actions.onEdit?.();
+          }}
           style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
         >
           <Ionicons name="create-outline" size={18} color={theme.text} />
@@ -333,7 +342,10 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
       ) : null}
       {actions.onPay ? (
         <TouchableOpacity
-          onPress={actions.onPay}
+          onPress={() => {
+            posthog?.capture('student_pay_clicked');
+            actions.onPay?.();
+          }}
           style={[styles.actionBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]}
         >
           <Ionicons name="wallet-outline" size={18} color="#fff" />
@@ -343,7 +355,10 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
 
       {actions.onDelete ? (
         <TouchableOpacity
-          onPress={actions.onDelete}
+          onPress={() => {
+            posthog?.capture('student_delete_clicked');
+            actions.onDelete?.();
+          }}
           style={[styles.actionIconBtn, { backgroundColor: theme.danger + '10', borderColor: theme.border }]}
         >
           <Ionicons name="trash-outline" size={20} color={theme.danger} />

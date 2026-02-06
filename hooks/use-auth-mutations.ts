@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { usePostHog } from 'posthog-react-native';
 
 import { api } from '@/lib/api-client';
 import { AuthUser } from '@/store/auth';
@@ -37,6 +38,7 @@ export const getErrorMessage = (error: unknown) => {
 
 export const useLoginMutation = () => {
   const { setAuth } = useAuth();
+  const posthog = usePostHog();
 
   return useMutation<AuthResponse, AxiosError<ApiError>, LoginPayload>({
     mutationFn: async (payload) => {
@@ -45,12 +47,23 @@ export const useLoginMutation = () => {
     },
     onSuccess: ({ user, token }) => {
       setAuth({ user, token });
+      posthog?.capture('user_logged_in', {
+        user_id: user.id || user._id || 'unknown',
+        email: user.email || 'unknown',
+        library_name: user.company?.businessName || 'unknown',
+      });
+      posthog?.identify(user.id || user._id || 'unknown', {
+        email: user.email || 'unknown',
+        name: user.name || 'unknown',
+        library_name: user.company?.businessName || 'unknown',
+      });
     },
   });
 };
 
 export const useSignupMutation = () => {
   const { setAuth } = useAuth();
+  const posthog = usePostHog();
 
   return useMutation<AuthResponse, AxiosError<ApiError>, SignupPayload>({
     mutationFn: async (payload) => {
@@ -59,6 +72,17 @@ export const useSignupMutation = () => {
     },
     onSuccess: ({ user, token }) => {
       setAuth({ user, token });
+      posthog?.capture('user_signed_up', {
+        user_id: user.id || user._id || 'unknown',
+        email: user.email || 'unknown',
+        library_name: user.company?.businessName || 'unknown',
+        platform: 'mobile',
+      });
+      posthog?.identify(user.id || user._id || 'unknown', {
+        email: user.email || 'unknown',
+        name: user.name || 'unknown',
+        library_name: user.company?.businessName || 'unknown',
+      });
     },
   });
 };

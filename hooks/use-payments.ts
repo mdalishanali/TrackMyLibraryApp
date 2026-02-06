@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-react-native';
 
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
@@ -28,7 +29,7 @@ export type PaymentFilters = {
   student?: string;
   year?: string;
   month?: string;
-  paymentMode?: 'cash' | 'upi';
+  paymentMode?: 'cash' | 'upi' | 'online';
   search?: string;
   limit?: number;
 };
@@ -71,29 +72,59 @@ const invalidatePaymentRelatedQueries = () => {
   queryClient.invalidateQueries({ queryKey: queryKeys.revenue });
 };
 
-export const useCreatePayment = () =>
-  useMutation({
+export const useCreatePayment = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async (payload: PaymentPayload) => {
       const { data } = await api.post('/payments', payload, { successToastMessage: 'Payment recorded' });
       return data;
     },
-    onSuccess: invalidatePaymentRelatedQueries,
-  });
+    onSuccess: (data, variables) => {
+      invalidatePaymentRelatedQueries();
 
-export const useUpdatePayment = () =>
-  useMutation({
+      posthog?.capture('payment_recorded', {
+        amount: variables.rupees,
+        payment_mode: variables.paymentMode,
+        student_id: variables.student,
+      });
+    },
+  });
+};
+
+export const useUpdatePayment = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async ({ id, ...payload }: { id: string } & Partial<PaymentPayload>) => {
       const { data } = await api.put(`/payments/${id}`, payload);
       return data;
     },
-    onSuccess: invalidatePaymentRelatedQueries,
-  });
+    onSuccess: (data, variables) => {
+      invalidatePaymentRelatedQueries();
 
-export const useDeletePayment = () =>
-  useMutation({
+      posthog?.capture('payment_updated', {
+        payment_id: variables.id,
+        fields_updated: Object.keys(variables).filter(k => k !== 'id'),
+      });
+    },
+  });
+};
+
+export const useDeletePayment = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.delete(`/payments/${id}`);
       return data;
     },
-    onSuccess: invalidatePaymentRelatedQueries,
+    onSuccess: (data, id) => {
+      invalidatePaymentRelatedQueries();
+
+      posthog?.capture('payment_deleted', {
+        payment_id: id,
+      });
+    },
   });
+};

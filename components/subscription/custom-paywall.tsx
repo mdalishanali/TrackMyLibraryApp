@@ -28,6 +28,7 @@ import Animated, {
   withSpring
 } from 'react-native-reanimated';
 import { logErrorToDiscord } from '@/lib/discord';
+import { usePostHog } from 'posthog-react-native';
 
 const { width, height } = Dimensions.get('window');
 const ILLUSTRATION = require('../../assets/images/subscription_premium_illustration.jpg');
@@ -41,11 +42,20 @@ interface CustomPaywallProps {
 export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchaseSuccess, isBlocked }) => {
   const theme = useTheme();
   const { logout, user } = useAuth();
+  const posthog = usePostHog();
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [trialTimeLeft, setTrialTimeLeft] = useState<string>('');
+
+  // Track paywall view
+  useEffect(() => {
+    posthog?.capture('paywall_viewed', {
+      is_blocked: isBlocked || false,
+      trial_time_left: trialTimeLeft || 'none',
+    });
+  }, []);
 
   // Animation values
   const buttonScale = useSharedValue(1);
@@ -119,15 +129,34 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
     setIsPurchasing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    posthog?.capture('purchase_button_clicked', {
+      package_id: selectedPackage.identifier,
+      package_type: selectedPackage.packageType,
+      price: selectedPackage.product.price,
+    });
+
     try {
       const { customerInfo } = await Purchases.purchasePackage(selectedPackage);
       if (customerInfo.entitlements.active['Library Manager TrackMyLibrary Pro']) {
+        posthog?.capture('subscription_purchased', {
+          package_id: selectedPackage.identifier,
+          package_type: selectedPackage.packageType,
+          price: selectedPackage.product.price,
+        });
         onPurchaseSuccess();
       }
     } catch (e: any) {
       if (!e.userCancelled) {
+        posthog?.capture('purchase_failed', {
+          package_id: selectedPackage.identifier,
+          error: e.message,
+        });
         logErrorToDiscord(e, `Purchase Failed: ${selectedPackage.product.identifier}`);
         Alert.alert('Error', 'Failed to process purchase. Please try again.');
+      } else {
+        posthog?.capture('purchase_cancelled', {
+          package_id: selectedPackage.identifier,
+        });
       }
     } finally {
       setIsPurchasing(false);
@@ -246,7 +275,14 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
                 <TouchableOpacity
                   key={pkg.identifier}
                   activeOpacity={0.8}
-                  onPress={() => setSelectedPackage(pkg)}
+                  onPress={() => {
+                    posthog?.capture('package_selected', {
+                      package_id: pkg.identifier,
+                      package_type: pkg.packageType,
+                      price: pkg.product.price,
+                    });
+                    setSelectedPackage(pkg);
+                  }}
                 >
                   <Animated.View 
                     style={[
@@ -295,14 +331,20 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
             </Text>
             <View style={styles.contactButtons}>
               <TouchableOpacity
-                onPress={() => Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with my account/subscription.')}`)}
+                onPress={() => {
+                  posthog?.capture('support_contacted', { method: 'whatsapp', source: 'paywall' });
+                  Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with my account/subscription.')}`);
+                }}
                 style={[styles.contactBtn, { backgroundColor: '#25D366' }]}
               >
                 <Ionicons name="logo-whatsapp" size={20} color="#fff" />
                 <Text style={styles.contactBtnText}>WhatsApp</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => Linking.openURL(`mailto:md.alishanali88@gmail.com?subject=${encodeURIComponent('TrackMyLibrary Support Request')}&body=${encodeURIComponent('Hello Team,\n\nI need help with...')}`)}
+                onPress={() => {
+                  posthog?.capture('support_contacted', { method: 'email', source: 'paywall' });
+                  Linking.openURL(`mailto:md.alishanali88@gmail.com?subject=${encodeURIComponent('TrackMyLibrary Support Request')}&body=${encodeURIComponent('Hello Team,\n\nI need help with...')}`);
+                }}
                 style={[styles.contactBtn, { backgroundColor: '#0EA5E9' }]}
               >
                 <Ionicons name="mail" size={20} color="#fff" />
@@ -342,7 +384,10 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
           </Text>
         </View>
 
-        <TouchableOpacity onPress={() => Purchases.restorePurchases()} style={styles.restoreBtn}>
+        <TouchableOpacity onPress={() => {
+          posthog?.capture('restore_purchases_clicked', { source: 'paywall' });
+          Purchases.restorePurchases();
+        }} style={styles.restoreBtn}>
           <Text style={[styles.restoreText, { color: '#64748B' }]}>Restore Purchase</Text>
         </TouchableOpacity>
 

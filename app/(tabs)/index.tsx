@@ -23,6 +23,7 @@ import { useSeatsQuery } from '@/hooks/use-seats';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { useCreateStudent } from '@/hooks/use-students';
 import { showToast } from '@/lib/toast';
+import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width, height } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
@@ -356,6 +357,9 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { isPro } = useSubscription();
+
+  // Track screen view
+  useScreenView('Dashboard');
 
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
 

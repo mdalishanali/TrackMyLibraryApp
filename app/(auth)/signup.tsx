@@ -1,3 +1,4 @@
+import { useScreenView } from '@/hooks/use-screen-view';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -48,6 +49,9 @@ const TOTAL_STEPS = 2;
 
 export default function Signup() {
   const theme = useTheme();
+
+  // Track screen view
+  useScreenView('Signup');
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -229,11 +233,11 @@ export default function Signup() {
             <Animated.View entering={FadeInUp.delay(500).duration(800)}>
               <Text style={styles.kicker}>JOIN THE EXPERTS</Text>
               <Text style={styles.title}>
-                {step === 1 ? 'Workspace Setup' : 'Your Profile'}
+                {step === 1 ? 'Workspace Setup' : 'Administrator Profile'}
               </Text>
               <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
                 {step === 1
-                  ? 'First, let\'s give your library a home.'
+                  ? 'First, let\'s set up your digital library.'
                   : 'Almost there! Who will be managing this space?'}
               </Text>
             </Animated.View>
@@ -272,7 +276,7 @@ export default function Signup() {
                     returnKeyType: 'next',
                   })}
 
-                  {renderInputField('businessAddress', 'Location', 'City Center, Main St', 'location-outline', {
+                  {renderInputField('businessAddress', 'City / Location', 'City Center, Main St', 'location-outline', {
                     autoCapitalize: 'words',
                     returnKeyType: 'next',
                   })}
@@ -304,7 +308,7 @@ export default function Signup() {
                   <Pressable onPress={handlePrevStep} hitSlop={10}>
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                   </Pressable>
-                  <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 0 }]}>Administrator</Text>
+                  <Text style={[styles.cardTitle, { color: theme.text, marginBottom: 0 }]}>Your Profile</Text>
                   <View style={{ width: 24 }} />
                 </View>
 

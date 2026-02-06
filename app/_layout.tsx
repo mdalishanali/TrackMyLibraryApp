@@ -19,6 +19,10 @@ export const unstable_settings = {
 
 import { useOTAUpdates } from '@/hooks/use-updates';
 
+import { PostHogProvider } from 'posthog-react-native';
+
+// ... imports
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   useOTAUpdates();
@@ -27,22 +31,38 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryProvider>
-          <SubscriptionProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <ActivityProvider>
-                <Stack>
-                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="profile" options={{ headerShown: false }} />
-                  <Stack.Screen name="student-detail/[id]" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/setup" options={{ headerShown: false }} />
-                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                </Stack>
-              </ActivityProvider>
-              <StatusBar style="auto" />
-            </ThemeProvider>
-            <Toast config={toastConfig} />
-          </SubscriptionProvider>
+          <PostHogProvider
+            apiKey="phc_dltVo9iYK5gTfaYXBpcLEiKpaRRnvUHQL7cWDZLjMej"
+            options={{
+              host: "https://us.i.posthog.com",
+              enableSessionReplay: true,
+              sessionReplayConfig: {
+                maskAllTextInputs: true,
+                maskAllImages: true,
+                captureLog: true,
+                captureNetworkTelemetry: true,
+                throttleDelayMs: 1000,
+              },
+            }}
+          >
+            <SubscriptionProvider>
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <ActivityProvider>
+                  <Stack>
+                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="profile" options={{ headerShown: false }} />
+                    <Stack.Screen name="student-detail/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="onboarding/setup" options={{ headerShown: false }} />
+                    <Stack.Screen name="index" options={{ headerShown: false }} />
+                    <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                  </Stack>
+                </ActivityProvider>
+                <StatusBar style="auto" />
+              </ThemeProvider>
+              <Toast config={toastConfig} />
+            </SubscriptionProvider>
+          </PostHogProvider>
         </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
