@@ -25,8 +25,12 @@ export default function TabLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 14);
-  const tabHeight = Platform.OS === 'ios' ? 64 + bottomInset : 74 + (insets.bottom > 0 ? insets.bottom / 2 : 0);
+  // Increased Android bottom inset to prevent overlap with system navigation
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 16);
+  // Adjusted Android height calculation to be more generous
+  const tabHeight = Platform.OS === 'ios'
+    ? 60 + bottomInset
+    : 66 + (insets.bottom > 0 ? insets.bottom : 16);
 
   return (
     <Tabs
