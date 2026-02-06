@@ -143,6 +143,19 @@ export default function SeatsScreen() {
     setActiveFloor(f);
   };
 
+  const handleOpenAddSeats = () => {
+    if (!activeFloor) return;
+    const seats = currentSeats;
+    const lastSeatNumber = seats.length > 0
+      ? Math.max(...seats.map(s => Number(s.seatNumber)))
+      : 0;
+
+    setFloor(activeFloor);
+    setStartSeat(String(lastSeatNumber + 1));
+    setEndSeat('');
+    setIsModalOpen(true);
+  };
+
   const handleRenameSection = async () => {
     if (!renamingSection || !newSectionName.trim()) return;
     
@@ -650,6 +663,28 @@ export default function SeatsScreen() {
                   </Animated.View>
                 );
               })
+            )}
+
+            {!isSelectionMode && activeFloor && currentSeats.length > 0 && (
+              <TouchableOpacity
+                onPress={handleOpenAddSeats}
+                style={[
+                  styles.addMoreBtn,
+                  {
+                    width: cardWidth,
+                    height: 135,
+                    borderColor: theme.border,
+                    backgroundColor: theme.surfaceAlt + '40'
+                  }
+                ]}
+              >
+                <View style={[styles.addMoreCircle, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="add" size={24} color={theme.primary} />
+                </View>
+                <Text style={[styles.addMoreText, { color: theme.muted }]}>
+                  ADD MORE SEATS TO {activeFloor.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
             )}
           </Animated.View>
         </ScrollView>
@@ -1496,5 +1531,28 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '800',
+  },
+  addMoreBtn: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  addMoreCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addMoreText: {
+    fontSize: 10,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    lineHeight: 14,
   },
 });
