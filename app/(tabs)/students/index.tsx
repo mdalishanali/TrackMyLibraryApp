@@ -37,6 +37,7 @@ import { showToast } from '@/lib/toast';
 import { formatDate } from '@/utils/format';
 import { openWhatsappWithMessage } from '@/utils/whatsapp';
 import { useScreenView } from '@/hooks/use-screen-view';
+import { usePostHog } from 'posthog-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +45,7 @@ export default function StudentsScreen() {
   const router = useRouter();
   const color = useColorScheme();
   const theme = useTheme();
+  const posthog = usePostHog();
 
   // Track screen view
   useScreenView('Students');
@@ -101,15 +103,17 @@ export default function StudentsScreen() {
 
   const openCreateForm = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    posthog?.capture('add_student_button_clicked');
     setEditingStudent(null);
     setIsStudentFormOpen(true);
-  }, []);
+  }, [posthog]);
 
   const openEditForm = useCallback((id: string) => {
+    posthog?.capture('edit_student_form_opened');
     const s = students.find(u => u._id === id);
     setEditingStudent(s ?? null);
     setIsStudentFormOpen(true);
-  }, [students]);
+  }, [students, posthog]);
 
   const removeStudent = useCallback((id: string) => {
     const s = students.find(u => u._id === id);
@@ -117,9 +121,10 @@ export default function StudentsScreen() {
   }, [students]);
 
   const openPayment = useCallback((student: any) => {
+    posthog?.capture('payment_form_modal_opened');
     setPaymentStudent(student);
     setIsPaymentFormOpen(true);
-  }, []);
+  }, [posthog]);
 
   const handleSendReminder = useCallback(async (student: any) => {
     setReminderTarget(student);
@@ -158,8 +163,9 @@ export default function StudentsScreen() {
   }, [studentsQuery.hasNextPage, studentsQuery.isFetchingNextPage]);
 
   const handleRefresh = useCallback(() => {
+    posthog?.capture('students_pull_to_refresh');
     studentsQuery.refetch();
-  }, [studentsQuery.refetch]);
+  }, [studentsQuery.refetch, posthog]);
 
   const mapToForm = (s: Student | null): StudentFormValues => {
     const d = new Date().toISOString();
@@ -373,7 +379,10 @@ export default function StudentsScreen() {
 
       <StudentFormModal
         visible={isStudentFormOpen}
-        onClose={() => setIsStudentFormOpen(false)}
+        onClose={() => {
+          posthog?.capture('student_form_modal_closed');
+          setIsStudentFormOpen(false);
+        }}
         onSubmit={saveStudent}
         initialValues={initialFormValues}
         seats={seats}
@@ -384,7 +393,10 @@ export default function StudentsScreen() {
 
       <PaymentFormModal
         visible={isPaymentFormOpen}
-        onClose={() => setIsPaymentFormOpen(false)}
+        onClose={() => {
+          posthog?.capture('payment_form_modal_closed');
+          setIsPaymentFormOpen(false);
+        }}
         initialValues={buildPaymentDefaults(paymentStudent)}
         theme={theme}
         disabled={!paymentStudent?._id}

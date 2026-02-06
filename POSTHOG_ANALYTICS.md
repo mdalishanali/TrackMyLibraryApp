@@ -69,24 +69,62 @@ Comprehensive event tracking across the Track My Library app using PostHog with 
     - Triggered: When user clicks Delete button on student card
     - Properties: None
 
+11. **add_student_button_clicked**
+    - Triggered: When user clicks "New Member" floating action button
+    - Properties: None
+
+12. **edit_student_form_opened**
+    - Triggered: When student edit form is opened
+    - Properties: None
+
+13. **student_searched**
+    - Triggered: When user searches for students (debounced to 500ms after typing stops)
+    - Properties:
+      - `query_length`: Length of search query
+
+14. **search_cleared**
+    - Triggered: When user clears the search input
+    - Properties: None
+
+15. **student_filter_applied**
+    - Triggered: When user applies a filter (recent, paid, dues, trial, active, inactive, unallocated)
+    - Properties:
+      - `filter`: Filter type selected
+
+16. **students_pull_to_refresh**
+    - Triggered: When user pulls down to refresh students list
+    - Properties: None
+
+17. **student_form_modal_closed**
+    - Triggered: When student form modal is dismissed/closed
+    - Properties: None
+
 ### Payment Events
-7. **payment_recorded**
+18. **payment_recorded**
    - Triggered: When a new payment is recorded
    - Properties:
      - `amount`: Payment amount in rupees
      - `payment_mode`: 'cash', 'upi', or 'online'
      - `student_id`: Student identifier
 
-8. **payment_updated**
+19. **payment_updated**
    - Triggered: When payment details are modified
    - Properties:
      - `payment_id`: Payment identifier
      - `fields_updated`: Array of field names changed
 
-9. **payment_deleted**
+20. **payment_deleted**
    - Triggered: When a payment record is removed
    - Properties:
      - `payment_id`: Payment identifier
+
+21. **payment_form_modal_opened**
+    - Triggered: When payment form modal is opened
+    - Properties: None
+
+22. **payment_form_modal_closed**
+    - Triggered: When payment form modal is dismissed/closed
+    - Properties: None
 
 ### WhatsApp Events
 10. **whatsapp_fee_reminder_sent**
@@ -123,6 +161,12 @@ Comprehensive event tracking across the Track My Library app using PostHog with 
     - Triggered: When seats are deleted in bulk
     - Properties:
       - `seat_count`: Number of seats deleted
+
+### Navigation Events
+23. **tab_switched**
+    - Triggered: When user switches between bottom navigation tabs
+    - Properties:
+      - `tab_name`: Name of tab switched to ('Home', 'Students', 'Seats', 'Payments', 'Analytics', 'Settings')
 
 ### Screen View Events
 16. **Login** (Screen View)
@@ -241,13 +285,14 @@ Comprehensive event tracking across the Track My Library app using PostHog with 
       - `source`: Where action was triggered (e.g., 'paywall')
 
 ## Summary
-**Total Events: 41** covering:
+**Total Events: 51** covering:
 - Authentication (3)
-- Student Management (7) - includes 4 button click events
-- Payments (3)
+- Student Management (17) - includes CRUD + button clicks + search + filters + modals
+- Payments (5) - includes CRUD + modal tracking
 - WhatsApp Communications (3)
 - Onboarding (1)
 - Seat Management (2)
+- Navigation (1) - tab switching
 - Screen Views (9)
 - Profile & Account (2)
 - Expense Management (3)
@@ -285,16 +330,19 @@ Comprehensive event tracking across the Track My Library app using PostHog with 
 - `/hooks/use-expenses.ts` - Expense tracking events
 - `/hooks/use-screen-view.ts` - Screen tracking hook
 - `/app/(tabs)/index.tsx` - Dashboard screen tracking
-- `/app/(tabs)/students/index.tsx` - Students screen tracking
+- `/app/(tabs)/students/index.tsx` - Students screen tracking + interaction tracking
 - `/app/(tabs)/payments.tsx` - Payments screen tracking
 - `/app/(tabs)/seats.tsx` - Seats screen tracking
 - `/app/(tabs)/analytics.tsx` - Analytics screen tracking
 - `/app/(tabs)/settings.tsx` - Settings screen tracking + logout/restore
+- `/app/(tabs)/_layout.tsx` - Tab navigation tracking
 - `/app/(auth)/login.tsx` - Login screen tracking
 - `/app/(auth)/signup.tsx` - Signup screen tracking
 - `/app/(auth)/forgot-password.tsx` - Forgot Password screen tracking
 - `/components/subscription/custom-paywall.tsx` - Paywall tracking
 - `/components/students/StudentSummary.tsx` - Student button click tracking
+- `/components/students/StudentSearchBar.tsx` - Search tracking
+- `/components/students/StudentFilters.tsx` - Filter tracking
 
 ## Next Steps to See Events
 1. Build the app with native modules:

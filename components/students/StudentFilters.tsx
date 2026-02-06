@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { ScrollView, Text, StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { usePostHog } from 'posthog-react-native';
 
 import { spacing, radius, typography } from '@/constants/design';
 
@@ -16,6 +17,8 @@ const FILTERS = [
 ];
 
 const StudentFilters = memo(({ selected, setSelected, theme }: { selected: string; setSelected: (v: string) => void; theme: any }) => {
+  const posthog = usePostHog();
+
   return (
     <View style={styles.wrapper}>
       <ScrollView
@@ -31,6 +34,7 @@ const StudentFilters = memo(({ selected, setSelected, theme }: { selected: strin
               key={value}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                posthog?.capture('student_filter_applied', { filter: value });
                 setSelected(value);
               }}
               style={({ pressed }) => [

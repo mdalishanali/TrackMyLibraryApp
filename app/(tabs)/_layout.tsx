@@ -10,12 +10,18 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
+import { usePostHog } from 'posthog-react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const designTheme = useTheme();
   const { hydrated, isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
+  const posthog = usePostHog();
+
+  const handleTabPress = (tabName: string) => {
+    posthog?.capture('tab_switched', { tab_name: tabName });
+  };
 
   if (!hydrated) {
     return <FullScreenLoader message="Restoring your session..." />;
@@ -61,12 +67,18 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="square.grid.2x2.fill" color={color} />,
         }}
+        listeners={{
+          tabPress: () => handleTabPress('Home'),
+        }}
       />
       <Tabs.Screen
         name="students"
         options={{
           title: 'Students',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.2.fill" color={color} />,
+        }}
+        listeners={{
+          tabPress: () => handleTabPress('Students'),
         }}
       />
       <Tabs.Screen
@@ -75,12 +87,18 @@ export default function TabLayout() {
           title: 'Seats',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="rectangle.grid.2x2" color={color} />,
         }}
+        listeners={{
+          tabPress: () => handleTabPress('Seats'),
+        }}
       />
       <Tabs.Screen
         name="payments"
         options={{
           title: 'Payments',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="creditcard.fill" color={color} />,
+        }}
+        listeners={{
+          tabPress: () => handleTabPress('Payments'),
         }}
       />
       <Tabs.Screen
@@ -89,12 +107,18 @@ export default function TabLayout() {
           title: 'Analytics',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.bar.fill" color={color} />,
         }}
+        listeners={{
+          tabPress: () => handleTabPress('Analytics'),
+        }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="gearshape.fill" color={color} />,
+        }}
+        listeners={{
+          tabPress: () => handleTabPress('Settings'),
         }}
       />
     </Tabs>

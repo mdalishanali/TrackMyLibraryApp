@@ -1,6 +1,7 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { usePostHog } from 'posthog-react-native';
 
 import { spacing, radius, typography } from '@/constants/design';
 
@@ -11,6 +12,26 @@ interface StudentSearchBarProps {
 }
 
 const StudentSearchBar = memo(({ search, setSearch, theme }: StudentSearchBarProps) => {
+  const posthog = usePostHog();
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    // Debounce search tracking - only track after user stops typing for 500ms
+    if (search && search.length > 2) {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      searchTimeoutRef.current = setTimeout(() => {
+        posthog?.capture('student_searched', { query_length: search.length });
+      }, 500);
+    }
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [search, posthog]);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.surfaceAlt + '40', borderColor: theme.border }]}>
       <Ionicons name="search" size={20} color={theme.primary} />
@@ -24,7 +45,10 @@ const StudentSearchBar = memo(({ search, setSearch, theme }: StudentSearchBarPro
       />
       {search?.length ? (
         <TouchableOpacity 
-            onPress={() => setSearch('')}
+          onPress={() => {
+            posthog?.capture('search_cleared');
+            setSearch('');
+          }}
           style={styles.clearBtn}
         >
           <Ionicons name="close-circle" size={20} color={theme.muted} />
