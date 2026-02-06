@@ -16,6 +16,8 @@ interface SubscriptionContextType {
   checkSubscriptionStatus: () => Promise<void>;
   daysRemainingText: string | null;
   isExpiringSoon: boolean;
+  expiresAt: string | null;
+  isTrial: boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -108,17 +110,32 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const expiryData = useMemo(() => {
     const expDateStr = user?.company?.subscriptionEndDate || user?.company?.trialEnd;
     
-    if (!expDateStr) return { text: null, soon: false };
+    if (!expDateStr) return { text: null, soon: false, expiresAt: null, isTrial: false };
 
-    const exp = new Date(expDateStr).getTime();
-    const now = new Date().getTime();
-    const days = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
-    
+    const exp = new Date(expDateStr);
+    const now = new Date();
+    const diffMs = exp.getTime() - now.getTime();
+
+    // Safety check for invalid dates
+    if (isNaN(exp.getTime())) return { text: null, soon: false, expiresAt: null, isTrial: false };
+
+    // Calculate hours remaining
+    const hoursRemaining = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    let text = '';
+    if (diffMs <= 0) text = 'Expired';
+    else if (hoursRemaining < 24) text = `${Math.max(1, hoursRemaining)}h remaining`;
+    else text = `${days} day${days > 1 ? 's' : ''}`;
+
     return {
-      text: days < 0 ? 'Expired' : (days === 0 ? 'Today' : `${days} day${days > 1 ? 's' : ''}`),
-      soon: days >= 0 && days <= 3
+      text,
+      soon: diffMs > 0 && days <= 3, // Show soon if active and less than 3 days
+      expiresAt: exp.toISOString(),
+      isTrial: !!(!user?.company?.subscriptionEndDate && user?.company?.trialEnd && new Date(user.company.trialEnd) > now)
     };
   }, [customerInfo, user?.company]);
+
 
   const presentCustomerCenter = useCallback(() => {
     const url = Platform.OS === 'ios'
@@ -142,6 +159,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     checkSubscriptionStatus,
     daysRemainingText: expiryData.text,
     isExpiringSoon: expiryData.soon,
+    expiresAt: expiryData.expiresAt,
+    isTrial: expiryData.isTrial,
   }), [isProActive, combinedLoading, isAuthenticated, customerInfo, presentCustomerCenter, restorePurchases, checkSubscriptionStatus, expiryData]);
 
   return (

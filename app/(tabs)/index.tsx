@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -220,106 +220,102 @@ function getGreeting() {
   return 'Good Evening';
 }
 
-// Background Decorative Circles for Onboarding
-function FloatingDecor({ theme, top, left, size, delay = 0 }: any) {
+function TrialTimer({ theme }: { theme: any }) {
+  const { expiresAt, isTrial } = useSubscription();
+
+  // Force re-render every second
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    if (!isTrial || !expiresAt) return;
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, [isTrial, expiresAt]);
+
+  if (!isTrial || !expiresAt) return null;
+
+  const diff = new Date(expiresAt).getTime() - now.getTime();
+
+  // Don't show if more than 24h (safeguard) or expired
+  if (diff <= 0) {
+    return (
+      <View style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
+        <Text style={styles.trialText}>EXPIRED</Text>
+      </View>
+    );
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
   return (
-    <Animated.View
-      entering={FadeInUp.delay(delay).duration(1000)}
-      style={{
-        position: 'absolute',
-        top,
-        left,
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: theme.primary + '08',
-        zIndex: -1,
-      }}
-    />
+    <Animated.View entering={FadeInDown.duration(600)} style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
+      <Ionicons name="time" size={12} color="#fff" style={{ marginRight: 4 }} />
+      <Text style={styles.trialText}>
+        {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+      </Text>
+    </Animated.View>
   );
 }
 
-// Onboarding Overlay for New Users
-function OnboardingOverlay({ theme }: { theme: any }) {
-  const router = useRouter();
-
-  const steps = [
-    { icon: 'grid-outline', text: 'Define your Floors & Sections' },
-    { icon: 'layers-outline', text: 'Create Room Layouts' },
-    { icon: 'people-outline', text: 'Assign Students to Seats' },
-  ];
-
+// Day 1 Goal Widget
+function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () => void }) {
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 1000, padding: 24, justifyContent: 'center' }]}>
-      <LinearGradient
-        colors={[theme.primary + '10', 'transparent', theme.background]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Background Decor */}
-      <FloatingDecor theme={theme} top={100} left={-20} size={150} delay={200} />
-      <FloatingDecor theme={theme} top={400} left={width - 100} size={200} delay={400} />
-      <FloatingDecor theme={theme} top={height - 200} left={50} size={120} delay={600} />
-
-      <View style={{ gap: 40 }}>
-        <View style={{ alignItems: 'center', gap: 20 }}>
-          <Animated.View
-            entering={FadeInDown.springify().damping(12)}
-            style={[styles.onboardingIconBox, { backgroundColor: theme.primary + '10' }]}
-          >
-            <Ionicons name="location-outline" size={56} color={theme.primary} />
-          </Animated.View>
-
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <Animated.Text
-              entering={FadeInDown.delay(200).duration(600)}
-              style={[styles.onboardingTitle, { color: theme.text }]}
-            >
-              Setup Required
-            </Animated.Text>
-            <Animated.Text
-              entering={FadeInDown.delay(300).duration(600)}
-              style={[styles.onboardingSubtitle, { color: theme.muted }]}
-            >
-              Your library dashboard is almost ready! First, we need to map out your physical space.
-            </Animated.Text>
-          </View>
+    <Animated.View
+      entering={FadeInDown.delay(200)}
+      style={[
+        styles.day1Goal,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
+    >
+      <View style={styles.goalHeader}>
+        <View style={{ gap: 4 }}>
+          <Text style={[styles.goalTitle, { color: theme.text }]}>🚀 Day 1 Goal</Text>
+          <Text style={[styles.goalDesc, { color: theme.muted }]}>
+            Add your first student to activate the system.
+          </Text>
         </View>
-
-        {/* Setup Checklist */}
-        <View style={{ gap: 16 }}>
-          {steps.map((step, i) => (
-            <Animated.View
-              key={i}
-              entering={FadeInDown.delay(400 + (i * 150)).duration(600)}
-              style={[styles.onboardingStep, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-            >
-              <View style={[styles.onboardingStepIcon, { backgroundColor: theme.primary + '15' }]}>
-                <Ionicons name={step.icon as any} size={18} color={theme.primary} />
-              </View>
-              <Text style={[styles.onboardingStepText, { color: theme.text }]}>{step.text}</Text>
-            </Animated.View>
-          ))}
+        <View style={[styles.goalProgress, { backgroundColor: theme.warning + '15' }]}>
+          <Text style={{ color: theme.warning, fontWeight: '800', fontSize: 12 }}>PENDING</Text>
         </View>
+      </View>
 
-        <Animated.View entering={FadeInDown.delay(900).springify()}>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              router.push({ pathname: '/seats', params: { setup: 'true' } });
-            }}
-            style={({ pressed }) => [
-              styles.onboardingBtn,
-              { backgroundColor: theme.primary },
-              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
+      <View style={styles.checklist}>
+        <View style={styles.checkItem}>
+          <Ionicons name="checkmark-circle" size={18} color={theme.success} />
+          <Text
+            style={[
+              styles.checkText,
+              { color: theme.text, textDecorationLine: 'line-through', opacity: 0.6 },
             ]}
           >
-            <Text style={styles.onboardingBtnText}>Start Library Setup</Text>
-            <Ionicons name="chevron-forward" size={20} color="#fff" />
-          </Pressable>
-        </Animated.View>
+            Library Setup
+          </Text>
+        </View>
+        <View style={styles.checkItem}>
+          <Ionicons name="ellipse-outline" size={18} color={theme.primary} />
+          <Text style={[styles.checkText, { color: theme.text, fontWeight: '700' }]}>
+            Add 1st Student
+          </Text>
+        </View>
       </View>
-    </View>
+
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onAddStudent();
+        }}
+        style={({ pressed }) => [
+          styles.goalBtn,
+          { backgroundColor: theme.primary },
+          pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+        ]}
+      >
+        <Text style={styles.goalBtnText}>Add First Student</Text>
+        <Ionicons name="arrow-forward" size={18} color="#fff" />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -343,7 +339,7 @@ export default function DashboardScreen() {
     (f.seats || []).map((s: any) => ({
       _id: s._id as string,
       seatNumber: String(s.seatNumber),
-      floor: f.floor
+      floor: f.floor,
     }))
   );
 
@@ -363,7 +359,7 @@ export default function DashboardScreen() {
         fatherName: data.fatherName,
         address: data.address,
         aadharNumber: data.aadharNumber,
-        gender: data.gender
+        gender: data.gender,
       };
 
       await createStudent.mutateAsync({ payload });
@@ -379,41 +375,42 @@ export default function DashboardScreen() {
     return <FullScreenLoader message="Preparing your dashboard..." />;
   }
 
-  const hasNoSeats = !seatsQuery.data ||
+  const hasNoSeats =
+    !seatsQuery.data ||
     seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0;
 
   if (hasNoSeats) {
-    return (
-      <SafeScreen>
-        <OnboardingOverlay theme={theme} />
-      </SafeScreen>
-    );
+    // Redirect to setup if implementation isn't ready
+    router.replace('/onboarding/setup');
+    return null;
   }
+
+  const activeStudents = dashboardQuery.data?.activeStudentsCount ?? 0;
 
   const metrics = [
     {
       label: 'Active Students',
-      value: dashboardQuery.data?.activeStudentsCount ?? 0,
+      value: activeStudents,
       colors: gradientFor(colorScheme, 'metricGreen'),
-      icon: 'people-outline'
+      icon: 'people-outline',
     },
     {
       label: 'Total Students',
       value: dashboardQuery.data?.totalStudents ?? 0,
       colors: gradientFor(colorScheme, 'metricBlue'),
-      icon: 'stats-chart-outline'
+      icon: 'stats-chart-outline',
     },
     {
       label: 'New This Month',
       value: dashboardQuery.data?.studentsEnrolledThisMonth ?? 0,
       colors: gradientFor(colorScheme, 'metricPurple'),
-      icon: 'trending-up-outline'
+      icon: 'trending-up-outline',
     },
     {
       label: 'Monthly Earnings',
       value: formatCurrency(dashboardQuery.data?.earnings ?? 0),
       colors: gradientFor(colorScheme, 'metricAmber'),
-      icon: 'wallet-outline'
+      icon: 'wallet-outline',
     },
   ];
 
@@ -436,17 +433,20 @@ export default function DashboardScreen() {
               tintColor={theme.primary}
               progressViewOffset={insets.top}
             />
-          }>
-
+          }
+        >
           {/* Premium Header */}
           <View style={styles.header}>
             <Animated.View entering={FadeInDown.duration(800)}>
               <View style={styles.greetingRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.greetingText, { color: theme.muted }]}>{getGreeting()}</Text>
-                  <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
-                    {user?.name?.split(' ')[0] || 'User'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+                      {user?.name?.split(' ')[0] || 'User'}
+                    </Text>
+                    <TrialTimer theme={theme} />
+                  </View>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -458,7 +458,7 @@ export default function DashboardScreen() {
                     style={({ pressed }) => [
                       styles.headerActionBtn,
                       { borderColor: theme.border, backgroundColor: theme.surface },
-                      pressed && { transform: [{ scale: 0.95 }], opacity: 0.8 }
+                      pressed && { transform: [{ scale: 0.95 }], opacity: 0.8 },
                     ]}
                   >
                     <Ionicons name="add" size={26} color={theme.primary} />
@@ -472,7 +472,7 @@ export default function DashboardScreen() {
                     style={({ pressed }) => [
                       styles.avatarBtn,
                       { borderColor: theme.border, backgroundColor: theme.surface },
-                      pressed && { transform: [{ scale: 0.95 }] }
+                      pressed && { transform: [{ scale: 0.95 }] },
                     ]}
                   >
                     <Text style={[styles.avatarText, { color: theme.primary }]}>
@@ -489,8 +489,12 @@ export default function DashboardScreen() {
             </Animated.View>
           </View>
 
-          {/* Subscription Banner */}
-          <SubscriptionBanner theme={theme} />
+          {/* Day 1 Goal Widget OR Subscription Banner */}
+          {activeStudents === 0 ? (
+            <Day1GoalWidget theme={theme} onAddStudent={() => setIsStudentFormOpen(true)} />
+          ) : (
+            <SubscriptionBanner theme={theme} />
+          )}
 
           {/* Quick Metrics Carousel/Grid */}
           <View style={styles.metricsSection}>
@@ -666,6 +670,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -1,
   },
+  trialBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
+    transform: [{ translateY: 2 }], // optical alignment
+  },
+  trialText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
   headerActionBtn: {
     width: 50,
     height: 50,
@@ -798,6 +817,64 @@ const styles = StyleSheet.create({
   },
   metricCardWrapper: {
     width: (width - spacing.xl * 2 - spacing.md) / 2,
+  },
+
+  // Day 1 Goal
+  day1Goal: {
+    padding: spacing.xl,
+    borderRadius: radius.xl,
+    borderWidth: 1.5,
+    marginBottom: spacing.xs,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  goalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  goalDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    maxWidth: '90%',
+  },
+  goalProgress: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checklist: {
+    gap: 12,
+    marginBottom: spacing.xl,
+    paddingLeft: 4,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  goalBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: radius.lg,
+    gap: 8,
+  },
+  goalBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
   },
   metricCardInner: {
     borderRadius: 28,

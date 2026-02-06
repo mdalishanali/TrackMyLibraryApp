@@ -660,17 +660,34 @@ export default function StudentDetailScreen() {
 }
 
 function DetailRow({ icon, label, value, theme, last }: any) {
-  return (
+  const isPhone = label === 'Phone';
+
+  const content = (
     <View style={[styles.detailRow, !last && { borderBottomWidth: 1, borderBottomColor: theme.border + '50' }]}>
       <View style={[styles.detailIcon, { backgroundColor: theme.primary + '10' }]}>
         <Ionicons name={icon} size={18} color={theme.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.detailLabel, { color: theme.muted }]}>{label}</Text>
-        <Text style={[styles.detailValue, { color: theme.text }]}>{value || '—'}</Text>
+        <Text style={[styles.detailValue, { color: isPhone ? theme.primary : theme.text }]}>{value || '—'}</Text>
       </View>
+      {isPhone && (
+        <View style={{ justifyContent: 'center', marginRight: 4 }}>
+          <Ionicons name="call-outline" size={20} color={theme.primary} />
+        </View>
+      )}
     </View>
   );
+
+  if (isPhone && value) {
+    return (
+      <TouchableOpacity onPress={() => Linking.openURL(`tel:${value}`)} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({

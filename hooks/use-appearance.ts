@@ -13,7 +13,7 @@ type AppearanceStore = {
 export const useAppearanceStore = create<AppearanceStore>()(
   persist(
     (set) => ({
-      mode: 'system',
+      mode: 'light',
       setMode: (mode) => set({ mode }),
     }),
     {

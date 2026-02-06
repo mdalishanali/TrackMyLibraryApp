@@ -35,6 +35,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="profile" options={{ headerShown: false }} />
                   <Stack.Screen name="student-detail/[id]" options={{ headerShown: false }} />
+                  <Stack.Screen name="onboarding/setup" options={{ headerShown: false }} />
                   <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
                 </Stack>
               </ActivityProvider>
