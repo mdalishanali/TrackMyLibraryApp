@@ -498,6 +498,8 @@ export default function SeatsScreen() {
                       backgroundColor: active ? theme.primary : theme.surface,
                       borderColor: active ? theme.primary : theme.border,
                       opacity: pressed ? 0.8 : 1,
+                      flexDirection: 'row',
+                      gap: 6
                     },
                     active && styles.floorTabActive
                   ]}
@@ -505,9 +507,47 @@ export default function SeatsScreen() {
                   <Text style={[styles.floorTabText, { color: active ? '#fff' : theme.text }]}>
                     {f === '0' ? 'OTHERS' : f.toString().toUpperCase()}
                   </Text>
+                  {active && f !== '0' && (
+                    <Ionicons name="pencil" size={10} color="#fff" style={{ opacity: 0.8 }} />
+                  )}
                 </Pressable>
               );
             })}
+
+            {/* Manage Sections Gear */}
+            {floors.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  // Open a quick menu for the current active floor
+                  if (activeFloor) {
+                    Alert.alert(
+                      `Manage Section: ${activeFloor}`,
+                      "What would you like to do?",
+                      [
+                        {
+                          text: "Rename Section",
+                          onPress: () => {
+                            setRenamingSection(activeFloor);
+                            setNewSectionName(activeFloor);
+                            setIsRenameModalOpen(true);
+                          }
+                        },
+                        { text: "Cancel", style: "cancel" }
+                      ]
+                    );
+                  }
+                }}
+                style={[styles.floorTab, {
+                  backgroundColor: theme.surfaceAlt,
+                  borderColor: theme.border,
+                  width: 48,
+                  paddingHorizontal: 0
+                }]}
+              >
+                <Ionicons name="settings-outline" size={18} color={theme.muted} />
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
 
