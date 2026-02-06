@@ -27,6 +27,7 @@ import { useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt } from '@/
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
+import { ChangeSeatModal } from '@/components/students/change-seat-modal';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { showToast } from '@/lib/toast';
 import { Image } from 'expo-image';
@@ -35,7 +36,7 @@ import ImageViewing from 'react-native-image-viewing';
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
 export default function StudentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: string }>();
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -50,6 +51,7 @@ export default function StudentDetailScreen() {
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
+  const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
 
   const feeReminderMutation = useSendTemplate();
   const { data: templates } = useWhatsappTemplates();
@@ -185,6 +187,19 @@ export default function StudentDetailScreen() {
     }
   };
 
+  const handleSeatUpdate = async (newSeatId: string) => {
+    try {
+      await updateStudent.mutateAsync({
+        id: id,
+        payload: { seat: newSeatId }
+      });
+      setIsChangeSeatOpen(false);
+      studentQuery.refetch();
+    } catch (error) {
+      console.error('Seat update failed:', error);
+    }
+  };
+
 
   const startEditPayment = (payment: any) => {
     setPaymentDefaults({
@@ -260,7 +275,13 @@ export default function StudentDetailScreen() {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (backTo === 'seats') {
+              router.navigate('/(tabs)/seats');
+            } else if (router.canGoBack()) {
               router.back();
+            } else {
+              router.replace('/(tabs)/students');
+            }
             }}
             style={({ pressed }) => [
               styles.headerBtn,
@@ -367,6 +388,21 @@ export default function StudentDetailScreen() {
               >
                 <Ionicons name="create-outline" size={20} color={theme.text} />
               </Pressable>
+              
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setIsChangeSeatOpen(true);
+                }}
+                style={({ pressed }) => [
+                  styles.editBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  pressed && { opacity: 0.8 }
+                ]}
+              >
+                <Ionicons name="swap-horizontal-outline" size={20} color={theme.text} />
+              </Pressable>
+
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -381,21 +417,7 @@ export default function StudentDetailScreen() {
                   <Ionicons name="wallet-outline" size={20} color="#fff" />
                 <Text style={styles.payBtnText}>Payment</Text>
                 </Pressable>
-                <Pressable
-                onPress={handleSendReminder}
-                disabled={feeReminderMutation.isPending}
-                style={({ pressed }) => [
-                  styles.remindBtn,
-                  { backgroundColor: theme.primary + '10' },
-                  pressed && { opacity: 0.7 }
-                ]}
-              >
-                <Ionicons
-                  name={feeReminderMutation.isPending ? "sync" : "logo-whatsapp"}
-                  size={20}
-                  color={theme.primary}
-                />
-              </Pressable>
+
               <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -615,6 +637,23 @@ export default function StudentDetailScreen() {
         visible={previewVisible}
         onRequestClose={() => setPreviewVisible(false)}
         swipeToCloseEnabled
+      />
+
+      <ChangeSeatModal
+        visible={isChangeSeatOpen}
+        onClose={() => setIsChangeSeatOpen(false)}
+        onConfirm={handleSeatUpdate}
+        currentSeatId={student.seat}
+        seats={(seatsQuery.data ?? []).flatMap((f: any) =>
+          (f.seats || []).map((s: any) => ({
+            _id: s._id,
+            seatNumber: String(s.seatNumber),
+            floor: f.floor
+          }))
+        )}
+        theme={theme}
+        isSubmitting={updateStudent.isPending}
+        studentName={student.name || ''}
       />
     </View >
   );

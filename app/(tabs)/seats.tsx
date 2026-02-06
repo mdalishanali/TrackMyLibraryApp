@@ -12,7 +12,8 @@ import {
   Platform,
   Pressable,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import Animated, { FadeInUp, FadeInDown, Layout, FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,9 +31,10 @@ import { AppButton } from '@/components/ui/app-button';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
 import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor } from '@/hooks/use-seats';
-import { useCreateStudent } from '@/hooks/use-students';
+import { useCreateStudent, useUpdateStudent, useDeleteStudent } from '@/hooks/use-students';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
+import { ChangeSeatModal } from '@/components/students/change-seat-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDate } from '@/utils/format';
 
@@ -54,6 +56,10 @@ export default function SeatsScreen() {
   const createStudent = useCreateStudent();
   const { setup } = useLocalSearchParams();
 
+  const [studentDefaults, setStudentDefaults] = useState<(StudentFormValues & { _id?: string }) | null>(null);
+  const updateStudent = useUpdateStudent(studentDefaults?._id);
+  const deleteStudent = useDeleteStudent();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectionSet, setSelectionSet] = useState<Set<string>>(new Set());
@@ -70,14 +76,15 @@ export default function SeatsScreen() {
   const [endSeat, setEndSeat] = useState('10');
   const [selectedSeat, setSelectedSeat] = useState<null | any>(null);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
-  const [studentDefaults, setStudentDefaults] = useState<StudentFormValues | null>(null);
+  const [isChangeSeatModalOpen, setIsChangeSeatModalOpen] = useState(false);
+  const [seatChangeTarget, setSeatChangeTarget] = useState<any>(null);
   const [activeFloor, setActiveFloor] = useState<string | null>(null);
   const [confirmConfig, setConfirmConfig] = useState<{
     visible: boolean;
     title: string;
     description: string;
     onConfirm: () => void;
-    type: 'create' | 'delete' | 'deleteFloor';
+    type: 'create' | 'delete' | 'deleteFloor' | 'deleteStudent';
   }>({
     visible: false,
     title: '',
@@ -122,6 +129,7 @@ export default function SeatsScreen() {
     return { total, occupied, vacant: total - occupied };
   }, [currentSeats]);
 
+
   const resolveOccupant = (seat: any) => {
     return seat.students?.[0] || null;
   };
@@ -155,15 +163,93 @@ export default function SeatsScreen() {
   };
 
   const saveStudent = async (values: any) => {
-    await createStudent.mutateAsync({
-      payload: {
-        ...values,
-        fees: values.fees ? Number(values.fees) : undefined,
-        time: [{ start: values.startTime, end: values.endTime }]
-      }
-    });
+    const payload = {
+      ...values,
+      fees: values.fees ? Number(values.fees) : undefined,
+      time: [{ start: values.startTime, end: values.endTime }]
+    };
+
+    if (studentDefaults?._id) {
+      await updateStudent.mutateAsync({ payload });
+    } else {
+      await createStudent.mutateAsync({ payload });
+    }
     setIsStudentModalOpen(false);
     setStudentDefaults(null);
+  };
+
+
+
+  const handleEditOccupant = (occupant: any) => {
+    // Capture the current seat context before closing the modal
+    const currentSeatId = selectedSeat?._id;
+    
+    setStudentDefaults({
+      _id: occupant._id,
+      name: occupant.name,
+      number: occupant.number,
+      joiningDate: occupant.joiningDate,
+      seat: currentSeatId,
+      shift: occupant.shift || 'First',
+      startTime: occupant.time?.[0]?.start || '09:00',
+      endTime: occupant.time?.[0]?.end || '18:00',
+      status: occupant.status || 'Active',
+      fees: occupant.fees ? String(occupant.fees) : '',
+      gender: occupant.gender || 'Male',
+      notes: occupant.notes || '',
+      profilePicture: occupant.profilePicture || ''
+    });
+
+    // Close the seat detail modal first
+    setSelectedSeat(null);
+    
+    // Small delay to allow detail modal anim to finish before opening the form
+    setTimeout(() => {
+      setIsStudentModalOpen(true);
+    }, 450);
+  };
+
+  const handleDeleteOccupant = (occupant: any) => {
+    setSelectedSeat(null);
+    setTimeout(() => {
+      setConfirmConfig({
+        visible: true,
+        title: 'Delete Member',
+        description: `Are you sure you want to delete ${occupant.name}? This cannot be undone.`,
+        type: 'deleteStudent',
+        onConfirm: async () => {
+          try {
+            await deleteStudent.mutateAsync(occupant._id);
+            setConfirmConfig(prev => ({ ...prev, visible: false }));
+          } catch (error) {
+            console.error('Delete failed:', error);
+          }
+        }
+      });
+    }, 400);
+  };
+
+  const handleChangeSeat = (occupant: any) => {
+    setSeatChangeTarget(occupant);
+    setSelectedSeat(null);
+    setTimeout(() => {
+      setIsChangeSeatModalOpen(true);
+    }, 450);
+  };
+
+  const handleSeatUpdate = async (newSeatId: string) => {
+    if (!seatChangeTarget) return;
+    try {
+      await updateStudent.mutateAsync({
+        id: seatChangeTarget._id,
+        payload: { seat: newSeatId }
+      });
+      setIsChangeSeatModalOpen(false);
+      setSeatChangeTarget(null);
+      seatsQuery.refetch();
+    } catch (error) {
+      console.error('Seat update failed:', error);
+    }
   };
 
   if (seatsQuery.isLoading) {
@@ -645,7 +731,7 @@ export default function SeatsScreen() {
                             contentContainerStyle={{ paddingBottom: 24 }}
                           >
                             {selectedSeat.students.map((occupant: any, idx: number) => (
-                              <View key={occupant._id} style={[styles.occupantItem, idx !== 0 && { marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.border + '40' }]}>
+                              <View key={occupant._id} style={[styles.occupantItem, idx !== 0 && { marginTop: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: theme.border + '40' }]}>
                                 <View style={styles.occupantMain}>
                                   <View style={[styles.occupantAvatar, { backgroundColor: theme.primary + '10', overflow: 'hidden' }]}>
                                     {occupant.profilePicture ? (
@@ -664,16 +750,8 @@ export default function SeatsScreen() {
                                     <Text style={[styles.occupantName, { color: theme.text }]} numberOfLines={1}>{occupant.name}</Text>
                                     <Text style={[styles.occupantPhone, { color: theme.muted }]}>{occupant.number}</Text>
                                   </View>
-                                  <TouchableOpacity
-                                    onPress={() => {
-                                      setSelectedSeat(null);
-                                      router.push({ pathname: '/(tabs)/students/[id]', params: { id: occupant._id } });
-                                    }}
-                                    style={[styles.miniActionBtn, { backgroundColor: theme.primary + '10' }]}
-                                  >
-                                    <Ionicons name="chevron-forward" size={18} color={theme.primary} />
-                                  </TouchableOpacity>
                                 </View>
+
                                 <View style={styles.occupantGrid}>
                                   <View style={styles.gridItem}>
                                     <Text style={[styles.gridLabel, { color: theme.muted }]}>SHIFT</Text>
@@ -684,6 +762,49 @@ export default function SeatsScreen() {
                                     <Text style={[styles.gridValue, { color: theme.text }]}>{formatDate(occupant.joiningDate)}</Text>
                                   </View>
                                 </View>
+
+                                    <View style={styles.sheetSmallActions}>
+                                      <TouchableOpacity
+                                        onPress={() => {
+                                          setSelectedSeat(null);
+                                          // Small delay ensures navigation starts after modal is dismissed
+                                          setTimeout(() => {
+                                            router.push(`/student-detail/${occupant._id}?backTo=seats`);
+                                          }, 400);
+                                        }}
+                                        style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                      >
+                                        <Ionicons name="eye-outline" size={14} color={theme.text} />
+                                        <Text style={[styles.smallBtnText, { color: theme.text }]}>View</Text>
+                                      </TouchableOpacity>
+
+                                      <TouchableOpacity
+                                        onPress={() => handleEditOccupant(occupant)}
+                                        style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                      >
+                                        <Ionicons name="create-outline" size={14} color={theme.text} />
+                                        <Text style={[styles.smallBtnText, { color: theme.text }]}>Edit</Text>
+                                      </TouchableOpacity>
+
+                                      <TouchableOpacity
+                                        onPress={() => handleChangeSeat(occupant)}
+                                        style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                      >
+                                        <Ionicons name="swap-horizontal-outline" size={14} color={theme.text} />
+                                        <Text style={[styles.smallBtnText, { color: theme.text }]}>Seat</Text>
+                                      </TouchableOpacity>
+
+                                      <View style={{ flex: 1 }} />
+
+
+
+                                      <TouchableOpacity
+                                        onPress={() => handleDeleteOccupant(occupant)}
+                                        style={[styles.smallIconBtn, { backgroundColor: theme.danger + '10', borderColor: theme.border }]}
+                                      >
+                                        <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                                      </TouchableOpacity>
+                                    </View>
                               </View>
                             ))}
                           </ScrollView>
@@ -738,18 +859,44 @@ export default function SeatsScreen() {
               }))
             )}
             theme={theme}
-            isSubmitting={createStudent.isPending}
-            title="Add Member"
+            isSubmitting={createStudent.isPending || updateStudent.isPending}
+            title={studentDefaults._id ? 'Edit Member' : 'Add Member'}
           />
         )}
+
+        <ChangeSeatModal
+          visible={isChangeSeatModalOpen}
+          onClose={() => {
+            setIsChangeSeatModalOpen(false);
+            setSeatChangeTarget(null);
+          }}
+          onConfirm={handleSeatUpdate}
+          currentSeatId={seatChangeTarget?.seat}
+          seats={(seatsQuery.data ?? []).flatMap((f: any) =>
+            (f.seats || []).map((s: any) => ({
+              _id: s._id,
+              seatNumber: String(s.seatNumber),
+              floor: f.floor
+            }))
+          )}
+          theme={theme}
+          isSubmitting={updateStudent.isPending}
+          studentName={seatChangeTarget?.name || ''}
+        />
+
         <ConfirmDialog
           visible={confirmConfig.visible}
           title={confirmConfig.title}
           description={confirmConfig.description}
           onConfirm={confirmConfig.onConfirm}
           onCancel={() => setConfirmConfig(prev => ({ ...prev, visible: false }))}
-          destructive={confirmConfig.type === 'delete' || confirmConfig.type === 'deleteFloor'}
-          loading={confirmConfig.type === 'delete' ? deleteSeats.isPending : confirmConfig.type === 'deleteFloor' ? deleteFloor.isPending : createSeats.isPending}
+          destructive={confirmConfig.type === 'delete' || confirmConfig.type === 'deleteFloor' || confirmConfig.type === 'deleteStudent'}
+          loading={
+            confirmConfig.type === 'delete' ? deleteSeats.isPending : 
+            confirmConfig.type === 'deleteFloor' ? deleteFloor.isPending : 
+            confirmConfig.type === 'deleteStudent' ? deleteStudent.isPending :
+            createSeats.isPending
+          }
         />
       </View>
     </SafeScreen>
@@ -1132,7 +1279,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  sheetActions: { marginTop: 8 },
+  sheetActions: { marginTop: 12 },
+  sheetSmallActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  smallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  smallBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  smallIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emptyContainer: {
     padding: 32,
     alignItems: 'center',

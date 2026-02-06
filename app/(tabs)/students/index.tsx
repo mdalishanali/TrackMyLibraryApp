@@ -144,7 +144,7 @@ export default function StudentsScreen() {
 
 
   const handleViewStudent = useCallback((id: string) => {
-    router.push({ pathname: '/(tabs)/students/[id]', params: { id } });
+    router.push(`/student-detail/${id}`);
   }, [router]);
 
   const handleLoadMore = useCallback(() => {

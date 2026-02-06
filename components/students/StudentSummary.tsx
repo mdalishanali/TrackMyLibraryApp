@@ -340,14 +340,7 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
           <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay</Text>
         </TouchableOpacity>
       ) : null}
-      {actions.onRemind ? (
-        <TouchableOpacity
-          onPress={actions.onRemind}
-          style={[styles.actionIconBtn, { backgroundColor: theme.primary + '10', borderColor: theme.border }]}
-        >
-          <Ionicons name="logo-whatsapp" size={20} color={theme.primary} />
-        </TouchableOpacity>
-      ) : null}
+
       {actions.onDelete ? (
         <TouchableOpacity
           onPress={actions.onDelete}

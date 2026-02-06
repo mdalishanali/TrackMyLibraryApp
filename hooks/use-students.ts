@@ -80,8 +80,9 @@ export const useCreateStudent = () =>
 
 export const useUpdateStudent = (id?: string) =>
   useMutation({
-    mutationFn: async ({ payload, onProgress }: { payload: Partial<StudentPayload>; onProgress?: (p: number) => void }) => {
-      if (!id) throw new Error('Missing student id');
+    mutationFn: async ({ payload, id: overrideId, onProgress }: { payload: Partial<StudentPayload>; id?: string; onProgress?: (p: number) => void }) => {
+      const targetId = overrideId || id;
+      if (!targetId) throw new Error('Missing student id');
 
       let finalProfilePicture = payload.profilePicture;
 
@@ -90,7 +91,7 @@ export const useUpdateStudent = (id?: string) =>
         finalProfilePicture = await uploadImageToCloud(payload.profilePicture, onProgress);
       }
 
-      const { data } = await api.put(`/students/${id}`, { ...payload, profilePicture: finalProfilePicture });
+      const { data } = await api.put(`/students/${targetId}`, { ...payload, profilePicture: finalProfilePicture });
       return data;
     },
     onSuccess: () => {
