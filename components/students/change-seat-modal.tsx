@@ -135,9 +135,8 @@ export function ChangeSeatModal({
                 </View>
 
                 {/* Level Tabs */}
-                {floors.length > 0 && (
                   <View style={styles.section}>
-                    <Text style={[styles.label, { color: theme.muted }]}>SELECT LEVEL</Text>
+                  <Text style={[styles.label, { color: theme.muted }]}>SELECT SECTION</Text>
                     <ScrollView 
                       horizontal 
                       showsHorizontalScrollIndicator={false}
@@ -159,13 +158,12 @@ export function ChangeSeatModal({
                             styles.floorText, 
                             { color: selectedFloor === f ? '#fff' : theme.text }
                           ]}>
-                            Level {f}
+                            {f}
                           </Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
-                  </View>
-                )}
+                </View>
 
                 {/* Seat Grid */}
                 <View style={styles.section}>

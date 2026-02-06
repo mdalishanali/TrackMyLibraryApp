@@ -150,7 +150,7 @@ export default function SeatsScreen() {
       onConfirm: async () => {
         try {
           await createSeats.mutateAsync({
-            floor: Number(floor),
+            floor: floor,
             startSeat: Number(startSeat),
             endSeat: Number(endSeat),
           });
@@ -434,8 +434,8 @@ export default function SeatsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                     setConfirmConfig({
                       visible: true,
-                      title: `Delete Level ${f}?`,
-                      description: `Are you sure you want to delete Level ${f}? All seats and student assignments on this floor will be permanently removed.`,
+                      title: `Delete Section ${f}?`,
+                      description: `Are you sure you want to delete Section ${f}? All seats and student assignments in this section will be permanently removed.`,
                       type: 'deleteFloor',
                       onConfirm: async () => {
                         try {
@@ -464,7 +464,7 @@ export default function SeatsScreen() {
                   ]}
                 >
                   <Text style={[styles.floorTabText, { color: active ? '#fff' : theme.text }]}>
-                    {f === '0' ? 'OTHERS' : `LEVEL ${f}`}
+                    {f === '0' ? 'OTHERS' : f.toString().toUpperCase()}
                   </Text>
                 </Pressable>
               );
@@ -501,7 +501,7 @@ export default function SeatsScreen() {
                     pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
                   ]}
                 >
-                  <Text style={styles.emptyBtnText}>Setup Floor 1</Text>
+                  <Text style={styles.emptyBtnText}>Setup Section 1</Text>
                   <Ionicons name="arrow-forward" size={18} color="#fff" />
                 </Pressable>
               </View>
@@ -607,7 +607,7 @@ export default function SeatsScreen() {
           <View style={styles.modalOverlay}>
             <Animated.View entering={FadeInUp} style={[styles.modalContent, { backgroundColor: theme.surface }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Setup Floor</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Setup Section</Text>
                 <Pressable onPress={() => setIsModalOpen(false)}>
                   <Ionicons name="close" size={24} color={theme.muted} />
                 </Pressable>
@@ -616,11 +616,11 @@ export default function SeatsScreen() {
               <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
                 <View style={styles.form}>
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: theme.muted }]}>Floor Level</Text>
+                    <Text style={[styles.label, { color: theme.muted }]}>Section Name / #</Text>
                     <TextInput
                       value={floor}
                       onChangeText={setFloor}
-                      keyboardType="numeric"
+                      keyboardType="default"
                       style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt }]}
                     />
                   </View>
@@ -675,7 +675,7 @@ export default function SeatsScreen() {
                   <View style={styles.sheetHeaderRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.sheetTitle, { color: theme.text }]}>Seat {selectedSeat.seatNumber}</Text>
-                      <Text style={[styles.sheetSubtitle, { color: theme.muted }]}>Floor {selectedSeat.floor}</Text>
+                      <Text style={[styles.sheetSubtitle, { color: theme.muted }]}>Section {selectedSeat.floor}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       {(() => {

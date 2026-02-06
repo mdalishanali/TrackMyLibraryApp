@@ -6,7 +6,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { Seat } from '@/types/api';
 
 export type SeatRangePayload = {
-  floor: number;
+  floor: string | number;
   startSeat: number;
   endSeat: number;
 };
@@ -47,7 +47,7 @@ export const useDeleteSeats = () =>
 
 export const useDeleteFloor = () =>
   useMutation({
-    mutationFn: async (floor: number) => {
+    mutationFn: async (floor: string | number) => {
       const { data } = await api.delete('/seats/floor', {
         data: { floor },
         successToastMessage: 'Floor deleted successfully'
