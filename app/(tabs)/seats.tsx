@@ -72,8 +72,8 @@ export default function SeatsScreen() {
       router.setParams({ setup: undefined } as any);
     }
   }, [setup]);
-  const [floor, setFloor] = useState('');
-  const [startSeat, setStartSeat] = useState('');
+  const [floor, setFloor] = useState('Section 1');
+  const [startSeat, setStartSeat] = useState('1');
   const [endSeat, setEndSeat] = useState('');
   const [selectedSeat, setSelectedSeat] = useState<null | any>(null);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
