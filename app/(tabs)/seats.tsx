@@ -572,119 +572,121 @@ export default function SeatsScreen() {
                 </Pressable>
               </View>
             ) : (
-              currentSeats.map((item, sIdx) => {
-                const occupant = resolveOccupant(item);
-                const available = !occupant;
-                const statusColor = available ? theme.success : theme.danger;
-
-                const isSelected = selectionSet.has(item._id);
-
-                return (
-                  <Animated.View
-                    key={item._id || `${activeFloor}-${item.seatNumber}`}
-                    entering={FadeInDown.delay(sIdx * 20).duration(400)}
-                    style={{ width: cardWidth, marginBottom: gridGap }}
-                  >
-                    <Pressable
-                      onPress={() => {
-                        if (isSelectionMode) {
-                          toggleSeatSelection(item._id);
-                        } else {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setSelectedSeat(item);
-                        }
-                      }}
-                      onLongPress={() => {
-                        if (!isSelectionMode) {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                          setIsSelectionMode(true);
-                          toggleSeatSelection(item._id);
-                        }
-                      }}
-                      style={({ pressed }) => [
-                        styles.seatCard,
+                <>
+                  {!isSelectionMode && activeFloor && currentSeats.length > 0 && (
+                    <TouchableOpacity
+                      onPress={handleOpenAddSeats}
+                      style={[
+                        styles.addMoreBtn,
                         {
-                          backgroundColor: theme.surface,
-                          borderColor: isSelected ? theme.primary : (selectedSeat?._id === item._id ? theme.primary : theme.border),
-                        },
-                        isSelected && styles.seatCardSelected,
-                        pressed && styles.cardPressed
+                          width: cardWidth,
+                          height: 135,
+                          borderColor: theme.border,
+                          backgroundColor: theme.surfaceAlt + '40',
+                          marginBottom: gridGap
+                        }
                       ]}
                     >
-                      {isSelectionMode && (
-                        <View style={[styles.seatSelectedIndicator, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
-                          <Ionicons name={isSelected ? "checkmark" : "add"} size={14} color={isSelected ? "#fff" : theme.muted} />
-                        </View>
-                      )}
-                      
-                      <View style={styles.seatCardHeader}>
-                        <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
-                          <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
-                          <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
-                        </View>
-
-                        {occupant && (
-                          <Image
-                            source={{ uri: occupant.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(occupant.name)}&background=0D8ABC&color=fff` }}
-                            style={styles.miniAvatar}
-                            contentFit="cover"
-                            transition={500}
-                            placeholder={BLURHASH}
-                          />
-                        )}
+                      <View style={[styles.addMoreCircle, { backgroundColor: theme.primary + '15' }]}>
+                        <Ionicons name="add" size={24} color={theme.primary} />
                       </View>
+                      <Text style={[styles.addMoreText, { color: theme.muted }]}>
+                        ADD MORE SEATS TO {activeFloor.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {currentSeats.map((item, sIdx) => {
+                    const occupant = resolveOccupant(item);
+                    const available = !occupant;
+                    const statusColor = available ? theme.success : theme.danger;
 
-                      <View style={styles.seatBodyInfo}>
-                        {item.students && item.students.length > 0 ? (
-                          <>
-                            <Text style={[styles.seatOccupantName, { color: theme.text }]} numberOfLines={1}>
-                              {item.students.length === 1
-                                ? item.students[0].name
-                                : `${item.students[0].name.split(' ')[0]} +${item.students.length - 1}`
-                              }
-                            </Text>
-                            <View style={styles.shiftRow}>
-                              <Ionicons name="time-outline" size={10} color={theme.primary} />
-                              <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
+                    const isSelected = selectionSet.has(item._id);
+
+                    return (
+                      <Animated.View
+                        key={item._id || `${activeFloor}-${item.seatNumber}`}
+                        entering={FadeInDown.delay(sIdx * 20).duration(400)}
+                        style={{ width: cardWidth, marginBottom: gridGap }}
+                      >
+                        <Pressable
+                          onPress={() => {
+                            if (isSelectionMode) {
+                              toggleSeatSelection(item._id);
+                            } else {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setSelectedSeat(item);
+                            }
+                          }}
+                          onLongPress={() => {
+                            if (!isSelectionMode) {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                              setIsSelectionMode(true);
+                              toggleSeatSelection(item._id);
+                            }
+                          }}
+                          style={({ pressed }) => [
+                            styles.seatCard,
+                            {
+                              backgroundColor: theme.surface,
+                              borderColor: isSelected ? theme.primary : (selectedSeat?._id === item._id ? theme.primary : theme.border),
+                            },
+                            isSelected && styles.seatCardSelected,
+                            pressed && styles.cardPressed
+                          ]}
+                        >
+                          {isSelectionMode && (
+                            <View style={[styles.seatSelectedIndicator, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
+                              <Ionicons name={isSelected ? "checkmark" : "add"} size={14} color={isSelected ? "#fff" : theme.muted} />
+                            </View>
+                          )}
+
+                          <View style={styles.seatCardHeader}>
+                            <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
+                              <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
+                              <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
+                            </View>
+
+                          {occupant && (
+                            <Image
+                              source={{ uri: occupant.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(occupant.name)}&background=0D8ABC&color=fff` }}
+                              style={styles.miniAvatar}
+                              contentFit="cover"
+                              transition={500}
+                              placeholder={BLURHASH}
+                            />
+                          )}
+                        </View>
+
+                        <View style={styles.seatBodyInfo}>
+                          {item.students && item.students.length > 0 ? (
+                            <>
+                              <Text style={[styles.seatOccupantName, { color: theme.text }]} numberOfLines={1}>
                                 {item.students.length === 1
-                                  ? item.students[0].shift
-                                  : Array.from(new Set(item.students.map((s: any) => s.shift))).join(', ')
+                                  ? item.students[0].name
+                                  : `${item.students[0].name.split(' ')[0]} +${item.students.length - 1}`
                                 }
                               </Text>
-                            </View>
-                          </>
-                        ) : (
+                              <View style={styles.shiftRow}>
+                                <Ionicons name="time-outline" size={10} color={theme.primary} />
+                                <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
+                                  {item.students.length === 1
+                                    ? item.students[0].shift
+                                    : Array.from(new Set(item.students.map((s: any) => s.shift))).join(', ')
+                                  }
+                                </Text>
+                              </View>
+                            </>
+                          ) : (
                             <Text style={[styles.seatOccupantName, { color: theme.muted, opacity: 0.5 }]}>VACANT</Text>
-                        )}
-                      </View>
+                          )}
+                        </View>
 
-                      <View style={[styles.indicatorLine, { backgroundColor: statusColor }]} />
-                    </Pressable>
-                  </Animated.View>
-                );
-              })
-            )}
-
-            {!isSelectionMode && activeFloor && currentSeats.length > 0 && (
-              <TouchableOpacity
-                onPress={handleOpenAddSeats}
-                style={[
-                  styles.addMoreBtn,
-                  {
-                    width: cardWidth,
-                    height: 135,
-                    borderColor: theme.border,
-                    backgroundColor: theme.surfaceAlt + '40'
-                  }
-                ]}
-              >
-                <View style={[styles.addMoreCircle, { backgroundColor: theme.primary + '15' }]}>
-                  <Ionicons name="add" size={24} color={theme.primary} />
-                </View>
-                <Text style={[styles.addMoreText, { color: theme.muted }]}>
-                  ADD MORE SEATS TO {activeFloor.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
+                        <View style={[styles.indicatorLine, { backgroundColor: statusColor }]} />
+                      </Pressable>
+                    </Animated.View>
+                  );
+                  })}
+                </>
             )}
           </Animated.View>
         </ScrollView>
