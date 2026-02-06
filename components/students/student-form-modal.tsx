@@ -109,6 +109,13 @@ export function StudentFormModal({
     const [isUploading, setIsUploading] = useState(false);
     const [backgroundProgress, setBackgroundProgress] = useState(0);
 
+    const uniqueFloors = useMemo(() => {
+        const floors = Array.from(new Set(seats.map(s => s.floor).filter(f => f !== undefined && f !== null && String(f) !== '0')));
+        return (floors as number[]).sort((a, b) => Number(a) - Number(b));
+    }, [seats]);
+
+    const [selectedFloor, setSelectedFloor] = useState<number | string>(uniqueFloors[0] || 1);
+
     const handleImagePick = async (source: 'gallery' | 'camera') => {
         setIsImageProcessing(true);
         setPickerSheetVisible(false);
@@ -142,10 +149,18 @@ export function StudentFormModal({
                 ...initialValues,
                 shift: initialValues.shift || 'First'
             });
+
+            // Set initial selected floor based on student's seat
+            if (initialValues.seat) {
+                const currentSeat = seats.find(s => s._id === initialValues.seat);
+                if (currentSeat?.floor && String(currentSeat.floor) !== '0') {
+                    setSelectedFloor(currentSeat.floor);
+                }
+            }
         } else {
             setCurrentStep(0);
         }
-    }, [visible, initialValues, reset]);
+    }, [visible, initialValues, reset, seats]);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -159,15 +174,17 @@ export function StudentFormModal({
 
     const progress = ((currentStep + 1) / steps.length) * 100;
 
-    const seatData = useMemo(() => [
-        { label: 'Unallocated', value: '' },
-        ...seats
-            .filter(s => String(s.seatNumber) !== '0')
-            .map((s) => ({
-                label: `Floor ${s.floor ?? '?'} · Seat ${s.seatNumber}`,
+    const seatData = useMemo(() => {
+        const filtered = seats.filter(s => String(s.floor) === String(selectedFloor) && String(s.seatNumber) !== '0');
+
+        return [
+            { label: 'Unallocated', value: '' },
+            ...filtered.map((s) => ({
+                label: `Seat ${s.seatNumber}`,
                 value: s._id,
             })),
-    ], [seats]);
+        ];
+    }, [seats, selectedFloor]);
 
     const handleClose = () => {
         onClose();
@@ -364,7 +381,35 @@ export function StudentFormModal({
                                             </View>
 
                                             <View style={styles.formGroup}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Seat Allocation</Text>
+                                                <Text style={[styles.label, { color: theme.text }]}>Select Level</Text>
+                                                <ScrollView
+                                                    horizontal
+                                                    showsHorizontalScrollIndicator={false}
+                                                    contentContainerStyle={styles.floorTabContainer}
+                                                >
+                                                    {uniqueFloors.map((floor) => (
+                                                        <TouchableOpacity
+                                                            key={floor}
+                                                            onPress={() => setSelectedFloor(floor)}
+                                                            style={[
+                                                                styles.floorTab,
+                                                                {
+                                                                    backgroundColor: String(selectedFloor) === String(floor) ? theme.primary : theme.surfaceAlt,
+                                                                    borderColor: String(selectedFloor) === String(floor) ? theme.primary : theme.border
+                                                                }
+                                                            ]}
+                                                        >
+                                                            <Text style={[
+                                                                styles.floorTabText,
+                                                                { color: String(selectedFloor) === String(floor) ? '#fff' : theme.text }
+                                                            ]}>
+                                                                Level {floor}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </ScrollView>
+
+                                                <Text style={[styles.label, { color: theme.text, marginTop: 8 }]}>Seat Allocation</Text>
                                                 <Dropdown
                                                     data={seatData}
                                                     labelField="label"
@@ -744,6 +789,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+    },
+    floorTabContainer: {
+        gap: 12,
+        paddingVertical: 4,
+    },
+    floorTab: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 90,
+    },
+    floorTabText: {
+        fontSize: 14,
+        fontWeight: '800',
     },
     dropdown: {
         height: 52,

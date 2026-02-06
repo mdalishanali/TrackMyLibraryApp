@@ -4,7 +4,6 @@ import {
   Alert,
   Modal,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -17,6 +16,10 @@ import {
 } from 'react-native';
 import Animated, { FadeInUp, FadeInDown, Layout, FadeIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  ScrollView,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Link, useRouter, useLocalSearchParams } from 'expo-router';
@@ -571,19 +574,26 @@ export default function SeatsScreen() {
 
         {/* Seat Detail Modal */}
         <Modal animationType="slide" transparent visible={Boolean(selectedSeat)} onRequestClose={() => setSelectedSeat(null)}>
-          <Pressable style={styles.sheetOverlay} onPress={() => setSelectedSeat(null)}>
-            <Animated.View entering={FadeInDown} style={[styles.sheetContent, { backgroundColor: theme.surface }]}>
+          <View style={styles.sheetOverlay}>
+            <Pressable
+              style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+              onPress={() => setSelectedSeat(null)}
+            />
+            <Animated.View
+              entering={FadeInDown}
+              style={[styles.sheetContent, { backgroundColor: theme.surface, maxHeight: height * 0.85 }]}
+            >
               <View style={styles.sheetHandle} />
               {selectedSeat && (
                 <View style={styles.sheetInner}>
                   <View style={styles.sheetHeaderRow}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={[styles.sheetTitle, { color: theme.text }]}>Seat {selectedSeat.seatNumber}</Text>
                       <Text style={[styles.sheetSubtitle, { color: theme.muted }]}>Floor {selectedSeat.floor}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       {(() => {
-                        const count = selectedSeat.students?.length || 0;
+                        const count = selectedSeat.students?.filter((s: any) => s.status === 'Active').length || 0;
                         return <AppBadge tone={count > 0 ? 'danger' : 'success'}>{count > 0 ? `${count} OCCUPIED` : 'VACANT'}</AppBadge>
                       })()}
                       <TouchableOpacity 
@@ -628,8 +638,12 @@ export default function SeatsScreen() {
                         </AppButton>
                       </View>
                     ) : (
-                      <View style={styles.occupantDetails}>
-                          <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
+                        <>
+                          <ScrollView
+                            style={{ maxHeight: 500 }}
+                            showsVerticalScrollIndicator={true}
+                            contentContainerStyle={{ paddingBottom: 24 }}
+                          >
                             {selectedSeat.students.map((occupant: any, idx: number) => (
                               <View key={occupant._id} style={[styles.occupantItem, idx !== 0 && { marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.border + '40' }]}>
                                 <View style={styles.occupantMain}>
@@ -701,13 +715,13 @@ export default function SeatsScreen() {
                               Assign Another Shift
                             </AppButton>
                           </View>
-                        </View>
+                      </>
                     )}
                   </View>
                 </View>
               )}
             </Animated.View>
-          </Pressable>
+          </View>
         </Modal>
 
         {studentDefaults && (
@@ -1006,7 +1020,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
   sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheetContent: {
@@ -1017,6 +1030,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
+    elevation: 20,
   },
   sheetHandle: {
     width: 40,
@@ -1060,7 +1074,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.5,
   },
-  occupantDetails: { gap: 24 },
+  occupantDetails: {
+    gap: 24,
+  },
   occupantMain: {
     flexDirection: 'row',
     alignItems: 'center',
