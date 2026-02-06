@@ -514,41 +514,15 @@ export default function SeatsScreen() {
               );
             })}
 
-            {/* Manage Sections Gear */}
-            {floors.length > 0 && (
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  // Open a quick menu for the current active floor
-                  if (activeFloor) {
-                    Alert.alert(
-                      `Manage Section: ${activeFloor}`,
-                      "What would you like to do?",
-                      [
-                        {
-                          text: "Rename Section",
-                          onPress: () => {
-                            setRenamingSection(activeFloor);
-                            setNewSectionName(activeFloor);
-                            setIsRenameModalOpen(true);
-                          }
-                        },
-                        { text: "Cancel", style: "cancel" }
-                      ]
-                    );
-                  }
-                }}
-                style={[styles.floorTab, {
-                  backgroundColor: theme.surfaceAlt,
-                  borderColor: theme.border,
-                  width: 48,
-                  paddingHorizontal: 0
-                }]}
-              >
-                <Ionicons name="settings-outline" size={18} color={theme.muted} />
-              </TouchableOpacity>
-            )}
           </ScrollView>
+          {floors.length > 0 && (
+            <View style={styles.floorNavHint}>
+              <Ionicons name="information-circle-outline" size={12} color={theme.muted} />
+              <Text style={[styles.floorNavHintText, { color: theme.muted }]}>
+                Long press section to rename or delete
+              </Text>
+            </View>
+          )}
         </View>
 
         <ScrollView
@@ -1160,7 +1134,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   floorNavContainer: {
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: 4,
+  },
+  floorNavHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.xl,
+    marginTop: 8,
+    opacity: 0.6,
+  },
+  floorNavHintText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   floorNavScroll: {
     paddingHorizontal: spacing.xl,
