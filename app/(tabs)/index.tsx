@@ -140,7 +140,7 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
           <View style={styles.metaItem}>
             <Text style={[styles.metaLabel, { color: theme.muted }]}>POSITION</Text>
             <Text style={[styles.metaValue, { color: theme.text }]}>
-              {student.seatNumber ? `F${student.floor ?? '-'} • S${student.seatNumber}` : 'Unassigned'}
+              {student.seatNumber ? `${!student.floor || isNaN(Number(student.floor)) ? (student.floor ?? 'Section 1') : `Section ${student.floor}`} • Seat ${student.seatNumber}` : 'Unassigned'}
             </Text>
           </View>
           <Ionicons name="arrow-forward-circle" size={24} color={theme.primary + '40'} />

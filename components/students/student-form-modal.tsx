@@ -381,7 +381,7 @@ export function StudentFormModal({
                                             </View>
 
                                             <View style={styles.formGroup}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Select Level</Text>
+                                                <Text style={[styles.label, { color: theme.text }]}>Select Section</Text>
                                                 <ScrollView
                                                     horizontal
                                                     showsHorizontalScrollIndicator={false}
@@ -403,7 +403,7 @@ export function StudentFormModal({
                                                                 styles.floorTabText,
                                                                 { color: String(selectedFloor) === String(floor) ? '#fff' : theme.text }
                                                             ]}>
-                                                                Level {floor}
+                                                                {isNaN(Number(floor)) ? floor : `Section ${floor}`}
                                                             </Text>
                                                         </TouchableOpacity>
                                                     ))}
@@ -422,6 +422,7 @@ export function StudentFormModal({
                                                     placeholderStyle={{ color: theme.muted }}
                                                     selectedTextStyle={{ color: theme.text }}
                                                     itemTextStyle={{ color: theme.text }}
+                                                    inputSearchStyle={{ color: theme.text }}
                                                     containerStyle={{ backgroundColor: theme.surface }}
                                                     activeColor={theme.primary + '10'}
                                                 />

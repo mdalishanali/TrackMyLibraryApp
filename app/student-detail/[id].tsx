@@ -442,7 +442,7 @@ export default function StudentDetailScreen() {
             {student.fatherName && <DetailRow icon="person" label="Father Name" value={student.fatherName} theme={theme} />}
             {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
             {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
-            <DetailRow icon="business" label="Workspace" value={(student.seatNumber !== undefined && student.seatNumber !== null) ? `Level ${student.floor ?? '1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
+            <DetailRow icon="business" label="Workspace" value={(student.seatNumber !== undefined && student.seatNumber !== null) ? `${student.floor ?? 'Section 1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
               <DetailRow icon="time" label="Schedule" value={student.shift || 'Morning Shift'} theme={theme} />
               <DetailRow icon="calendar" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last />
             </View>

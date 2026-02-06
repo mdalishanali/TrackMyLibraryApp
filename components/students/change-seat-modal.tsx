@@ -134,7 +134,7 @@ export function ChangeSeatModal({
                   )}
                 </View>
 
-                {/* Level Tabs */}
+                {/* Section Tabs */}
                   <View style={styles.section}>
                   <Text style={[styles.label, { color: theme.muted }]}>SELECT SECTION</Text>
                     <ScrollView 

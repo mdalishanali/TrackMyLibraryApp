@@ -24,7 +24,7 @@ type Student = {
   shift?: string;
   joiningDate?: string;
   seatNumber?: number;
-  floorNumber?: number;
+  floorNumber?: number | string;
   status?: string;
   paymentStatus?: string;
   dueAmount?: number;
@@ -153,7 +153,7 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
 
 
   const seatValue = student.seatNumber
-    ? `${student.floorNumber ?? '?'}(${student.seatNumber})`
+    ? `${student.floorNumber ?? 'Sec'} • Seat ${student.seatNumber}`
     : 'Unallocated';
 
   const handleCall = () => {
