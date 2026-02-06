@@ -29,6 +29,7 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isPro, presentPaywall, restorePurchases, presentCustomerCenter, isExpiringSoon, daysRemainingText } = useSubscription();
   const deleteAccount = useDeleteAccount();
+  const { mode } = useAppearanceStore();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -212,8 +213,14 @@ export default function SettingsScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Appearance</Text>
           </View>
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: spacing.lg }]}>
-            <AppearanceSelector theme={theme} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ActionRow
+              icon="color-palette"
+              label="Theme Mode"
+              description={`Currently: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`}
+              onPress={() => router.push('/appearance')}
+              themeTint={theme.primary}
+            />
           </View>
 
           {/* Account Section */}
@@ -346,61 +353,6 @@ export default function SettingsScreen() {
         loading={deleteAccount.isPending}
       />
     </SafeScreen>
-  );
-}
-
-type AppearanceSelectorProps = {
-  theme: ReturnType<typeof useTheme>;
-};
-
-function AppearanceSelector({ theme }: AppearanceSelectorProps) {
-  const { mode, setMode } = useAppearanceStore();
-
-  const modes: { value: AppearanceMode; label: string; icon: keyof typeof Ionicons.glyphMap; description: string }[] = [
-    { value: 'light', label: 'Light', icon: 'sunny', description: 'Always use light theme' },
-    { value: 'dark', label: 'Dark', icon: 'moon', description: 'Always use dark theme' },
-    { value: 'system', label: 'System', icon: 'phone-portrait', description: 'Match device settings' },
-  ];
-
-  return (
-    <View style={{ gap: spacing.md }}>
-      <Text style={[styles.appearanceTitle, { color: theme.text }]}>Theme Mode</Text>
-      <View style={styles.appearanceGrid}>
-        {modes.map((item) => {
-          const isSelected = mode === item.value;
-          return (
-            <Pressable
-              key={item.value}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setMode(item.value);
-              }}
-              style={({ pressed }) => [
-                styles.appearanceCard,
-                {
-                  backgroundColor: isSelected ? theme.primary + '10' : theme.surfaceAlt,
-                  borderColor: isSelected ? theme.primary : theme.border,
-                },
-                pressed && { transform: [{ scale: 0.98 }] },
-              ]}
-            >
-              <View style={[styles.appearanceIconBox, { backgroundColor: isSelected ? theme.primary : theme.muted + '20' }]}>
-                <Ionicons name={item.icon} size={24} color={isSelected ? '#fff' : theme.muted} />
-              </View>
-              <Text style={[styles.appearanceLabel, { color: isSelected ? theme.primary : theme.text }]}>{item.label}</Text>
-              <Text style={[styles.appearanceDesc, { color: theme.muted }]} numberOfLines={2}>
-                {item.description}
-              </Text>
-              {isSelected && (
-                <View style={[styles.appearanceCheck, { backgroundColor: theme.primary }]}>
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
   );
 }
 
@@ -684,51 +636,5 @@ const styles = StyleSheet.create({
     opacity: 0.4,
     textTransform: 'uppercase',
     letterSpacing: 1,
-  },
-  appearanceTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  appearanceGrid: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  appearanceCard: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: 20,
-    borderWidth: 2,
-    alignItems: 'center',
-    gap: spacing.sm,
-    position: 'relative',
-  },
-  appearanceIconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appearanceLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  appearanceDesc: {
-    fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  appearanceCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
