@@ -18,7 +18,7 @@ import { PaymentFormModal, PaymentFormValues } from '@/components/students/payme
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing } from '@/constants/design';
-import { useDeleteStudent, useUpdateStudent } from '@/hooks/use-students';
+import { useDeleteStudent, useUpdateStudent, useHardDeleteStudent } from '@/hooks/use-students';
 import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
@@ -49,6 +49,7 @@ export default function StudentDetailScreen() {
   const isPaymentSaving = createPayment.isPending || updatePayment.isPending;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
+  const [confirmHardDelete, setConfirmHardDelete] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
   const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
@@ -91,6 +92,7 @@ export default function StudentDetailScreen() {
   const studentQuery = useStudentQuery(id);
   const paymentsQuery = useInfinitePaymentsQuery({ student: id, limit: 10 });
   const deleteStudent = useDeleteStudent();
+  const hardDeleteStudent = useHardDeleteStudent();
   const updateStudent = useUpdateStudent(id);
   const seatsQuery = useSeatsQuery();
 
@@ -143,6 +145,18 @@ export default function StudentDetailScreen() {
     await deleteStudent.mutateAsync(student._id);
     setConfirmStudentDelete(false);
     router.back();
+  };
+
+  const handleHardDelete = async () => {
+    if (hardDeleteStudent.isPending) return;
+    try {
+      await hardDeleteStudent.mutateAsync(student._id);
+      setConfirmHardDelete(false);
+      router.back();
+      showToast('Student deleted permanently', 'success');
+    } catch (e) {
+      showToast('Failed to delete student', 'error');
+    }
   };
 
 
@@ -432,6 +446,26 @@ export default function StudentDetailScreen() {
                   <Ionicons name="trash-outline" size={20} color={theme.danger} />
                 </Pressable>
               </View>
+
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setConfirmHardDelete(true);
+              }}
+              style={({ pressed }) => [
+                {
+                  marginTop: 12,
+                  backgroundColor: theme.danger + '15',
+                  paddingVertical: 12,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+                pressed && { opacity: 0.7 }
+              ]}
+            >
+              <Text style={{ color: theme.danger, fontWeight: '800', fontSize: 13, letterSpacing: 0.5 }}>DELETE PERMANENTLY</Text>
+            </Pressable>
             </LinearGradient>
           </Animated.View>
 
@@ -594,6 +628,17 @@ export default function StudentDetailScreen() {
         loading={deleteStudent.isPending}
         onCancel={() => setConfirmStudentDelete(false)}
         onConfirm={confirmDeleteStudent}
+      />
+
+      <ConfirmDialog
+        visible={confirmHardDelete}
+        title="Delete Permanently?"
+        description={`This action cannot be undone. ${student.name} and ALL data will be wiped forever.`}
+        confirmText="HARD DELETE"
+        destructive
+        loading={hardDeleteStudent.isPending}
+        onCancel={() => setConfirmHardDelete(false)}
+        onConfirm={handleHardDelete}
       />
 
       {student && (

@@ -140,3 +140,23 @@ export const useDeleteStudent = () => {
     },
   });
 };
+
+export const useHardDeleteStudent = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/students/${id}?type=hard`);
+      return data;
+    },
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('student_hard_deleted', {
+        student_id: id,
+      });
+    },
+  });
+};
