@@ -72,9 +72,9 @@ export default function SeatsScreen() {
       router.setParams({ setup: undefined } as any);
     }
   }, [setup]);
-  const [floor, setFloor] = useState('1');
-  const [startSeat, setStartSeat] = useState('1');
-  const [endSeat, setEndSeat] = useState('10');
+  const [floor, setFloor] = useState('');
+  const [startSeat, setStartSeat] = useState('');
+  const [endSeat, setEndSeat] = useState('');
   const [selectedSeat, setSelectedSeat] = useState<null | any>(null);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isChangeSeatModalOpen, setIsChangeSeatModalOpen] = useState(false);
@@ -700,25 +700,37 @@ export default function SeatsScreen() {
                       value={floor}
                       onChangeText={setFloor}
                       keyboardType="default"
+                      placeholder="e.g. Ground A, Hall 1"
+                      placeholderTextColor={theme.muted + '80'}
                       style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt }]}
                     />
                   </View>
                   <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, { color: theme.muted }]}>Start ID</Text>
+                      <Text style={[styles.label, { color: theme.muted }]}>Start ID (Max 500)</Text>
                       <TextInput
                         value={startSeat}
-                        onChangeText={setStartSeat}
+                        onChangeText={text => {
+                          const num = parseInt(text);
+                          if (!text || (num >= 0 && num <= 500)) setStartSeat(text);
+                        }}
                         keyboardType="numeric"
+                        placeholder="1"
+                        placeholderTextColor={theme.muted + '80'}
                         style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt }]}
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, { color: theme.muted }]}>End ID</Text>
+                      <Text style={[styles.label, { color: theme.muted }]}>End ID (Max 500)</Text>
                       <TextInput
                         value={endSeat}
-                        onChangeText={setEndSeat}
+                        onChangeText={text => {
+                          const num = parseInt(text);
+                          if (!text || (num >= 0 && num <= 500)) setEndSeat(text);
+                        }}
                         keyboardType="numeric"
+                        placeholder="10"
+                        placeholderTextColor={theme.muted + '80'}
                         style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surfaceAlt }]}
                       />
                     </View>
