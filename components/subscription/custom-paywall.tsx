@@ -178,7 +178,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
           <View style={styles.contactSection}>
             <Text style={[styles.contactTitle, { color: theme.text }]}>Need Help?</Text>
             <Text style={[styles.contactSubtitle, { color: theme.muted }]}>
-              Contact us for bulk pricing, support or custom features.
+              Have questions or need assistance? We're here to help!
             </Text>
             <View style={styles.contactButtons}>
               <TouchableOpacity

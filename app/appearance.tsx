@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -22,7 +22,9 @@ export default function AppearanceScreen() {
   ];
 
   return (
-    <SafeScreen edges={['top']}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <SafeScreen edges={['top']}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
         <View style={styles.header}>
@@ -119,6 +121,7 @@ export default function AppearanceScreen() {
         </ScrollView>
       </View>
     </SafeScreen>
+    </>
   );
 }
 
