@@ -681,7 +681,7 @@ export default function SeatsScreen() {
                   </View>
                   <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, { color: theme.muted }]}>Start ID (Max 500)</Text>
+                      <Text style={[styles.label, { color: theme.muted }]}>Start Seat No.</Text>
                       <TextInput
                         value={startSeat}
                         onChangeText={text => {
@@ -695,7 +695,7 @@ export default function SeatsScreen() {
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, { color: theme.muted }]}>End ID (Max 500)</Text>
+                      <Text style={[styles.label, { color: theme.muted }]}>End Seat No.</Text>
                       <TextInput
                         value={endSeat}
                         onChangeText={text => {
@@ -715,8 +715,14 @@ export default function SeatsScreen() {
                     fullWidth
                     style={{ marginTop: spacing.md, height: 56, borderRadius: 16 }}
                   >
-                    Generate Layout
+                    Generate Seats
                   </AppButton>
+                  <View style={styles.modalNote}>
+                    <Ionicons name="bulb-outline" size={14} color={theme.warning} />
+                    <Text style={[styles.modalNoteText, { color: theme.muted }]}>
+                      Seats will be created from {startSeat || '1'} to {endSeat || '10'} in {floor || 'new section'}. Max limit is 500 seats.
+                    </Text>
+                  </View>
                 </View>
               </ScrollView>
             </Animated.View>
@@ -1149,6 +1155,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  modalNote: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: 'rgba(255,165,0,0.05)',
+    borderRadius: 12,
+  },
+  modalNoteText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   floorNavScroll: {
     paddingHorizontal: spacing.xl,
