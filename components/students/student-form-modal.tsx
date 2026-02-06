@@ -147,7 +147,8 @@ export function StudentFormModal({
         if (visible) {
             reset({
                 ...initialValues,
-                shift: initialValues.shift || 'First'
+                shift: initialValues.shift || 'First',
+                gender: initialValues.gender || 'Male',
             });
 
             // Set initial selected floor based on student's seat
@@ -310,11 +311,14 @@ export function StudentFormModal({
                                         </TouchableOpacity>
 
                                         <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                            <FormField label="Full Name" name="name" control={control} errors={errors} theme={theme} placeholder="Enter member's full name" />
-                                            <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" />
+                                            <FormField label="Full Name" name="name" control={control} errors={errors} theme={theme} placeholder="Enter member's full name" required />
+                                            <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" required />
 
                                             <View style={styles.formGroup}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Joining Date</Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Joining Date</Text>
+                                                    <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                </View>
                                                 <TouchableOpacity
                                                     onPress={() => setDatePickerOpen(true)}
                                                     style={[styles.input, { borderColor: errors.joiningDate ? theme.danger : theme.border, backgroundColor: theme.surfaceAlt }]}
@@ -331,20 +335,36 @@ export function StudentFormModal({
                                             <FormField label="Address (Optional)" name="address" control={control} errors={errors} theme={theme} placeholder="Enter full address" multiline />
 
                                             <View style={styles.formGroup}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
-                                                <Dropdown
-                                                    data={genderOptions}
-                                                    labelField="label"
-                                                    valueField="value"
-                                                    value={values.gender}
-                                                    onChange={(item) => setValue('gender', item.value)}
-                                                    style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-                                                    placeholderStyle={{ color: theme.muted }}
-                                                    selectedTextStyle={{ color: theme.text }}
-                                                    itemTextStyle={{ color: theme.text }}
-                                                    containerStyle={{ backgroundColor: theme.surface }}
-                                                    activeColor={theme.primary + '10'}
-                                                />
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
+                                                    <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                </View>
+                                                <View style={styles.statusGrid}>
+                                                    {['Male', 'Female'].map((gender) => {
+                                                        const active = values.gender === gender;
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={gender}
+                                                                onPress={() => setValue('gender', gender)}
+                                                                style={[
+                                                                    styles.statusBtn,
+                                                                    {
+                                                                        backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                                                                        borderColor: active ? theme.primary : theme.border
+                                                                    }
+                                                                ]}
+                                                            >
+                                                                <Ionicons
+                                                                    name={gender === 'Male' ? 'male' : 'female'}
+                                                                    size={18}
+                                                                    color={active ? '#fff' : theme.text}
+                                                                    style={{ marginRight: 8 }}
+                                                                />
+                                                                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{gender}</Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+                                                </View>
                                             </View>
                                         </AppCard>
 
@@ -361,7 +381,10 @@ export function StudentFormModal({
                                         <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                                             <View style={styles.row}>
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={[styles.label, { color: theme.text }]}>Start Time</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Text style={[styles.label, { color: theme.text }]}>Start Time</Text>
+                                                        <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                    </View>
                                                     <TouchableOpacity
                                                         onPress={() => setTimePickerType('startTime')}
                                                         style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
@@ -370,7 +393,10 @@ export function StudentFormModal({
                                                     </TouchableOpacity>
                                                 </View>
                                                 <View style={{ flex: 1 }}>
-                                                    <Text style={[styles.label, { color: theme.text }]}>End Time</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Text style={[styles.label, { color: theme.text }]}>End Time</Text>
+                                                        <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                    </View>
                                                     <TouchableOpacity
                                                         onPress={() => setTimePickerType('endTime')}
                                                         style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
@@ -455,7 +481,10 @@ export function StudentFormModal({
                                             </View>
 
                                             <View style={styles.formGroup}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Current Status</Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Current Status</Text>
+                                                    <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                </View>
                                                 <View style={styles.statusGrid}>
                                                     {statusOptions.map(opt => {
                                                         const active = values.status === opt.value;
@@ -559,6 +588,8 @@ export function StudentFormModal({
                                     mode="date"
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                     value={parseDate(values.joiningDate)}
+                                    textColor={theme.text}
+                                    themeVariant={theme.text === '#e5e7eb' ? 'dark' : 'light'}
                                     onChange={(e, d) => {
                                         if (d) {
                                             const now = new Date();
@@ -583,6 +614,8 @@ export function StudentFormModal({
                                     mode="time"
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                     value={parseTime(values[timePickerType])}
+                                    textColor={theme.text}
+                                    themeVariant={theme.text === '#e5e7eb' ? 'dark' : 'light'}
                                     onChange={(e, d) => {
                                         if (d) {
                                             const h = String(d.getHours()).padStart(2, '0');
@@ -602,11 +635,14 @@ export function StudentFormModal({
     );
 }
 
-function FormField({ label, name, control, errors, theme, keyboardType = 'default', placeholder, multiline }: any) {
+function FormField({ label, name, control, errors, theme, keyboardType = 'default', placeholder, multiline, required }: any) {
     const hasError = Boolean(errors[name]);
     return (
         <View style={styles.formGroup}>
-            <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+                {required && <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>}
+            </View>
             <Controller
                 control={control}
                 name={name}

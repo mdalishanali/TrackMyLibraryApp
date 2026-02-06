@@ -259,44 +259,74 @@ function TrialTimer({ theme }: { theme: any }) {
   );
 }
 
-// Day 1 Goal Widget
+// Day 1 Goal Widget - Revamped for High Engagement
 function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () => void }) {
+  // Calculate progress (Library Setup is done, so 1/2 = 50%)
+  const progress = 0.5;
+
   return (
     <Animated.View
       entering={FadeInDown.delay(200)}
       style={[
         styles.day1Goal,
-        { backgroundColor: theme.surface, borderColor: theme.border },
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          overflow: 'hidden'
+        },
       ]}
     >
+      {/* Decorative Background Gradient */}
+      <LinearGradient
+        colors={[theme.primary + '10', 'transparent']}
+        style={[StyleSheet.absoluteFill, { height: '100%' }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+
       <View style={styles.goalHeader}>
-        <View style={{ gap: 4 }}>
-          <Text style={[styles.goalTitle, { color: theme.text }]}>🚀 Day 1 Goal</Text>
-          <Text style={[styles.goalDesc, { color: theme.muted }]}>
-            Add your first student to activate the system.
-          </Text>
+        <View style={styles.goalTitleRow}>
+          <View style={[styles.goalIconBox, { backgroundColor: '#FFF9C4' }]}>
+            <Text style={{ fontSize: 24 }}>🎯</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.goalTitle, { color: theme.text }]}>Daily Target</Text>
+            <Text style={[styles.goalDesc, { color: theme.muted }]}>
+              Complete setup to maximize efficiency
+            </Text>
+          </View>
         </View>
-        <View style={[styles.goalProgress, { backgroundColor: theme.warning + '15' }]}>
-          <Text style={{ color: theme.warning, fontWeight: '800', fontSize: 12 }}>PENDING</Text>
+
+        {/* Progress Bar */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressLabels}>
+            <Text style={[styles.progressText, { color: theme.primary }]}>50% Completed</Text>
+            <Text style={[styles.progressText, { color: theme.muted }]}>1/2 Steps</Text>
+          </View>
+          <View style={[styles.progressBarBg, { backgroundColor: theme.surfaceAlt }]}>
+            <Animated.View
+              style={[
+                styles.progressBarFill,
+                { backgroundColor: theme.primary, width: '50%' }
+              ]}
+            />
+          </View>
         </View>
       </View>
 
       <View style={styles.checklist}>
-        <View style={styles.checkItem}>
-          <Ionicons name="checkmark-circle" size={18} color={theme.success} />
-          <Text
-            style={[
-              styles.checkText,
-              { color: theme.text, textDecorationLine: 'line-through', opacity: 0.6 },
-            ]}
-          >
-            Library Setup
+        <View style={[styles.checkItem, { opacity: 0.6 }]}>
+          <Ionicons name="checkmark-circle" size={22} color={theme.success} />
+          <Text style={[styles.checkText, { color: theme.text, textDecorationLine: 'line-through' }]}>
+            Library Created
           </Text>
         </View>
         <View style={styles.checkItem}>
-          <Ionicons name="ellipse-outline" size={18} color={theme.primary} />
+          <View style={[styles.pendingCircle, { borderColor: theme.primary }]}>
+            <View style={[styles.pendingDot, { backgroundColor: theme.primary }]} />
+          </View>
           <Text style={[styles.checkText, { color: theme.text, fontWeight: '700' }]}>
-            Add 1st Student
+            Add First Student
           </Text>
         </View>
       </View>
@@ -309,10 +339,10 @@ function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () 
         style={({ pressed }) => [
           styles.goalBtn,
           { backgroundColor: theme.primary },
-          pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
         ]}
       >
-        <Text style={styles.goalBtnText}>Add First Student</Text>
+        <Text style={styles.goalBtnText}>Add Student Now</Text>
         <Ionicons name="arrow-forward" size={18} color="#fff" />
       </Pressable>
     </Animated.View>
@@ -614,7 +644,7 @@ export default function DashboardScreen() {
 
         <Animated.View
           entering={FadeInDown.delay(1000).duration(800)}
-          style={styles.fabContainer}
+          style={[styles.fabContainer, { bottom: 24 + insets.bottom }]}
         >
           <Pressable
             onPress={() => {
@@ -819,63 +849,7 @@ const styles = StyleSheet.create({
     width: (width - spacing.xl * 2 - spacing.md) / 2,
   },
 
-  // Day 1 Goal
-  day1Goal: {
-    padding: spacing.xl,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
-    marginBottom: spacing.xs,
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.lg,
-  },
-  goalTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  goalDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-    maxWidth: '90%',
-  },
-  goalProgress: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checklist: {
-    gap: 12,
-    marginBottom: spacing.xl,
-    paddingLeft: 4,
-  },
-  checkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  checkText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  goalBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    borderRadius: radius.lg,
-    gap: 8,
-  },
-  goalBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
+
   metricCardInner: {
     borderRadius: 28,
     overflow: 'hidden',
@@ -1196,6 +1170,108 @@ const styles = StyleSheet.create({
   onboardingBtnText: {
     color: '#fff',
     fontSize: 18,
+    fontWeight: '800',
+  },
+
+  // Day 1 Goal Widget Styles
+  day1Goal: {
+    padding: 2,
+    borderRadius: 24,
+    borderWidth: 1.5,
+  },
+  goalHeader: {
+    padding: 20,
+    paddingBottom: 16,
+  },
+  goalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 16,
+  },
+  goalIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  goalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  goalDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  progressSection: {
+    gap: 8,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressBarBg: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  checklist: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 20,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  pendingCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  goalBtn: {
+    margin: 20,
+    marginTop: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  goalBtnText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '800',
   },
 });

@@ -146,7 +146,7 @@ export default function Login() {
                       styles.inputWrapper,
                       {
                         backgroundColor: theme.surfaceAlt,
-                        borderColor: errors.identifier ? '#ef4444' : focusedField === 'identifier' ? theme.primary : 'transparent',
+                        borderColor: errors.identifier ? '#ef4444' : focusedField === 'identifier' ? theme.primary : theme.border,
                         borderWidth: 1.5
                       }
                     ]}>
@@ -190,7 +190,7 @@ export default function Login() {
                       styles.inputWrapper,
                       {
                         backgroundColor: theme.surfaceAlt,
-                        borderColor: errors.password ? '#ef4444' : focusedField === 'password' ? theme.primary : 'transparent',
+                        borderColor: errors.password ? '#ef4444' : focusedField === 'password' ? theme.primary : theme.border,
                         borderWidth: 1.5
                       }
                     ]}>

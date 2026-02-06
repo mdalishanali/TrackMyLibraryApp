@@ -109,37 +109,16 @@ export default function SettingsScreen() {
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Subscription</Text>
           </View>
 
-          {isExpiringSoon && (
-            <Pressable
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                isPro ? presentCustomerCenter() : presentPaywall();
-              }}
-              style={({ pressed }) => [
-                styles.expiryBanner,
-                { backgroundColor: theme.danger + '10', borderColor: theme.danger + '20' },
-                pressed && { opacity: 0.8 }
-              ]}
-            >
-              <View style={[styles.expiryIconBox, { backgroundColor: theme.danger + '20' }]}>
-                <Ionicons name="time" size={20} color={theme.danger} />
-              </View>
-              <View style={styles.expiryContent}>
-                <Text style={[styles.expiryTitle, { color: theme.danger }]}>Access Expiring</Text>
-                <Text style={[styles.expirySubtitle, { color: theme.danger }]}>
-                  Your {isPro ? 'pro access' : 'trial'} ends {daysRemainingText === 'Today' ? 'today' : `in ${daysRemainingText}`}.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.danger} />
-            </Pressable>
-          )}
-
-          {/* Prominent Upgrade CTA for Store Reviewers */}
+          {/* Subscription Status Card - Unified */}
           <Animated.View entering={FadeInDown.delay(200)} style={styles.upgradeBtnContainer}>
             <Pressable
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                presentPaywall();
+                if (isExpiringSoon) {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                } else {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                }
+                isPro && !isExpiringSoon ? presentCustomerCenter() : presentPaywall();
               }}
               style={({ pressed }) => [
                 styles.upgradeBtn,
@@ -147,24 +126,51 @@ export default function SettingsScreen() {
               ]}
             >
               <LinearGradient
-                colors={[theme.primary, theme.info || '#4FACFE']}
+                colors={
+                  isExpiringSoon
+                    ? [theme.danger, '#b91c1c']
+                    : isPro
+                      ? [theme.primary, theme.info || '#4FACFE']
+                      : [theme.primary, '#4338ca']
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.upgradeGradient}
               >
                 <View style={styles.upgradeContent}>
-                  <View style={styles.upgradeIconBox}>
-                    <Ionicons name="sparkles" size={20} color="#fff" />
+                  <View style={[styles.upgradeIconBox, isExpiringSoon && { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Ionicons
+                      name={isExpiringSoon ? "alert-circle" : isPro ? "sparkles" : "star"}
+                      size={22}
+                      color="#fff"
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.upgradeTitle}>{isPro ? 'You are PRO' : 'Upgrade to PRO'}</Text>
+                    <Text style={styles.upgradeTitle}>
+                      {isExpiringSoon
+                        ? 'Action Required'
+                        : isPro
+                          ? 'You are PRO'
+                          : 'Upgrade to PRO'}
+                    </Text>
                     <Text style={styles.upgradeSubtitle}>
-                      {isPro && daysRemainingText
-                        ? `Your subscription expires in ${daysRemainingText}`
-                        : 'View all premium features and plans'}
+                      {isExpiringSoon
+                        ? `Your access expires in ${daysRemainingText}`
+                        : isPro
+                          ? (daysRemainingText ? `Renews in ${daysRemainingText}` : 'Active Plan')
+                          : 'Unlock full access to all features'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#fff" style={{ opacity: 0.8 }} />
+                  <View style={{
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12
+                  }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                      {isExpiringSoon ? 'RENEW' : 'VIEW'}
+                    </Text>
+                  </View>
                 </View>
               </LinearGradient>
             </Pressable>
