@@ -11,6 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
 import { ActivityProvider } from '@/providers/activity-provider';
+import { OfflineIndicator } from '@/components/ui/offline-indicator';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -81,6 +82,7 @@ export default Sentry.wrap(function RootLayout() {
                 <StatusBar style="auto" />
               </ThemeProvider>
               <Toast config={toastConfig} />
+              <OfflineIndicator />
             </SubscriptionProvider>
           </PostHogProvider>
         </QueryProvider>
