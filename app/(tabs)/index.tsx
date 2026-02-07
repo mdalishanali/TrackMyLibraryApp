@@ -24,6 +24,7 @@ import { StudentFormModal, StudentFormValues } from '@/components/students/stude
 import { useCreateStudent } from '@/hooks/use-students';
 import { showToast } from '@/lib/toast';
 import { useScreenView } from '@/hooks/use-screen-view';
+import { Skeleton, SkeletonCard, SkeletonMetricCard, SkeletonList } from '@/components/ui/skeleton';
 
 const { width, height } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
@@ -405,8 +406,52 @@ export default function DashboardScreen() {
     }
   };
 
+  const renderSkeletonDashboard = () => (
+    <SafeScreen edges={['left', 'right']}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header Skeleton */}
+          <View style={styles.header}>
+            <View style={styles.greetingRow}>
+              <View style={{ flex: 1 }}>
+                <Skeleton width="40%" height={16} />
+                <Skeleton width="60%" height={34} style={{ marginTop: 8 }} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Skeleton width={50} height={50} borderRadius={18} />
+                <Skeleton width={60} height={60} borderRadius={22} />
+              </View>
+            </View>
+          </View>
+
+          {/* Metrics Skeleton */}
+          <View style={styles.metricsSection}>
+            <Skeleton width="30%" height={20} style={{ marginBottom: 16 }} />
+            <View style={styles.metricsGrid}>
+              {[1, 2, 3, 4].map((i) => (
+                <View key={i} style={styles.metricCardWrapper}>
+                  <SkeletonMetricCard theme={theme} />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Recent Students Skeleton */}
+          <View style={styles.section}>
+            <Skeleton width="40%" height={20} style={{ marginBottom: 16 }} />
+            <SkeletonList count={3} theme={theme} />
+          </View>
+        </ScrollView>
+      </View>
+    </SafeScreen>
+  );
+
   if (isLoading) {
-    return <FullScreenLoader message="Preparing your dashboard..." />;
+    return renderSkeletonDashboard();
   }
 
   const hasNoSeats =
