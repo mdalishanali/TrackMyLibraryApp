@@ -149,13 +149,22 @@ export default function StudentDetailScreen() {
 
   const handleHardDelete = async () => {
     if (hardDeleteStudent.isPending) return;
+
     try {
+      console.log('Attempting hard delete for student:', student._id);
       await hardDeleteStudent.mutateAsync(student._id);
       setConfirmHardDelete(false);
-      router.back();
       showToast('Student deleted permanently', 'success');
-    } catch (e) {
-      showToast('Failed to delete student', 'error');
+
+      // Use a small delay before navigation to ensure state updates complete
+      setTimeout(() => {
+        router.back();
+      }, 100);
+    } catch (e: any) {
+      console.error('Hard delete failed:', e);
+      const errorMessage = e?.response?.data?.message || e?.message || 'Failed to delete student';
+      showToast(errorMessage, 'error');
+      setConfirmHardDelete(false);
     }
   };
 
@@ -634,7 +643,7 @@ export default function StudentDetailScreen() {
         visible={confirmHardDelete}
         title="Delete Permanently?"
         description={`This action cannot be undone. ${student.name} and ALL data will be wiped forever.`}
-        confirmText="HARD DELETE"
+        confirmText="DELETE PERMANENTLY"
         destructive
         loading={hardDeleteStudent.isPending}
         onCancel={() => setConfirmHardDelete(false)}

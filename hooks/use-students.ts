@@ -153,9 +153,18 @@ export const useHardDeleteStudent = () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+      // Also invalidate the specific student query
+      queryClient.removeQueries({ queryKey: [...queryKeys.students(), id] });
 
       posthog?.capture('student_hard_deleted', {
         student_id: id,
+      });
+    },
+    onError: (error: any, id) => {
+      console.error('Hard delete error:', error);
+      posthog?.capture('student_hard_delete_failed', {
+        student_id: id,
+        error: error?.message || 'Unknown error',
       });
     },
   });
