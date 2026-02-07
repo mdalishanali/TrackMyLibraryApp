@@ -171,7 +171,7 @@ function PaymentCard({ payment, theme, index }: { payment: any; theme: any; inde
         <View style={styles.paymentHeader}>
           <View style={styles.paymentMainInfo}>
             <Text style={[styles.paymentStudent, { color: theme.text }]} numberOfLines={1}>
-              {typeof payment.student === 'object' ? payment.student.name : 'Student'}
+              {payment.student?.name || 'Deleted Student'}
             </Text>
             <View style={styles.amountBadgeRow}>
               <Text style={[styles.paymentAmount, { color: theme.primary }]}>

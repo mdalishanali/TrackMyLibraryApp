@@ -295,7 +295,7 @@ export default function PaymentsScreen() {
                   <View style={styles.itemMain}>
                     <View style={styles.studentInfo}>
                       <Text style={[styles.studentName, { color: theme.text }]} numberOfLines={1}>
-                        {typeof item.student === 'object' ? item.student.name : 'Student'}
+                        {typeof item.student === 'object' && item.student ? item.student.name : 'Deleted Student'}
                       </Text>
                       <View style={styles.metaRow}>
                         <Ionicons name="time-outline" size={12} color={theme.muted} />
