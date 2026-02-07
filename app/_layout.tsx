@@ -23,7 +23,7 @@ import { PostHogProvider } from 'posthog-react-native';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
-  dsn: 'https://d713ca9ddc60cad157c24b17cde5f97d@o4510557308977152.ingest.us.sentry.io/4510845254434816',
+  dsn: 'https://2231850e9804f8ff74744a6247ed2fc7@o4510557308977152.ingest.us.sentry.io/4510845353394176',
 
   // Adds more context data to events (IP address, cookies, user, etc.)
   // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
