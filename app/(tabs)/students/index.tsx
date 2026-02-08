@@ -408,11 +408,11 @@ export default function StudentsScreen() {
       <ConfirmDialog
         visible={Boolean(pendingDelete)}
         title="Delete student?"
-        description={`Are you sure you want to delete ${pendingDelete?.name || 'this student'}? This cannot be undone.`}
+        description={`Are you sure you want to permanently delete ${pendingDelete?.name || 'this student'}? This will wipe all their data and cannot be undone.`}
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
         destructive
-        confirmText="Delete"
+        confirmText="Delete Permanently"
         loading={deleteStudent.isPending}
       />
 

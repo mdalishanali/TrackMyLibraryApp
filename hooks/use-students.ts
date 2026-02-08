@@ -133,38 +133,11 @@ export const useDeleteStudent = () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+      queryClient.removeQueries({ queryKey: [...queryKeys.students(), id] });
 
       posthog?.capture('student_deleted', {
         student_id: id,
-      });
-    },
-  });
-};
-
-export const useHardDeleteStudent = () => {
-  const posthog = usePostHog();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await api.delete(`/students/${id}?type=hard`);
-      return data;
-    },
-    onSuccess: (data, id) => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
-      // Also invalidate the specific student query
-      queryClient.removeQueries({ queryKey: [...queryKeys.students(), id] });
-
-      posthog?.capture('student_hard_deleted', {
-        student_id: id,
-      });
-    },
-    onError: (error: any, id) => {
-      console.error('Hard delete error:', error);
-      posthog?.capture('student_hard_delete_failed', {
-        student_id: id,
-        error: error?.message || 'Unknown error',
+        type: 'permanent'
       });
     },
   });
