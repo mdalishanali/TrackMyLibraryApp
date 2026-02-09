@@ -207,7 +207,7 @@ export default function StudentsScreen() {
       shift: s.shift ?? 'Morning',
       startTime: s.time?.[0]?.start ?? '09:00',
       endTime: s.time?.[0]?.end ?? '18:00',
-      fees: s.fees ? String(s.fees) : '500',
+      fees: (s.fees || s.fees === 0) ? String(s.fees || 500) : '500',
       gender: s.gender ?? 'Male',
       notes: s.notes ?? '',
       fatherName: s.fatherName ?? '',

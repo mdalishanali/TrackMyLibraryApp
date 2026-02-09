@@ -60,7 +60,7 @@ export default function Signup() {
 
   // Animation values
   const progress = useSharedValue(1);
-  const logoScale = useSharedValue(0);
+  // const logoScale = useSharedValue(0);
 
   // Setup form
   const {
@@ -83,13 +83,13 @@ export default function Signup() {
 
   const signupMutation = useSignupMutation();
 
-  useEffect(() => {
-    logoScale.value = withDelay(300, withSpring(1, { damping: 12 }));
-  }, []);
+  // useEffect(() => {
+  //   logoScale.value = withDelay(300, withSpring(1, { damping: 12 }));
+  // }, []);
 
-  const logoAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScale.value }]
-  }));
+  // const logoAnimatedStyle = useAnimatedStyle(() => ({
+  //   transform: [{ scale: logoScale.value }]
+  // }));
 
   const progressBarStyle = useAnimatedStyle(() => {
     return {
@@ -176,15 +176,15 @@ export default function Signup() {
             )}
 
             {!errors[name] && value && value.length > 2 && focusedField !== name && (
-              <Animated.View entering={FadeInRight.duration(300)}>
+              <View>
                 <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
-              </Animated.View>
+              </View>
             )}
           </View>
         )}
       />
       {errors[name] && (
-        <Animated.Text entering={FadeInUp} style={styles.errorText}>{errors[name]?.message}</Animated.Text>
+        <Text style={styles.errorText}>{errors[name]?.message}</Text>
       )}
     </View>
   );
@@ -221,16 +221,16 @@ export default function Signup() {
         >
           {/* Header Section */}
           <View style={styles.header}>
-            <Animated.View style={[styles.logoBadge, logoAnimatedStyle]}>
+            <View style={styles.logoBadge}>
               <LinearGradient
                 colors={['#fff', '#f0f0f0']}
                 style={styles.logoGradient}
               >
                 <Ionicons name="library" size={32} color={theme.primary} />
               </LinearGradient>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.delay(500).duration(800)}>
+            <View>
               <Text style={styles.kicker}>JOIN THE EXPERTS</Text>
               <Text style={styles.title}>
                 {step === 1 ? 'Workspace Setup' : 'Administrator Profile'}
@@ -240,7 +240,7 @@ export default function Signup() {
                   ? 'First, let\'s set up your digital library.'
                   : 'Almost there! Who will be managing this space?'}
               </Text>
-            </Animated.View>
+            </View>
           </View>
 
           {/* Progress Bar */}
@@ -252,8 +252,7 @@ export default function Signup() {
           </View>
 
           {/* Signup Card */}
-          <Animated.View
-            entering={FadeInDown.delay(700).duration(800)}
+          <View
             style={[
               styles.card,
               {
@@ -263,9 +262,7 @@ export default function Signup() {
             ]}
           >
             {step === 1 && (
-              <Animated.View
-                entering={FadeInRight}
-                exiting={FadeOutLeft}
+              <View
                 style={styles.formSection}
               >
                 <Text style={[styles.cardTitle, { color: theme.text }]}>Library Details</Text>
@@ -295,13 +292,11 @@ export default function Signup() {
                     <Ionicons name="arrow-forward" size={18} color="#fff" />
                   </Pressable>
                 </View>
-              </Animated.View>
+              </View>
             )}
 
             {step === 2 && (
-              <Animated.View
-                entering={FadeInRight}
-                exiting={FadeOutRight}
+              <View
                 style={styles.formSection}
               >
                 <View style={styles.cardHeaderRow}>
@@ -356,7 +351,7 @@ export default function Signup() {
                     )}
                   </Pressable>
                 </View>
-              </Animated.View>
+              </View>
             )}
 
             {/* Login Link - always visible at bottom of card */}
@@ -369,11 +364,10 @@ export default function Signup() {
               </Link>
             </View>
 
-          </Animated.View>
+          </View>
 
           {/* Security Indicator */}
-          <Animated.View
-            entering={FadeInDown.delay(1000).duration(800)}
+          <View
             style={styles.securityInfo}
           >
             <Ionicons
@@ -387,7 +381,7 @@ export default function Signup() {
             ]}>
               Secure 256-bit Encryption
             </Text>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

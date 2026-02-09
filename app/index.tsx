@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Image, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { 
@@ -55,6 +55,17 @@ export default function OnboardingScreen() {
   const theme = useTheme();
   const { isAuthenticated, hydrated } = useAuth();
   const scrollX = useSharedValue(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollRef = useRef<any>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextIndex = (currentIndex + 1) % SLIDES.length;
+      setCurrentIndex(nextIndex);
+      scrollRef.current?.scrollTo({ x: nextIndex * width, animated: true });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [currentIndex]);
 
   useEffect(() => {
     if (hydrated && isAuthenticated) {
@@ -85,10 +96,14 @@ export default function OnboardingScreen() {
     <SafeScreen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <Animated.ScrollView
+          ref={scrollRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onScroll={onScroll}
+          onMomentumScrollEnd={(e: any) => {
+            setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / width));
+          }}
           scrollEventThrottle={16}
           bounces={false}
           contentContainerStyle={{ alignItems: 'center' }}

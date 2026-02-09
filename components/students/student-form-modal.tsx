@@ -143,6 +143,7 @@ export function StudentFormModal({
                 ...initialValues,
                 shift: initialValues.shift || 'First',
                 gender: initialValues.gender || 'Male',
+                fees: initialValues.fees || '500',
             });
 
             // Set initial selected floor based on student's seat

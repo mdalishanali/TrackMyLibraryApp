@@ -60,15 +60,15 @@ export default function Login() {
   const loginMutation = useLoginMutation();
 
   // Animation values
-  const logoScale = useSharedValue(0);
+  // const logoScale = useSharedValue(0);
 
-  useEffect(() => {
-    logoScale.value = withDelay(300, withSpring(1, { damping: 12 }));
-  }, []);
+  // useEffect(() => {
+  //   logoScale.value = withDelay(300, withSpring(1, { damping: 12 }));
+  // }, []);
 
-  const logoAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScale.value }]
-  }));
+  // const logoAnimatedStyle = useAnimatedStyle(() => ({
+  //   transform: [{ scale: logoScale.value }]
+  // }));
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
@@ -107,27 +107,26 @@ export default function Login() {
         >
           {/* Header Section */}
           <View style={styles.header}>
-            <Animated.View style={[styles.logoBadge, logoAnimatedStyle]}>
+            <View style={styles.logoBadge}>
               <LinearGradient
                 colors={['#fff', '#f0f0f0']}
                 style={styles.logoGradient}
               >
                 <Ionicons name="library" size={32} color={theme.primary} />
               </LinearGradient>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.delay(500).duration(800)}>
+            <View>
               <Text style={styles.kicker}>SECURE ACCESS</Text>
               <Text style={styles.title}>Track My Library</Text>
               <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
                 Experience the next generation of library management.
               </Text>
-            </Animated.View>
+            </View>
           </View>
 
           {/* Login Card */}
-          <Animated.View
-            entering={FadeInDown.delay(700).duration(800)}
+          <View
             style={[
               styles.card,
               {
@@ -261,11 +260,10 @@ export default function Login() {
                 </Link>
               </View>
             </View>
-          </Animated.View>
+          </View>
 
           {/* Security Indicator */}
-          <Animated.View
-            entering={FadeInDown.delay(1000).duration(800)}
+          <View
             style={styles.securityInfo}
           >
             <Ionicons
@@ -279,7 +277,7 @@ export default function Login() {
             ]}>
               AES-256 Bit Encrypted Connection
             </Text>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

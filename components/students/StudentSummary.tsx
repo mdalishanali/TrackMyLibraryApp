@@ -154,7 +154,7 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
 
 
   const seatValue = student.seatNumber
-    ? `${student.floorNumber ?? 'Sec'} • Seat ${student.seatNumber}`
+    ? `Seat ${student.seatNumber} • ${student.floorNumber ?? 'Sec'}`
     : 'Unallocated';
 
   const handleCall = () => {
@@ -182,9 +182,9 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
         theme={theme}
         index={2}
       />
-      <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={3} />
+      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={3} />
       <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={4} />
-      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={5} />
+      <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={5} />
     </View>
   );
 }
