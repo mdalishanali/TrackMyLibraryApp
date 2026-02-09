@@ -56,8 +56,8 @@
       [
         "@sentry/react-native/expo",
         {
-          "url": "https://sentry.io/",
-          "project": "react-native",
+          "url": "https://sentry.io",
+          "project": "trackmylibrary",
           "organization": "alishan-5p"
         }
       ]

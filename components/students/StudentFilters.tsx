@@ -12,7 +12,6 @@ const FILTERS = [
   { value: 'dues', label: 'Dues', icon: 'alert-circle-outline' },
   { value: 'trial', label: 'Trial', icon: 'flask-outline' },
   { value: 'active', label: 'Active', icon: 'people-outline' },
-  { value: 'inactive', label: 'Inactive', icon: 'pause-circle-outline' },
   { value: 'unallocated', label: 'Unallocated', icon: 'cube-outline' },
 ];
 

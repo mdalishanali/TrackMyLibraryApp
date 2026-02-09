@@ -33,7 +33,6 @@ const studentSchema = z.object({
     endTime: z.string().min(1, 'End time is required'),
     fees: z.string().optional(),
     notes: z.string().optional(),
-    status: z.string().min(1, 'Status is required'),
     gender: z.string().min(1, 'Gender is required'),
     profilePicture: z.string().optional(),
 });
@@ -61,11 +60,6 @@ const genderOptions = [
     { label: 'Male', value: 'Male' },
     { label: 'Female', value: 'Female' },
     { label: 'Other', value: 'Other' },
-];
-
-const statusOptions = [
-    { label: 'Active', value: 'Active' },
-    { label: 'Inactive', value: 'Inactive' },
 ];
 
 const shiftOptions = [
@@ -169,7 +163,7 @@ export function StudentFormModal({
 
     const steps = useMemo(() => [
         { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'aadharNumber', 'notes'] as (keyof StudentFormValues)[] },
-        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'status', 'fees'] as (keyof StudentFormValues)[] },
+        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'fees'] as (keyof StudentFormValues)[] },
         { key: 'review', title: 'Review', fields: [] as (keyof StudentFormValues)[] },
     ], []);
 
@@ -465,33 +459,6 @@ export function StudentFormModal({
                                                             <TouchableOpacity
                                                                 key={opt.value}
                                                                 onPress={() => setValue('shift', opt.value)}
-                                                                style={[
-                                                                    styles.statusBtn,
-                                                                    {
-                                                                        backgroundColor: active ? theme.primary : theme.surfaceAlt,
-                                                                        borderColor: active ? theme.primary : theme.border
-                                                                    }
-                                                                ]}
-                                                            >
-                                                                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{opt.label}</Text>
-                                                            </TouchableOpacity>
-                                                        );
-                                                    })}
-                                                </View>
-                                            </View>
-
-                                            <View style={styles.formGroup}>
-                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                    <Text style={[styles.label, { color: theme.text }]}>Current Status</Text>
-                                                    <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
-                                                </View>
-                                                <View style={styles.statusGrid}>
-                                                    {statusOptions.map(opt => {
-                                                        const active = values.status === opt.value;
-                                                        return (
-                                                            <TouchableOpacity
-                                                                key={opt.value}
-                                                                onPress={() => setValue('status', opt.value)}
                                                                 style={[
                                                                     styles.statusBtn,
                                                                     {

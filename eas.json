@@ -15,7 +15,13 @@
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "SENTRY_AUTH_TOKEN": "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",
+        "SENTRY_ORG": "alishan-5p",
+        "SENTRY_PROJECT": "trackmylibrary",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   },
   "submit": {

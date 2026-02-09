@@ -118,15 +118,15 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
             </View>
           </View>
           <View style={[styles.statusBadge, {
-            backgroundColor: student.status === 'Active' ? theme.success + '15' : theme.warning + '15'
+            backgroundColor: theme.success + '15'
           }]}>
             <View style={[styles.statusDot, {
-              backgroundColor: student.status === 'Active' ? theme.success : theme.warning
+              backgroundColor: theme.success
             }]} />
             <Text style={[styles.statusBadgeText, {
-              color: student.status === 'Active' ? theme.success : theme.warning
+              color: theme.success
             }]}>
-              {student.status || 'Active'}
+              Active
             </Text>
           </View>
         </View>
@@ -389,7 +389,6 @@ export default function DashboardScreen() {
         time: [{ start: data.startTime, end: data.endTime }],
         fees: data.fees ? Number(data.fees) : 0,
         notes: data.notes,
-        status: data.status,
         profilePicture: data.profilePicture, // Pass the URI or base64
         fatherName: data.fatherName,
         address: data.address,
@@ -458,10 +457,14 @@ export default function DashboardScreen() {
     !seatsQuery.data ||
     seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0;
 
-  if (hasNoSeats) {
-    // Redirect to setup if implementation isn't ready
-    router.replace('/onboarding/setup');
-    return null;
+  useEffect(() => {
+    if (hasNoSeats && !isLoading) {
+      router.replace('/onboarding/setup');
+    }
+  }, [hasNoSeats, isLoading, router]);
+
+  if (isLoading || hasNoSeats) {
+    return renderSkeletonDashboard();
   }
 
   const activeStudents = dashboardQuery.data?.activeStudentsCount ?? 0;
@@ -685,10 +688,9 @@ export default function DashboardScreen() {
             joiningDate: new Date().toISOString(),
             startTime: '06:00',
             endTime: '18:00',
-            status: 'Active',
             gender: 'Male',
             fees: '0',
-          } as StudentFormValues}
+          } as any}
         />
 
         <Animated.View
