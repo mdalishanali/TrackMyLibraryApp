@@ -4,9 +4,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
+import * as StoreReview from 'expo-store-review';
+import { STORE_URLS } from '@/constants/config';
 import { AppButton } from '@/components/ui/app-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing, radius, typography } from '@/constants/design';
@@ -300,6 +303,17 @@ export default function SettingsScreen() {
               description="md.alishanali88@gmail.com"
               onPress={() => Linking.openURL(`mailto:md.alishanali88@gmail.com?subject=${encodeURIComponent('TrackMyLibrary Support Request')}&body=${encodeURIComponent('Hello Team,\n\nI need help with...')}`)}
               themeTint={theme.info || '#4FACFE'}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="star-outline"
+              label="Rate App"
+              description="Show some love on the store"
+              onPress={() => {
+                const url = Platform.OS === 'ios' ? STORE_URLS.ios : STORE_URLS.android;
+                Linking.openURL(url);
+              }}
+              themeTint="#FFD700"
             />
           </View>
 

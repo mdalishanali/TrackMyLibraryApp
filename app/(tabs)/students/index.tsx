@@ -26,6 +26,7 @@ import { useSendTemplate, useWhatsappTemplates } from '@/hooks/use-whatsapp';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/providers/subscription-provider';
+import { useQuickRating } from '@/hooks/use-quick-rating';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
@@ -86,6 +87,7 @@ export default function StudentsScreen() {
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
   const { isPro, presentPaywall } = useSubscription();
+  const { triggerRating } = useQuickRating();
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
   const activeStudentsCount = dashboardQuery.data?.activeStudentsCount ?? 0;
@@ -245,6 +247,9 @@ export default function StudentsScreen() {
       setFilter('recent');
       if (editingStudent) {
         showToast('Student updated', 'success');
+      } else {
+        // Trigger rating prompt for new creations occasionally
+        setTimeout(() => triggerRating(), 1000);
       }
     } catch (error: any) {
       // Handle Student Limit Paywall
@@ -273,6 +278,8 @@ export default function StudentsScreen() {
     await createPayment.mutateAsync(values);
     setIsPaymentFormOpen(false);
     setPaymentStudent(null);
+    // Success milestone - good for rating
+    setTimeout(() => triggerRating(), 1500);
   };
 
   const confirmDelete = async () => {
