@@ -353,6 +353,18 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
         </TouchableOpacity>
       ) : null}
 
+      {actions.onRemind ? (
+        <TouchableOpacity
+          onPress={() => {
+            posthog?.capture('student_whatsapp_clicked');
+            actions.onRemind?.();
+          }}
+          style={[styles.actionIconBtn, { backgroundColor: '#25D366' + '15', borderColor: '#25D366' + '30' }]}
+        >
+          <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+        </TouchableOpacity>
+      ) : null}
+
       {actions.onDelete ? (
         <TouchableOpacity
           onPress={() => {

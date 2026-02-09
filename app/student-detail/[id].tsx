@@ -425,6 +425,20 @@ export default function StudentDetailScreen() {
                 </Pressable>
 
               <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  handleSendReminder();
+                }}
+                style={({ pressed }) => [
+                  styles.remindBtn,
+                  { backgroundColor: '#25D366' + '15' },
+                  pressed && { opacity: 0.7 }
+                ]}
+              >
+                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+              </Pressable>
+
+              <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setConfirmStudentDelete(true);
