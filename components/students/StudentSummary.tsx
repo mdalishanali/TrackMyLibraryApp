@@ -177,8 +177,8 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
       <InfoItem
         icon="information-circle-outline"
         label="Status"
-        value={student.status === 'Active' ? 'Active' : 'Deleted'}
-        valueColor={student.status === 'Active' ? undefined : theme.danger}
+        value={student.status === 'Inactive' ? 'Inactive' : 'Active'}
+        valueColor={student.status === 'Inactive' ? theme.warning : theme.success}
         theme={theme}
         index={2}
       />

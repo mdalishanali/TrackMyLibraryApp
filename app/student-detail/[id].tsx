@@ -593,13 +593,17 @@ export default function StudentDetailScreen() {
 
       <ConfirmDialog
         visible={confirmStudentDelete}
-        title="Delete Permanently?"
-        description={`This action cannot be undone. ${student.name} and ALL payment history will be wiped forever from the database.`}
-        confirmText="DELETE FOREVER"
+        title="Mark as Inactive?"
+        description={`Are you sure you want to deactivate ${student.name}? Their seat will be freed up, but their record and payment history will be kept.`}
+        confirmText="MARK INACTIVE"
         destructive
         loading={deleteStudent.isPending}
         onCancel={() => setConfirmStudentDelete(false)}
-        onConfirm={confirmDeleteStudent}
+        onConfirm={async () => {
+          await deleteStudent.mutateAsync(id);
+          setConfirmStudentDelete(false);
+          router.back();
+        }}
       />
 
       {student && (
@@ -615,7 +619,6 @@ export default function StudentDetailScreen() {
             shift: student.shift || '',
             startTime: student.time?.[0]?.start || '09:00',
             endTime: student.time?.[0]?.end || '18:00',
-            status: student.status || 'Active',
             fees: String(student.fees || ''),
             gender: student.gender || 'Male',
             notes: student.notes || '',

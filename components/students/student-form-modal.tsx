@@ -31,7 +31,7 @@ const studentSchema = z.object({
     shift: z.string().optional(),
     startTime: z.string().min(1, 'Start time is required'),
     endTime: z.string().min(1, 'End time is required'),
-    fees: z.string().optional(),
+    fees: z.string().min(1, 'Fees is required'),
     notes: z.string().optional(),
     gender: z.string().min(1, 'Gender is required'),
     profilePicture: z.string().optional(),
@@ -474,7 +474,7 @@ export function StudentFormModal({
                                                 </View>
                                             </View>
 
-                                            <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 0" />
+                                            <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 500" required />
                                         </AppCard>
                                     </View>
                                 )}

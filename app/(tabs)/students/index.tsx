@@ -178,7 +178,7 @@ export default function StudentsScreen() {
         shift: 'First',
         startTime: '09:00',
         endTime: '18:00',
-        fees: '',
+        fees: '500',
         gender: 'Male',
         notes: '',
         profilePicture: '',
@@ -194,7 +194,7 @@ export default function StudentsScreen() {
       shift: s.shift ?? 'Morning',
       startTime: s.time?.[0]?.start ?? '09:00',
       endTime: s.time?.[0]?.end ?? '18:00',
-      fees: s.fees ? String(s.fees) : '',
+      fees: s.fees ? String(s.fees) : '500',
       gender: s.gender ?? 'Male',
       notes: s.notes ?? '',
       fatherName: s.fatherName ?? '',
@@ -404,12 +404,12 @@ export default function StudentsScreen() {
 
       <ConfirmDialog
         visible={Boolean(pendingDelete)}
-        title="Delete student?"
-        description={`Are you sure you want to permanently delete ${pendingDelete?.name || 'this student'}? This will wipe all their data and cannot be undone.`}
+        title="Mark as Inactive?"
+        description={`Are you sure you want to deactivate ${pendingDelete?.name || 'this student'}? Their seat will be freed up, but their data will be kept.`}
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
         destructive
-        confirmText="Delete Permanently"
+        confirmText="Mark Inactive"
         loading={deleteStudent.isPending}
       />
 

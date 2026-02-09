@@ -135,9 +135,9 @@ export const useDeleteStudent = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
       queryClient.removeQueries({ queryKey: [...queryKeys.students(), id] });
 
-      posthog?.capture('student_deleted', {
+      posthog?.capture('student_deactivated', {
         student_id: id,
-        type: 'permanent'
+        type: 'inactive'
       });
     },
   });

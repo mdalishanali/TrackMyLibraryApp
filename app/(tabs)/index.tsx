@@ -449,10 +449,6 @@ export default function DashboardScreen() {
     </SafeScreen>
   );
 
-  if (isLoading) {
-    return renderSkeletonDashboard();
-  }
-
   const hasNoSeats =
     !seatsQuery.data ||
     seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0;
