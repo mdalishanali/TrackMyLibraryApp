@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from 'expo-linking';
 import Animated, {
   FadeInUp,
   FadeInDown,
@@ -110,8 +111,8 @@ export default function ForgotPassword() {
 
                         <Animated.View entering={FadeInUp.delay(500).duration(800)}>
                 <Text style={styles.title}>Request Sent!</Text>
-                            <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
-                  Your password reset request has been received. Please contact your library admin to get your reset link.
+                <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.95)' }]}>
+                  Your password reset request has been received. Please contact your library admin to get your secure reset link.
                             </Text>
                         </Animated.View>
                     </View>
@@ -127,24 +128,47 @@ export default function ForgotPassword() {
                         }
                         ]}
                     >
-                         <View style={styles.form}>
+              <View style={styles.form}>
                 <Text style={[styles.cardInfo, { color: theme.text }]}>
                   For security, we've notified the admin. They will verify your identity and share the link via WhatsApp or SMS.
                 </Text>
-                            <Link href="/(auth)/login" asChild>
-                                <Pressable
-                                    style={({ pressed }) => [
-                                    styles.submitBtn,
-                                    { 
-                                        backgroundColor: theme.primary,
-                                        transform: [{ scale: pressed ? 0.98 : 1 }]
-                                    }
-                                    ]}
-                                >
-                                    <Ionicons name="arrow-back" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.submitBtnText}>Back to Login</Text>
+
+                <Pressable
+                  onPress={() => Linking.openURL('https://wa.me/918804433157')}
+                  style={({ pressed }) => [
+                    styles.submitBtn,
+                    { 
+                      backgroundColor: '#25D366',
+                      transform: [{ scale: pressed ? 0.98 : 1 }]
+                    }
+                  ]}
+                >
+                  <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.submitBtnText}>Contact Admin</Text>
+                </Pressable>
+
+                <Link href="/(auth)/login" asChild>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.secondaryBtn,
+                      {
+                        borderColor: theme.primary,
+                        transform: [{ scale: pressed ? 0.98 : 1 }]
+                      }
+                    ]}
+                  >
+                    <Ionicons name="arrow-back" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+                    <Text style={[styles.secondaryBtnText, { color: theme.primary }]}>Back to Login</Text>
                                 </Pressable>
                             </Link>
+
+                <Pressable
+                  onPress={() => Linking.openURL('https://www.trackmylibrary.in')}
+                  style={styles.websiteLink}
+                >
+                  <Text style={[styles.websiteLinkText, { color: theme.muted }]}>Visit trackmylibrary.in</Text>
+                  <Ionicons name="open-outline" size={14} color={theme.muted} style={{ marginLeft: 4 }} />
+                </Pressable>
                          </View>
                     </Animated.View>
 
@@ -425,8 +449,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     fontWeight: '500',
-    opacity: 0.8,
+    opacity: 0.9,
+  },
+  secondaryBtn: {
+    height: 58,
+    borderRadius: radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    marginTop: spacing.xs,
+  },
+  secondaryBtnText: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  websiteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  websiteLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
