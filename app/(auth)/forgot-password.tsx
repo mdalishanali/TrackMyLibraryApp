@@ -378,6 +378,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
+    paddingTop: 0,
+    paddingBottom: 0,
+    textAlignVertical: 'center',
   },
   errorText: {
     color: '#ef4444',
