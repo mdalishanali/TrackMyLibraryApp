@@ -104,14 +104,14 @@ export default function ForgotPassword() {
                             colors={['#fff', '#f0f0f0']}
                             style={styles.logoGradient}
                         >
-                            <Ionicons name="mail-unread-outline" size={32} color={theme.primary} />
+                  <Ionicons name="checkmark-circle-outline" size={32} color={theme.primary} />
                         </LinearGradient>
                         </Animated.View>
 
                         <Animated.View entering={FadeInUp.delay(500).duration(800)}>
-                            <Text style={styles.title}>Check your email</Text>
+                <Text style={styles.title}>Request Sent!</Text>
                             <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
-                                We have sent a password reset link to your email address.
+                  Your password reset request has been received. Please contact your library admin to get your reset link.
                             </Text>
                         </Animated.View>
                     </View>
@@ -128,6 +128,9 @@ export default function ForgotPassword() {
                         ]}
                     >
                          <View style={styles.form}>
+                <Text style={[styles.cardInfo, { color: theme.text }]}>
+                  For security, we've notified the admin. They will verify your identity and share the link via WhatsApp or SMS.
+                </Text>
                             <Link href="/(auth)/login" asChild>
                                 <Pressable
                                     style={({ pressed }) => [
@@ -417,5 +420,13 @@ const styles = StyleSheet.create({
   signUpLink: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  cardInfo: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.sm,
+    fontWeight: '500',
+    opacity: 0.8,
   },
 });
