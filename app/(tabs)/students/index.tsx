@@ -25,6 +25,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useSendTemplate, useWhatsappTemplates } from '@/hooks/use-whatsapp';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
+import { useSubscription } from '@/providers/subscription-provider';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
@@ -84,8 +85,10 @@ export default function StudentsScreen() {
   const feeReminder = useSendTemplate();
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
+  const { isPro, presentPaywall } = useSubscription();
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
+  const activeStudentsCount = dashboardQuery.data?.activeStudentsCount ?? 0;
   const totalCount = useMemo(() => {
     return dashboardQuery.data?.totalStudents ?? (studentsQuery.data?.pages[0]?.pagination?.total || students.length);
   }, [dashboardQuery.data, studentsQuery.data, students.length]);
@@ -104,9 +107,17 @@ export default function StudentsScreen() {
   const openCreateForm = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     posthog?.capture('add_student_button_clicked');
+
+    // Check Free Tier Limit
+    if (!isPro && activeStudentsCount >= 20) {
+      posthog?.capture('student_limit_paywall_shown', { count: activeStudentsCount });
+      presentPaywall();
+      return;
+    }
+
     setEditingStudent(null);
     setIsStudentFormOpen(true);
-  }, [posthog]);
+  }, [posthog, isPro, activeStudentsCount, presentPaywall]);
 
   const openEditForm = useCallback((id: string) => {
     posthog?.capture('edit_student_form_opened');
@@ -222,17 +233,25 @@ export default function StudentsScreen() {
       profilePicture: values.profilePicture,
     };
 
-    if (editingStudent) {
-      await updateStudent.mutateAsync({ payload, onProgress });
-    } else {
-      await createStudent.mutateAsync({ payload, onProgress });
-    }
+    try {
+      if (editingStudent) {
+        await updateStudent.mutateAsync({ payload, onProgress });
+      } else {
+        await createStudent.mutateAsync({ payload, onProgress });
+      }
 
-    setIsStudentFormOpen(false);
-    setEditingStudent(null);
-    setFilter('recent');
-    if (editingStudent) {
-      showToast('Student updated', 'success');
+      setIsStudentFormOpen(false);
+      setEditingStudent(null);
+      setFilter('recent');
+      if (editingStudent) {
+        showToast('Student updated', 'success');
+      }
+    } catch (error: any) {
+      // Handle Student Limit Paywall
+      if (error?.response?.status === 402) {
+        setIsStudentFormOpen(false);
+        presentPaywall();
+      }
     }
   };
 
