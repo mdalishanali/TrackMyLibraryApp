@@ -133,42 +133,59 @@ export default function ForgotPassword() {
                   For security, we've notified the admin. They will verify your identity and share the link via WhatsApp or SMS.
                 </Text>
 
-                <Pressable
-                  onPress={() => Linking.openURL('https://wa.me/918804433157')}
-                  style={({ pressed }) => [
-                    styles.submitBtn,
-                    { 
-                      backgroundColor: '#25D366',
-                      transform: [{ scale: pressed ? 0.98 : 1 }]
-                    }
-                  ]}
-                >
-                  <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitBtnText}>Contact Admin</Text>
-                </Pressable>
-
-                <Link href="/(auth)/login" asChild>
+                <View style={styles.actionSection}>
+                  <Text style={[styles.sectionLabel, { color: theme.muted }]}>Need immediate help?</Text>
                   <Pressable
+                    onPress={() => Linking.openURL('https://wa.me/918804433157')}
                     style={({ pressed }) => [
-                      styles.secondaryBtn,
-                      {
-                        borderColor: theme.primary,
+                                      styles.whatsappBtn,
+                                      { 
                         transform: [{ scale: pressed ? 0.98 : 1 }]
                       }
                     ]}
                   >
-                    <Ionicons name="arrow-back" size={18} color={theme.primary} style={{ marginRight: 8 }} />
-                    <Text style={[styles.secondaryBtnText, { color: theme.primary }]}>Back to Login</Text>
-                                </Pressable>
-                            </Link>
+                    <LinearGradient
+                      colors={['#25D366', '#128C7E']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.whatsappGradient}
+                    >
+                      <Ionicons name="logo-whatsapp" size={22} color="#fff" style={{ marginRight: 10 }} />
+                      <Text style={styles.submitBtnText}>Contact Admin</Text>
+                    </LinearGradient>
+                  </Pressable>
+                </View>
 
-                <Pressable
-                  onPress={() => Linking.openURL('https://www.trackmylibrary.in')}
-                  style={styles.websiteLink}
-                >
-                  <Text style={[styles.websiteLinkText, { color: theme.muted }]}>Visit trackmylibrary.in</Text>
-                  <Ionicons name="open-outline" size={14} color={theme.muted} style={{ marginLeft: 4 }} />
-                </Pressable>
+                <View style={styles.divider}>
+                  <View style={[styles.line, { backgroundColor: theme.border }]} />
+                  <Text style={[styles.dividerText, { color: theme.muted }]}>OR</Text>
+                  <View style={[styles.line, { backgroundColor: theme.border }]} />
+                </View>
+
+                <View style={styles.secondaryActions}>
+                  <Link href="/(auth)/login" asChild>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.ghostBtn,
+                        { 
+                          backgroundColor: theme.surfaceAlt,
+                          transform: [{ scale: pressed ? 0.98 : 1 }]
+                        }
+                      ]}
+                    >
+                      <Ionicons name="arrow-back" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+                      <Text style={[styles.ghostBtnText, { color: theme.primary }]}>Back to Login</Text>
+                    </Pressable>
+                  </Link>
+
+                  <Pressable
+                    onPress={() => Linking.openURL('https://www.trackmylibrary.in')}
+                    style={styles.websiteLink}
+                  >
+                    <Text style={[styles.websiteLinkText, { color: theme.muted }]}>Visit Official Website</Text>
+                    <Ionicons name="open-outline" size={14} color={theme.muted} style={{ marginLeft: 4 }} />
+                  </Pressable>
+                </View>
                          </View>
                     </Animated.View>
 
@@ -446,36 +463,78 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardInfo: {
-    fontSize: 15,
+    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: spacing.xs,
+    lineHeight: 24,
+    marginBottom: spacing.md,
     fontWeight: '500',
     opacity: 0.9,
   },
-  secondaryBtn: {
+  actionSection: {
+    gap: spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  whatsappBtn: {
     height: 58,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+  },
+  whatsappGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.md,
+    gap: 12,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    opacity: 0.2,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '800',
+    opacity: 0.5,
+  },
+  secondaryActions: {
+    gap: spacing.md,
+  },
+  ghostBtn: {
+    height: 56,
     borderRadius: radius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    marginTop: spacing.xs,
   },
-  secondaryBtnText: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  ghostBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   websiteLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 8,
   },
   websiteLinkText: {
     fontSize: 14,
     fontWeight: '600',
+    opacity: 0.7,
   },
 });
