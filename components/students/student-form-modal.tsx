@@ -222,7 +222,7 @@ export function StudentFormModal({
                 />
 
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ flex: 1 }}
                 >
                     <View style={{ flex: 1 }}>
@@ -520,7 +520,7 @@ export function StudentFormModal({
                             </Animated.View>
                         </ScrollView>
 
-                        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+                        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md), backgroundColor: theme.background }]}>
                             {currentStep > 0 && (
                                 <TouchableOpacity onPress={handlePrev} style={[styles.backBtn, { borderColor: theme.border }]}>
                                     <Ionicons name="arrow-back" size={20} color={theme.text} />

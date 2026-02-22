@@ -287,7 +287,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 20,
-    elevation: 5,
   },
   title: {
     fontSize: 32,
@@ -330,7 +329,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 6,
   },
   buttonText: {
     color: '#fff',

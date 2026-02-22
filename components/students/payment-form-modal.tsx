@@ -130,7 +130,7 @@ export function PaymentFormModal({
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
         <TouchableOpacity style={{ flex: 1 }} onPress={onClose} />
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ width: '100%' }}
         >
           <Animated.View
@@ -306,7 +306,7 @@ export function PaymentFormModal({
               </AppCard>
             </Animated.View>
 
-            <View style={styles.modalActions}>
+              <View style={[styles.modalActions, { backgroundColor: theme.background }]}>
               <TouchableOpacity
                 onPress={onClose}
                 style={[styles.cancelBtn, { borderColor: theme.border }]}

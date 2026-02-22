@@ -72,7 +72,7 @@ export default function SetupScreen() {
       
       <SafeAreaView style={styles.content}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
         >
@@ -245,8 +245,7 @@ const styles = StyleSheet.create({
       gap: 12,
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.4,
-      shadowRadius: 20,
-      elevation: 8,
+    shadowRadius: 20,
   },
   btnText: {
       color: '#fff',
