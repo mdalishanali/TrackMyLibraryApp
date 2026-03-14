@@ -609,7 +609,6 @@ const styles = StyleSheet.create({
     shadowColor: '#FFD700',
     shadowOpacity: 0.4,
     shadowRadius: 10,
-    elevation: 8,
     backgroundColor: '#FFD700'
   },
   buyButtonText: {

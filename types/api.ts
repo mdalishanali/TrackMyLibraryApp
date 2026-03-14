@@ -29,6 +29,7 @@ export type Student = {
   address?: string;
   aadhaarNumber?: string;
   floor?: number | string;
+  allocations?: string[] | Shift[];
 };
 
 export type Payment = {
@@ -52,4 +53,13 @@ export type DashboardResponse = {
   activeStudentsCount: number;
   totalStudents: number;
   studentsEnrolledThisMonth: number;
+};
+
+export type Shift = {
+  _id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+  isFullDay?: boolean;
 };

@@ -12,7 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
+import { router } from 'expo-router';
 
+import { useShiftsQuery } from '@/hooks/use-shifts';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
@@ -28,9 +30,10 @@ const studentSchema = z.object({
     address: z.string().optional(),
     aadharNumber: z.string().optional(),
     seat: z.string().optional(),
-    shift: z.string().optional(),
-    startTime: z.string().min(1, 'Start time is required'),
-    endTime: z.string().min(1, 'End time is required'),
+    shift: z.array(z.string()).min(1, 'Select at least one shift'),
+    allocations: z.array(z.string()).optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
     fees: z.string().min(1, 'Fees is required'),
     notes: z.string().optional(),
     gender: z.string().min(1, 'Gender is required'),
@@ -62,10 +65,6 @@ const genderOptions = [
     { label: 'Other', value: 'Other' },
 ];
 
-const shiftOptions = [
-    { label: 'First', value: 'First' },
-    { label: 'Second', value: 'Second' },
-];
 
 export function StudentFormModal({
     visible,
@@ -102,6 +101,35 @@ export function StudentFormModal({
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const [backgroundProgress, setBackgroundProgress] = useState(0);
+
+    const { data: shifts = [] } = useShiftsQuery();
+
+    const shiftOptions = useMemo(() => {
+        return shifts.map(s => ({ label: s.name, value: s._id, id: s._id, price: s.price, start: s.startTime, end: s.endTime }));
+    }, [shifts]);
+
+    // Update fees and times when shift changes
+    useEffect(() => {
+        if (!values.shift || !Array.isArray(values.shift)) return;
+
+        const selectedShifts = shiftOptions.filter(s => values.shift?.includes(s.value));
+        if (selectedShifts.length > 0) {
+            // Auto update fees by summing up shift prices
+            const totalPrice = selectedShifts.reduce((acc, s) => acc + (s.price || 0), 0);
+            setValue('fees', String(totalPrice));
+
+            // Determine min start and max end for current UI display
+            const sortedStarts = [...selectedShifts].sort((a, b) => a.start.localeCompare(b.start));
+            const sortedEnds = [...selectedShifts].sort((a, b) => b.end.localeCompare(a.end));
+
+            if (sortedStarts[0]) setValue('startTime', sortedStarts[0].start);
+            if (sortedEnds[0]) setValue('endTime', sortedEnds[0].end);
+
+            // Map to allocations (using _id if available, but for now value is name or _id depending on opt)
+            // Actually, opt.value is s.name in current impl. Let's make it s._id.
+            setValue('allocations', selectedShifts.map(s => s.id));
+        }
+    }, [values.shift, shiftOptions, setValue]);
 
     const uniqueFloors = useMemo(() => {
         const floors = Array.from(new Set(seats.map(s => s.floor).filter(f => f !== undefined && f !== null && String(f) !== '0')));
@@ -141,9 +169,11 @@ export function StudentFormModal({
         if (visible) {
             reset({
                 ...initialValues,
-                shift: initialValues.shift || 'First',
+                shift: Array.isArray(initialValues.shift)
+                    ? initialValues.shift
+                    : (initialValues.shift ? [initialValues.shift] : (shifts[0] ? [shifts[0]._id] : [])),
                 gender: initialValues.gender || 'Male',
-                fees: initialValues.fees || '500',
+                fees: initialValues.fees || String(shifts[0]?.price || '500'),
             });
 
             // Set initial selected floor based on student's seat
@@ -374,32 +404,6 @@ export function StudentFormModal({
                                 {currentStep === 1 && (
                                     <View style={styles.stepContent}>
                                         <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                            <View style={styles.row}>
-                                                <View style={{ flex: 1 }}>
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                        <Text style={[styles.label, { color: theme.text }]}>Start Time</Text>
-                                                        <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
-                                                    </View>
-                                                    <TouchableOpacity
-                                                        onPress={() => setTimePickerType('startTime')}
-                                                        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
-                                                    >
-                                                        <Text style={{ color: theme.text, fontWeight: '600' }}>{toDisplayTime(values.startTime)}</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                                <View style={{ flex: 1 }}>
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                        <Text style={[styles.label, { color: theme.text }]}>End Time</Text>
-                                                        <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
-                                                    </View>
-                                                    <TouchableOpacity
-                                                        onPress={() => setTimePickerType('endTime')}
-                                                        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceAlt }]}
-                                                    >
-                                                        <Text style={{ color: theme.text, fontWeight: '600' }}>{toDisplayTime(values.endTime)}</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </View>
 
                                             <View style={styles.formGroup}>
                                                 <Text style={[styles.label, { color: theme.text }]}>Select Section</Text>
@@ -450,29 +454,78 @@ export function StudentFormModal({
                                             </View>
 
 
-
                                             <View style={styles.formGroup}>
-                                                <Text style={[styles.label, { color: theme.text }]}>Shift</Text>
-                                                <View style={styles.statusGrid}>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Shift Selection</Text>
+                                                    <TouchableOpacity onPress={() => { onClose(); router.push('/shifts'); }}>
+                                                        <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '800' }}>Manage Shifts</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <ScrollView
+                                                    horizontal
+                                                    showsHorizontalScrollIndicator={false}
+                                                    contentContainerStyle={styles.shiftScrollContent}
+                                                >
                                                     {shiftOptions.map(opt => {
-                                                        const active = values.shift === opt.value;
+                                                        const currentShifts = Array.isArray(values.shift) ? values.shift : [];
+                                                        const active = currentShifts.includes(opt.value);
+
+                                                        const handleShiftToggle = () => {
+                                                             const is24Hours = opt.label.toLowerCase().includes('24 hour');
+                                                             let next: string[];
+
+                                                             if (active) {
+                                                                 // Deselecting current shift
+                                                                 next = currentShifts.filter(id => id !== opt.value);
+                                                             } else {
+                                                                 // Selecting a new shift
+                                                                 if (is24Hours) {
+                                                                     // If selecting 24 Hours, remove all others
+                                                                     next = [opt.value];
+                                                                 } else {
+                                                                     // If selecting something else, remove 24 Hours if it was present
+                                                                     const otherShiftsMinus24 = currentShifts.filter(id => {
+                                                                         const shiftOpt = shiftOptions.find(o => o.value === id);
+                                                                         return !shiftOpt?.label.toLowerCase().includes('24 hour');
+                                                                     });
+                                                                     next = [...otherShiftsMinus24, opt.value];
+                                                                 }
+                                                             }
+                                                            setValue('shift', next);
+                                                        };
+
                                                         return (
                                                             <TouchableOpacity
                                                                 key={opt.value}
-                                                                onPress={() => setValue('shift', opt.value)}
+                                                                onPress={handleShiftToggle}
+                                                                activeOpacity={0.8}
                                                                 style={[
-                                                                    styles.statusBtn,
+                                                                    styles.shiftCard,
                                                                     {
                                                                         backgroundColor: active ? theme.primary : theme.surfaceAlt,
-                                                                        borderColor: active ? theme.primary : theme.border
+                                                                        borderColor: active ? theme.primary : theme.border,
                                                                     }
                                                                 ]}
                                                             >
-                                                                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{opt.label}</Text>
+                                                                <View style={styles.shiftCardHeader}>
+                                                                    <Text style={[styles.shiftCardTitle, { color: active ? '#fff' : theme.text }]}>
+                                                                        {opt.label}
+                                                                    </Text>
+                                                                    {active && <Ionicons name="checkmark-circle" size={16} color="#fff" />}
+                                                                </View>
+
+                                                                <View style={[styles.shiftCardFooter, { borderTopColor: active ? 'rgba(255,255,255,0.2)' : theme.border + '50' }]}>
+                                                                    <Text style={[styles.shiftCardTime, { color: active ? 'rgba(255,255,255,0.8)' : theme.muted }]}>
+                                                                        {toDisplayTime(opt.start)} - {toDisplayTime(opt.end)}
+                                                                    </Text>
+                                                                    <Text style={[styles.shiftCardPrice, { color: active ? '#fff' : theme.primary }]}>
+                                                                        ₹{opt.price}
+                                                                    </Text>
+                                                                </View>
                                                             </TouchableOpacity>
                                                         );
                                                     })}
-                                                </View>
+                                                </ScrollView>
                                             </View>
 
                                             <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 500" required />
@@ -500,7 +553,7 @@ export function StudentFormModal({
                                             <View style={styles.reviewGrid}>
                                                 <ReviewItem label="JOINED" value={formatDate(values.joiningDate)} theme={theme} />
                                                 <ReviewItem label="GENDER" value={values.gender} theme={theme} />
-                                                <ReviewItem label="SHIFT" value={`${toDisplayTime(values.startTime)} - ${toDisplayTime(values.endTime)}`} theme={theme} />
+                                                <ReviewItem label="SHIFTS" value={shiftOptions.filter(o => values.shift?.includes(o.value)).map(o => o.label).join(', ') || 'N/A'} theme={theme} />
                                                 <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : '0'} theme={theme} />
                                                 {values.fatherName && <ReviewItem label="FATHER" value={values.fatherName} theme={theme} />}
                                                 {values.address && <ReviewItem label="ADDRESS" value={values.address} theme={theme} />}
@@ -824,12 +877,9 @@ const styles = StyleSheet.create({
         color: '#ef4444',
         marginLeft: 8,
     },
-    row: {
-        flexDirection: 'row',
-        gap: 12,
-    },
     statusGrid: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 12,
     },
     statusBtn: {
@@ -839,6 +889,50 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'row',
+    },
+    row: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    shiftScrollContent: {
+        gap: 12,
+        paddingVertical: 10,
+        paddingRight: 20,
+    },
+    shiftCard: {
+        borderRadius: 20,
+        borderWidth: 1.5,
+        padding: 16,
+        paddingVertical: 18,
+        gap: 12,
+        width: 170,
+    },
+    shiftCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    shiftCardTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: -0.3,
+    },
+    shiftCardFooter: {
+        marginTop: 2,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        flexDirection: 'column',
+        gap: 4,
+    },
+    shiftCardTime: {
+        fontSize: 10,
+        fontWeight: '800',
+        opacity: 0.8,
+    },
+    shiftCardPrice: {
+        fontSize: 12,
+        fontWeight: '900',
     },
     reviewCard: {
         borderRadius: 32,

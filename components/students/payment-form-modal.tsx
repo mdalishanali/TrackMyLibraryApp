@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppBadge } from '@/components/ui/app-badge';
@@ -126,40 +126,51 @@ export function PaymentFormModal({
   });
 
   return (
-    <Modal animationType="slide" visible={visible} onRequestClose={onClose} transparent>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} />
+    <Modal
+      animationType="slide"
+      visible={visible}
+      onRequestClose={onClose}
+      transparent
+      statusBarTranslucent
+    >
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+        </TouchableOpacity>
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ width: '100%' }}
+          style={styles.keyboardView}
         >
-          <Animated.View
-          entering={FadeInUp.duration(400)}
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.background,
-              paddingBottom: Math.max(insets.bottom, spacing.lg),
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-            }
-          ]}
-        >
-          <LinearGradient
-            colors={[theme.primary + '10', 'transparent']}
-            style={styles.sheetGradient}
-          />
-
-          <View style={styles.sheetHandleContainer}>
-            <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
-          </View>
-
-          <ScrollView
-            style={styles.modalScroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: theme.background,
+                paddingBottom: insets.bottom + spacing.lg,
+              }
+            ]}
           >
-            <View style={styles.headerRow}>
+            <LinearGradient
+              colors={[theme.primary + '10', 'transparent']}
+              style={styles.sheetGradient}
+            />
+
+            <View style={styles.sheetHandleContainer}>
+              <View style={[styles.sheetHandle, { backgroundColor: theme.border }]} />
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.headerRow}>
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
                 <Text style={[styles.subtitle, { color: theme.muted }]}>
@@ -307,61 +318,60 @@ export function PaymentFormModal({
             </Animated.View>
 
               <View style={[styles.modalActions, { backgroundColor: theme.background }]}>
-              <TouchableOpacity
-                onPress={onClose}
-                style={[styles.cancelBtn, { borderColor: theme.border }]}
-              >
-                <Text style={[styles.cancelBtnText, { color: theme.muted }]}>Discard</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={submitForm}
-                disabled={isSubmitting || disabled}
-                style={[
-                  styles.saveBtn,
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: isSubmitting || disabled ? 0.6 : 1,
-                    shadowColor: theme.primary
-                  }
-                ]}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                    <Text style={styles.saveBtnText}>Save Payment</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-
-          {datePicker && (
-            <Modal transparent visible animationType="fade">
-              <View style={styles.overlay}>
-                <TouchableOpacity style={{ flex: 1 }} onPress={() => setDatePicker(null)} />
-                <Animated.View
-                  entering={FadeInUp}
-                  style={[styles.pickerBox, { backgroundColor: theme.surface }]}
+                <TouchableOpacity
+                  onPress={onClose}
+                  style={[styles.cancelBtn, { borderColor: theme.border }]}
                 >
-                  <View style={styles.pickerHeader}>
-                    <Text style={[styles.pickerTitle, { color: theme.text }]}>Select Date</Text>
-                  </View>
-                  <DateTimePicker
-                    value={datePicker.value}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleDateChange}
-                    textColor={theme.text}
-                  />
-                  <AppButton onPress={() => setDatePicker(null)}>Confirm</AppButton>
-                </Animated.View>
+                  <Text style={[styles.cancelBtnText, { color: theme.muted }]}>Discard</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={submitForm}
+                  disabled={isSubmitting || disabled}
+                  style={[
+                    styles.saveBtn,
+                    {
+                      backgroundColor: theme.primary,
+                      opacity: isSubmitting || disabled ? 0.6 : 1,
+                      shadowColor: theme.primary
+                    }
+                  ]}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                      <Text style={styles.saveBtnText}>Save Payment</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
-            </Modal>
-          )}
-        </Animated.View>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
+
+        {datePicker && (
+          <Modal transparent visible animationType="fade">
+            <View style={styles.datePickerOverlay}>
+              <TouchableOpacity style={{ flex: 1 }} onPress={() => setDatePicker(null)} />
+              <View
+                style={[styles.pickerBox, { backgroundColor: theme.surface }]}
+              >
+                <View style={styles.pickerHeader}>
+                  <Text style={[styles.pickerTitle, { color: theme.text }]}>Select Date</Text>
+                </View>
+                <DateTimePicker
+                  value={datePicker.value}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleDateChange}
+                  textColor={theme.text}
+                />
+                <AppButton onPress={() => setDatePicker(null)}>Confirm</AppButton>
+              </View>
+            </View>
+          </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -405,23 +415,33 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxHeight: '90%',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
+    elevation: 20,
+    overflow: 'hidden',
+  },
+  keyboardView: {
+    width: '100%',
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   sheetGradient: {
     ...StyleSheet.absoluteFillObject,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
   },
   sheetHandleContainer: {
     alignItems: 'center',
     paddingVertical: 12,
   },
   sheetHandle: {
-    width: 40,
-    height: 5,
+    width: 44,
+    height: 6,
     borderRadius: 3,
   },
   modalScroll: {
@@ -556,15 +576,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-  overlay: {
+  datePickerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   pickerBox: {
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: spacing.xl,
+    paddingBottom: 40,
     gap: 20,
   },
   pickerHeader: {

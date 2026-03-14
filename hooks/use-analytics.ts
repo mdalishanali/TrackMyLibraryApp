@@ -16,6 +16,9 @@ export type RevenueBreakdown = {
 
 export type AnalyticsData = {
   currentMonthRevenue: number;
+  paidCount?: number;
+  totalDues?: number;
+  duesCount?: number;
   annualRevenue: number;
   totalRevenue: number;
   monthWise: RevenueMonth[];

@@ -282,6 +282,14 @@ export default function SettingsScreen() {
               onPress={() => router.push('/whatsapp-templates')}
               themeTint={theme.primary}
             />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="time-outline"
+              label="Shift Management"
+              description="Configure timings and slot fees"
+              onPress={() => router.push('/shifts')}
+              themeTint="#8B5CF6"
+            />
           </View>
 
           {/* Support Section */}

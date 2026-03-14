@@ -146,7 +146,6 @@ export default function AnalyticsScreen() {
     });
 
     return { monthTrend: mTrend, annualTrend: 0, topCollectorName: topName };
-    return { monthTrend: mTrend, annualTrend: 0, topCollectorName: topName };
   }, [data?.monthWise, data?.revenueBreakdownByUser, selectedMonth]);
 
   const totalExpenses = expensesQuery.data?.totalAmount || 0;
@@ -159,6 +158,7 @@ export default function AnalyticsScreen() {
       icon: 'calendar-outline',
       color: '#4C6EF5',
       trend: monthTrend,
+      subValue: `${data?.paidCount || 0} Students Paid`,
     },
     {
       label: 'Monthly Expenses',
@@ -166,6 +166,15 @@ export default function AnalyticsScreen() {
       icon: 'trending-down-outline',
       color: '#EF4444',
       trend: 0,
+      subValue: 'Total Spending',
+    },
+    {
+      label: 'Total Dues',
+      value: data?.totalDues || 0,
+      icon: 'timer-outline',
+      color: '#F59E0B',
+      trend: 0,
+      subValue: `${data?.duesCount || 0} Students Pending`,
     },
     {
       label: 'Net Profit',
@@ -334,6 +343,18 @@ export default function AnalyticsScreen() {
             </ScrollView>
         </View>
 
+        {/* Info Badges */}
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.infoBadges}>
+          <View style={[styles.infoBadge, { backgroundColor: '#F59E0B10' }]}>
+            <Ionicons name="information-circle" size={12} color="#F59E0B" />
+            <Text style={[styles.infoBadgeText, { color: '#F59E0B' }]}>PENDING: Target for all active members.</Text>
+          </View>
+          <View style={[styles.infoBadge, { backgroundColor: '#4C6EF510' }]}>
+            <Ionicons name="checkmark-circle" size={12} color="#4C6EF5" />
+            <Text style={[styles.infoBadgeText, { color: '#4C6EF5' }]}>PAID: Collections reached so far.</Text>
+          </View>
+        </Animated.View>
+
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           {stats.map((item, index) => (
@@ -349,6 +370,9 @@ export default function AnalyticsScreen() {
               <Text style={[styles.statValue, { color: theme.text }]}>
                 {formatCurrency(item.value)}
               </Text>
+              {item.subValue && (
+                <Text style={[styles.statSubValue, { color: item.color }]}>{item.subValue}</Text>
+              )}
               <View style={styles.statFooter}>
                 {item.trend !== 0 && (
                   <>
@@ -849,10 +873,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '900',
-  },
   statFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1087,5 +1107,37 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  infoBadges: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  infoBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  infoBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    flexShrink: 1,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  statSubValue: {
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 0,
+    opacity: 0.9,
+    letterSpacing: 0.2,
   },
 });

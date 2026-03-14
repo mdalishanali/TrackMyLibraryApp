@@ -32,6 +32,7 @@ import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
 import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor, useRenameSection } from '@/hooks/use-seats';
 import { useCreateStudent, useUpdateStudent, useDeleteStudent } from '@/hooks/use-students';
+import { useShiftsQuery } from '@/hooks/use-shifts';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
@@ -59,6 +60,7 @@ export default function SeatsScreen() {
   const deleteSeats = useDeleteSeats();
   const deleteFloor = useDeleteFloor();
   const renameSection = useRenameSection();
+  const { data: shifts = [] } = useShiftsQuery();
   const router = useRouter();
   const createStudent = useCreateStudent();
   const { setup } = useLocalSearchParams();
@@ -203,10 +205,13 @@ export default function SeatsScreen() {
   };
 
   const saveStudent = async (values: any) => {
+    const selectedShifts = shifts.filter(s => values.shift?.includes(s._id));
     const payload = {
       ...values,
+      allocations: values.shift,
+      shift: selectedShifts.map(s => s.name).join(', ') || 'Custom',
       fees: values.fees ? Number(values.fees) : undefined,
-      time: [{ start: values.startTime, end: values.endTime }]
+      time: selectedShifts.map(s => ({ start: s.startTime, end: s.endTime }))
     };
 
     if (studentDefaults?._id) {
@@ -230,10 +235,11 @@ export default function SeatsScreen() {
       number: occupant.number,
       joiningDate: occupant.joiningDate,
       seat: currentSeatId,
-      shift: occupant.shift || 'First',
-      startTime: occupant.time?.[0]?.start || '09:00',
-      endTime: occupant.time?.[0]?.end || '18:00',
-      status: occupant.status || 'Active',
+      shift: occupant.allocations
+        ? occupant.allocations.map((a: any) => typeof a === 'string' ? a : a._id)
+        : (shifts.filter(s => s.name === occupant.shift).map(s => s._id) || (shifts[0] ? [shifts[0]._id] : [])),
+      startTime: occupant.time?.[0]?.start || (shifts[0]?.startTime || '09:00'),
+      endTime: occupant.time?.[0]?.end || (shifts[0]?.endTime || '18:00'),
       fees: occupant.fees ? String(occupant.fees) : '',
       gender: occupant.gender || 'Male',
       notes: occupant.notes || '',
@@ -819,10 +825,9 @@ export default function SeatsScreen() {
                               number: '',
                               joiningDate: new Date().toISOString().slice(0, 10),
                               seat: selectedSeat._id ?? '',
-                              shift: 'Morning',
-                              startTime: '09:00',
-                              endTime: '18:00',
-                              status: 'Active',
+                              shift: shifts[0] ? [shifts[0]._id] : [],
+                              startTime: shifts[0]?.startTime || '09:00',
+                              endTime: shifts[0]?.endTime || '18:00',
                               fees: '',
                               gender: 'Male',
                               notes: '',
@@ -934,10 +939,9 @@ export default function SeatsScreen() {
                                   number: '',
                                   joiningDate: new Date().toISOString().slice(0, 10),
                                   seat: selectedSeat._id ?? '',
-                                  shift: 'Morning',
-                                  startTime: '09:00',
-                                  endTime: '18:00',
-                                  status: 'Active',
+                                  shift: shifts[0] ? [shifts[0]._id] : [],
+                                  startTime: shifts[0]?.startTime || '09:00',
+                                  endTime: shifts[0]?.endTime || '18:00',
                                   fees: '',
                                   gender: 'Male',
                                   notes: '',
@@ -1370,7 +1374,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 20,
   },
   sheetHandle: {
     width: 40,

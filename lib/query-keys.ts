@@ -5,4 +5,5 @@ export const queryKeys = {
   payments: (params?: Record<string, unknown>) => ['payments', params] as const,
   revenue: ['revenue'] as const,
   expenses: (params?: Record<string, unknown>) => ['expenses', params] as const,
+  shifts: ['shifts'] as const,
 };

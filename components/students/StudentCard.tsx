@@ -6,10 +6,12 @@ import { AppCard } from '@/components/ui/app-card';
 import { radius, spacing } from '@/constants/design';
 import {
   ActionRow,
-  PaymentSummary,
+  ShiftBadges,
+  StatusBadges,
   StudentHeader,
   StudentMeta,
   TimeSlots,
+  ValidityInfo,
 } from './StudentSummary';
 
 const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onAvatarPress, index = 0 }: any) => {
@@ -37,23 +39,28 @@ const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onR
 
             <StudentMeta student={student} theme={theme} />
 
+            <ValidityInfo student={student} theme={theme} />
+
             <View style={styles.divider} />
 
-            <View style={styles.footerRow}>
-              <View style={{ flex: 1 }}>
-                <TimeSlots student={student} theme={theme} />
-              </View>
-              <ActionRow
-                theme={theme}
-                actions={{
-                  onView: onView ? () => onView(student._id) : undefined,
-                  onEdit: () => onEdit(student._id),
-                  onDelete: () => onDelete(student._id),
-                  onPay: () => onPay(student),
-                  onRemind: () => onRemind(student),
-                }}
-              />
+            <View style={styles.metricsSection}>
+              <ShiftBadges student={student} theme={theme} />
+              <TimeSlots student={student} theme={theme} />
+              <StatusBadges student={student} theme={theme} />
             </View>
+
+            <View style={styles.divider} />
+
+            <ActionRow
+              theme={theme}
+              actions={{
+                onView: onView ? () => onView(student._id) : undefined,
+                onEdit: () => onEdit(student._id),
+                onDelete: () => onDelete(student._id),
+                onPay: () => onPay(student),
+                onRemind: () => onRemind(student),
+              }}
+            />
           </View>
         </Pressable>
       </AppCard>
@@ -81,8 +88,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)',
     marginHorizontal: -spacing.md,
   },
-  footerRow: {
-    gap: spacing.md,
-  }
+  metricsSection: {
+    gap: spacing.sm,
+  },
 });
 

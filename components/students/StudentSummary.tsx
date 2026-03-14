@@ -1,4 +1,4 @@
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
@@ -25,6 +25,7 @@ type Student = {
   shift?: string;
   joiningDate?: string;
   seatNumber?: number;
+  floor?: number | string;
   floorNumber?: number | string;
   status?: string;
   paymentStatus?: string;
@@ -33,7 +34,7 @@ type Student = {
   profilePicture?: string;
   aadhaarNumber?: string;
   address?: string;
-  fatherName?: string; // Added field
+  fatherName?: string;
   lastPayment?: {
     paymentDate?: string;
     startDate?: string;
@@ -71,90 +72,68 @@ export function StudentHeader({
   theme: Theme;
   onAvatarPress?: () => void;
 }) {
-  const isOverdue = typeof student.daysOverdue === 'number' && student.daysOverdue > 0;
-  const isTrial = student.paymentStatus === 'Trial' || student.status === 'Trial';
+  const isInactive = student.status === 'Inactive';
+  const hasDues = typeof student.dueAmount === 'number' && student.dueAmount > 0;
 
   return (
     <View style={styles.headerRow}>
       <TouchableOpacity
         onPress={onAvatarPress}
         activeOpacity={0.8}
-        style={[styles.avatarWrapper, { shadowColor: theme.primary }]}
+        style={styles.avatarWrapper}
       >
-        <View style={[styles.avatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+        <View style={[styles.avatar, { backgroundColor: theme.surfaceAlt, borderColor: isInactive ? theme.border : theme.primary + '30' }]}>
           <Image
             source={{ uri: student.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
             style={styles.avatarImg}
             contentFit="cover"
           />
-          {student.profilePicture && (
-            <View style={[styles.imageActionOverlay, { backgroundColor: theme.primary }]}>
-              <Ionicons name="expand" size={10} color="#fff" />
-            </View>
-          )}
+          <View style={[styles.statusDot, { backgroundColor: isInactive ? theme.muted : theme.success, borderColor: theme.surface }]} />
         </View>
       </TouchableOpacity>
 
-      <View style={{ flex: 1, gap: 4 }}>
-        <View style={styles.nameRow}>
+      <View style={{ flex: 1 }}>
+        <View style={styles.nameHeaderRow}>
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
-        </View>
-        <View style={styles.idRow}>
-          <Text style={[styles.meta, { color: theme.muted }]}>MEMBER ID: {student.id ?? '—'}</Text>
-          {typeof student.dueAmount === 'number' && student.dueAmount > 0 && (
-            <View style={[styles.dueBadge, { backgroundColor: theme.danger + '15' }]}>
-              <Text style={[styles.dueText, { color: theme.danger }]}>
-                DUE: {formatCurrency(student.dueAmount)}
-              </Text>
+          {hasDues && (
+            <View style={[styles.dueBadge, { backgroundColor: theme.danger + '10' }]}>
+              <Text style={[styles.dueText, { color: theme.danger }]}>₹{student.dueAmount}</Text>
             </View>
           )}
         </View>
+        <Text style={[styles.metaId, { color: theme.muted }]}>MEMBER ID: #{student.id ?? '—'}</Text>
       </View>
     </View>
   );
 }
 
-const InfoItem = ({ icon, label, value, theme, index = 0, onPress, valueColor }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string | number | null; theme: Theme; index?: number; onPress?: () => void; valueColor?: string }) => {
-  const content = (
-    <>
-      <View style={[styles.infoIconWrap, { backgroundColor: theme.primary + '10' }]}>
-        <Ionicons name={icon} size={16} color={theme.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.infoLabel, { color: theme.muted }]}>{label}</Text>
-        <Text style={[styles.infoValue, { color: valueColor || theme.text }]} numberOfLines={1}>{value ?? '—'}</Text>
-      </View>
-    </>
-  );
-
+const InfoItem = ({ icon, label, value, theme, onPress, valueColor }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string | number | null; theme: Theme; onPress?: () => void; valueColor?: string }) => {
   return (
-    <Animated.View
-      entering={FadeInRight.delay(index * 100).duration(500)}
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={!onPress}
       style={[
-        styles.infoItem,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-        onPress && { padding: 0 }
+        styles.infoBox,
+        { backgroundColor: theme.surfaceAlt + '50', borderColor: theme.border }
       ]}
     >
-      {onPress ? (
-        <TouchableOpacity
-          onPress={onPress}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, flex: 1 }}
-        >
-          {content}
-        </TouchableOpacity>
-      ) : (
-        content
-      )}
-    </Animated.View>
+      <View style={styles.infoTop}>
+        <Ionicons name={icon} size={14} color={theme.primary} />
+        <Text style={[styles.infoLabel, { color: theme.muted }]}>{label}</Text>
+      </View>
+      <Text style={[styles.infoValue, { color: valueColor || theme.text }]} numberOfLines={1}>{value ?? '—'}</Text>
+    </TouchableOpacity>
   );
 };
 
 export function StudentMeta({ student, theme }: { student: Student; theme: Theme }) {
-
+  const floor = (student as any).floor ?? student.floorNumber;
+  const sectionStr = !floor || isNaN(Number(floor))
+    ? (floor ?? 'Section 1')
+    : `Section ${floor}`;
 
   const seatValue = student.seatNumber
-    ? `Seat ${student.seatNumber} • ${student.floorNumber ?? 'Sec'}`
+    ? `${sectionStr} • #${student.seatNumber}`
     : 'Unallocated';
 
   const handleCall = () => {
@@ -165,26 +144,20 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
 
   return (
     <View style={styles.metaGrid}>
-      <InfoItem
-        icon="call-outline"
-        label="Phone"
-        value={student.number}
-        theme={theme}
-        index={0}
-        onPress={handleCall}
-      />
-      {student.fatherName && <InfoItem icon="person-outline" label="Father" value={student.fatherName} theme={theme} index={1} />}
-      <InfoItem
-        icon="information-circle-outline"
-        label="Status"
-        value={student.status === 'Inactive' ? 'Inactive' : 'Active'}
-        valueColor={student.status === 'Inactive' ? theme.warning : theme.success}
-        theme={theme}
-        index={2}
-      />
-      <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} index={3} />
-      <InfoItem icon="time-outline" label="Shift" value={formatShift(student.shift)} theme={theme} index={4} />
-      <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} index={5} />
+      <View style={styles.metaRow}>
+        <InfoItem icon="call-outline" label="Phone" value={student.number} theme={theme} onPress={handleCall} />
+        <InfoItem
+          icon="information-circle-outline"
+          label="Status"
+          value={student.status === 'Inactive' ? 'Inactive' : 'Active'}
+          valueColor={student.status === 'Inactive' ? theme.warning : theme.success}
+          theme={theme} 
+        />
+      </View>
+      <View style={styles.metaRow}>
+        <InfoItem icon="calendar-outline" label="Joined" value={student.joiningDate ? formatDate(student.joiningDate) : '—'} theme={theme} />
+        <InfoItem icon="location-outline" label="Seat" value={seatValue} theme={theme} />
+      </View>
     </View>
   );
 }
@@ -238,75 +211,116 @@ export function PaymentSummary({ student, theme }: { student: Student; theme: Th
 
 export function TimeSlots({ student, theme }: { student: Student; theme: Theme }) {
   const hasTime = !!student.time?.length;
-  const isTrial = student.paymentStatus === 'Trial';
+  const isTrial = student.paymentStatus === 'Trial' || student.status === 'Trial';
+  const isDues = student.paymentStatus === 'Unpaid';
+  const isPaid = student.paymentStatus === 'Paid';
+
+  if (!hasTime) return null;
+
+  return (
+    <View style={styles.badgesSection}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.badgesWrapper}
+      >
+        {student.time?.map((slot, idx) => (
+          <View key={idx} style={[styles.badge, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+            <Ionicons name="time-outline" size={12} color={theme.primary} />
+            <Text style={[styles.badgeText, { color: theme.text }]}>
+              {formatTime(slot.start)} - {formatTime(slot.end)}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+export function ShiftBadges({ student, theme }: { student: Student; theme: Theme }) {
+  const shifts = Array.isArray(student.shift)
+    ? student.shift
+    : (student.shift ? student.shift.split(',').map(s => s.trim()) : []);
+
+  if (shifts.length === 0) return null;
+
+  return (
+    <View style={styles.badgesSection}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.badgesWrapper}
+      >
+        {shifts.map((s, idx) => (
+          <View key={idx} style={[styles.badge, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' }]}>
+            <Ionicons name="sunny-outline" size={12} color={theme.primary} />
+            <Text style={[styles.badgeTextBold, { color: theme.primary }]}>{s.toUpperCase()}</Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+export function StatusBadges({ student, theme }: { student: Student; theme: Theme }) {
+  const isTrial = student.paymentStatus === 'Trial' || student.status === 'Trial';
   const isDues = student.paymentStatus === 'Unpaid';
   const isPaid = student.paymentStatus === 'Paid';
   const overDueDays = student.daysOverdue ?? 0;
-  const hasPayment = !!student.lastPayment?.startDate;
 
-  if (!hasTime && !student.daysOverdue && !hasPayment) return null;
+  if (!isTrial && !isDues && !isPaid) return null;
 
   return (
-    <View style={styles.timeRow}>
-      {student.time?.map((slot, idx) => (
-        <View key={`${slot.start}-${slot.end}-${idx}`} style={[styles.timeChip, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
-          <Ionicons name="time" size={12} color={theme.primary} />
-          <Text style={[styles.timeText, { color: theme.text }]}>
-            {formatTime(slot.start)} - {formatTime(slot.end)}
-          </Text>
-        </View>
-      ))}
-
-      {isPaid && (
-        <View style={[styles.statusChip, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}>
-          <View style={[styles.dot, { backgroundColor: theme.success }]} />
-          <Text style={[styles.statusText, { color: theme.success }]}>PAID</Text>
+    <View style={styles.badgesRow}>
+      {isTrial && (
+        <View style={[styles.badge, { backgroundColor: theme.info + '10', borderColor: theme.info + '30' }]}>
+          <Text style={[styles.badgeTextBold, { color: theme.info }]}>TRIAL</Text>
+          {overDueDays === 0 ? (
+            <Text style={[styles.badgeSubText, { color: theme.info }]}>• STARTED TODAY</Text>
+          ) : (
+            <Text style={[styles.badgeSubText, { color: theme.info }]}>• {overDueDays} DAYS IN</Text>
+          )}
         </View>
       )}
 
       {isDues && (
-        <View style={[styles.statusChip, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '30' }]}>
-          <View style={[styles.dot, { backgroundColor: theme.danger }]} />
-          <Text style={[styles.statusText, { color: theme.danger }]}>UNPAID</Text>
+        <View style={[styles.badge, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '30' }]}>
+          <Text style={[styles.badgeTextBold, { color: theme.danger }]}>UNPAID</Text>
+          {overDueDays > 0 && <Text style={[styles.badgeSubText, { color: theme.danger }]}>• OVERDUE {overDueDays}D</Text>}
         </View>
       )}
 
-      {isTrial && (
-        <View style={[styles.statusChip, { backgroundColor: theme.info + '15', borderColor: theme.info + '30' }]}>
-          <View style={[styles.dot, { backgroundColor: theme.info }]} />
-          <Text style={[styles.statusText, { color: theme.info }]}>TRIAL</Text>
+      {isPaid && !isTrial && (
+        <View style={[styles.badge, { backgroundColor: theme.success + '10', borderColor: theme.success + '30' }]}>
+          <Ionicons name="checkmark-circle" size={12} color={theme.success} />
+          <Text style={[styles.badgeTextBold, { color: theme.success }]}>PAID</Text>
         </View>
       )}
+    </View>
+  );
+}
 
-      {isTrial && overDueDays >= 0 && (
-        <View style={[styles.timeChip, { backgroundColor: theme.info + '10', borderColor: theme.info + '20' }]}>
-          <Ionicons name="flask" size={12} color={theme.info} />
-          <Text style={[styles.timeText, { color: theme.info, fontWeight: '800' }]}>
-            {overDueDays === 0 ? 'STARTED TODAY' : `${overDueDays} DAYS IN`}
-          </Text>
-        </View>
-      )}
+export function ValidityInfo({ student, theme }: { student: Student; theme: Theme }) {
+  if (!student.lastPayment?.startDate || !student.lastPayment?.endDate) return null;
 
-      {isDues && overDueDays > 0 && (
-        <View style={[styles.timeChip, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '20' }]}>
-          <Ionicons name="alert-circle" size={12} color={theme.danger} />
-          <Text style={[styles.timeText, { color: theme.danger, fontWeight: '800' }]}>
-            OVERDUE {overDueDays}D
-          </Text>
+  return (
+    <View style={[styles.validityContainer, { backgroundColor: theme.surfaceAlt + '50', borderColor: theme.border }]}>
+      <View style={styles.validityLabelRow}>
+        <Ionicons name="calendar-outline" size={12} color={theme.primary} />
+        <Text style={[styles.validityLabel, { color: theme.muted }]}>MEMBERSHIP VALIDITY</Text>
+      </View>
+      <View style={styles.validityDates}>
+        <Text style={[styles.validityDate, { color: theme.text }]}>
+          {formatDate(student.lastPayment.startDate)}
+        </Text>
+        <View style={[styles.validityDivider, { backgroundColor: theme.border }]} />
+        <Text style={[styles.validityDate, { color: theme.text }]}>
+          {formatDate(student.lastPayment.endDate)}
+        </Text>
+        <View style={[styles.validityBadge, { backgroundColor: theme.success + '10' }]}>
+          <Text style={[styles.validityBadgeText, { color: theme.success }]}>ACTIVE</Text>
         </View>
-      )}
-
-      {hasPayment && (
-        <View style={[styles.subscriptionChip, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
-          <View style={[styles.subIconWrap, { backgroundColor: (isPaid ? theme.success : theme.danger) + '15' }]}>
-            <Ionicons name="calendar" size={10} color={isPaid ? theme.success : theme.danger} />
-          </View>
-          <Text style={[styles.subLabel, { color: theme.muted }]}>VAL:</Text>
-          <Text style={[styles.subValue, { color: theme.text }]}>
-            {formatDate(student.lastPayment?.startDate)} - {formatDate(student.lastPayment?.endDate)}
-          </Text>
-        </View>
-      )}
+      </View>
     </View>
   );
 }
@@ -315,67 +329,72 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
   const posthog = usePostHog();
 
   return (
-    <View style={styles.actions}>
-      {actions.onView ? (
-        <TouchableOpacity
-          onPress={() => {
-            posthog?.capture('student_view_clicked');
-            actions.onView?.();
-          }}
-          style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-        >
-          <Ionicons name="eye-outline" size={18} color={theme.text} />
-          <Text style={[styles.actionBtnText, { color: theme.text }]}>View</Text>
-        </TouchableOpacity>
-      ) : null}
-      {actions.onEdit ? (
-        <TouchableOpacity
-          onPress={() => {
-            posthog?.capture('student_edit_clicked');
-            actions.onEdit?.();
-          }}
-          style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-        >
-          <Ionicons name="create-outline" size={18} color={theme.text} />
-          <Text style={[styles.actionBtnText, { color: theme.text }]}>Edit</Text>
-        </TouchableOpacity>
-      ) : null}
-      {actions.onPay ? (
-        <TouchableOpacity
-          onPress={() => {
-            posthog?.capture('student_pay_clicked');
-            actions.onPay?.();
-          }}
-          style={[styles.actionBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]}
-        >
-          <Ionicons name="wallet-outline" size={18} color="#fff" />
-          <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay</Text>
-        </TouchableOpacity>
-      ) : null}
+    <View style={styles.actionsContainer}>
+      <View style={styles.actionsRow}>
+        {actions.onView ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_view_clicked');
+              actions.onView?.();
+            }}
+            style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+          >
+            <Ionicons name="eye-outline" size={18} color={theme.text} />
+            <Text style={[styles.actionBtnText, { color: theme.text }]}>View</Text>
+          </TouchableOpacity>
+        ) : null}
+        {actions.onEdit ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_edit_clicked');
+              actions.onEdit?.();
+            }}
+            style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+          >
+            <Ionicons name="create-outline" size={18} color={theme.text} />
+            <Text style={[styles.actionBtnText, { color: theme.text }]}>Edit</Text>
+          </TouchableOpacity>
+        ) : null}
+        {actions.onPay ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_pay_clicked');
+              actions.onPay?.();
+            }}
+            style={[styles.actionBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]}
+          >
+            <Ionicons name="wallet-outline" size={18} color="#fff" />
+            <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
-      {actions.onRemind ? (
-        <TouchableOpacity
-          onPress={() => {
-            posthog?.capture('student_whatsapp_clicked');
-            actions.onRemind?.();
-          }}
-          style={[styles.actionIconBtn, { backgroundColor: '#25D366' + '15', borderColor: '#25D366' + '30' }]}
-        >
-          <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-        </TouchableOpacity>
-      ) : null}
+      <View style={styles.actionsRow}>
+        {actions.onRemind ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_whatsapp_clicked');
+              actions.onRemind?.();
+            }}
+            style={[styles.actionBtn, { backgroundColor: '#25D366' + '15', borderColor: '#25D366' + '30', flex: 1 }]}
+          >
+            <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+            <Text style={[styles.actionBtnText, { color: '#25D366' }]}>Send Reminder</Text>
+          </TouchableOpacity>
+        ) : null}
 
-      {actions.onDelete ? (
-        <TouchableOpacity
-          onPress={() => {
-            posthog?.capture('student_delete_clicked');
-            actions.onDelete?.();
-          }}
-          style={[styles.actionIconBtn, { backgroundColor: theme.danger + '10', borderColor: theme.border }]}
-        >
-          <Ionicons name="trash-outline" size={20} color={theme.danger} />
-        </TouchableOpacity>
-      ) : null}
+        {actions.onDelete ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_delete_clicked');
+              actions.onDelete?.();
+            }}
+            style={[styles.actionIconBtn, { backgroundColor: theme.danger + '10', borderColor: theme.border }]}
+          >
+            <Ionicons name="trash-outline" size={20} color={theme.danger} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -386,95 +405,146 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     alignItems: 'center',
   },
-  avatarWrapper: {
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
+  avatarWrapper: {},
   avatar: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
     borderRadius: 20,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    position: 'relative',
+  },
+  avatarImg: { width: '100%', height: '100%', borderRadius: 18 },
+  statusDot: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 2,
   },
-  avatarImg: { width: '100%', height: '100%' },
-  imageActionOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 18,
-    height: 18,
-    borderTopLeftRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 24, fontWeight: '900' },
-  nameRow: {
+  nameHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
   name: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     flex: 1,
     letterSpacing: -0.5,
   },
-  idRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  meta: {
-    fontSize: 12,
-    fontWeight: '700',
+  metaId: {
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.5,
+    marginTop: 2,
   },
   dueBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   dueText: {
-    fontWeight: '800',
-    fontSize: 10,
+    fontWeight: '900',
+    fontSize: 11,
   },
   metaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  infoItem: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    borderWidth: 1.5,
-    borderRadius: 16,
-    padding: spacing.md,
+  metaRow: {
     flexDirection: 'row',
-    gap: spacing.md,
-    alignItems: 'center',
+    gap: spacing.sm,
   },
-  infoIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  infoBox: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  infoTop: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
   },
   infoLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 2,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  badgesSection: {
+    marginHorizontal: -spacing.md,
+  },
+  badgesWrapper: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  badgeTextBold: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  badgeSubText: {
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  actionsContainer: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    flex: 1,
+  },
+  actionBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  actionIconBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   paymentBox: {
     borderWidth: 1.5,
@@ -519,6 +589,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  validityContainer: {
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  validityLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  validityLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  validityDates: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  validityDate: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  validityDivider: {
+    width: 20,
+    height: 1.5,
+  },
+  validityBadge: {
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  validityBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
   amountTag: {
     marginTop: 4,
     paddingHorizontal: 12,
@@ -529,97 +639,6 @@ const styles = StyleSheet.create({
   amountTagText: {
     fontSize: 16,
     fontWeight: '900',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  timeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  timeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    flex: 1,
-  },
-  actionBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  actionIconBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1.2,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  subscriptionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    flexGrow: 1,
-  },
-  subIconWrap: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  subValue: {
-    fontSize: 12,
-    fontWeight: '700',
   },
 });
 

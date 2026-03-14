@@ -16,6 +16,7 @@ import {
   useUpdateStudent,
   useInfiniteStudentsQuery
 } from '@/hooks/use-students';
+import { useShiftsQuery } from '@/hooks/use-shifts';
 import { useDashboardQuery } from '@/hooks/use-dashboard';
 
 import { useCreatePayment } from '@/hooks/use-payments';
@@ -37,6 +38,7 @@ import { StudentFormModal, StudentFormValues } from '@/components/students/stude
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
 import { formatDate } from '@/utils/format';
+import { transformFormToPayload, mapStudentToForm } from '@/utils/student-transform';
 import { openWhatsappWithMessage } from '@/utils/whatsapp';
 import { useScreenView } from '@/hooks/use-screen-view';
 import { usePostHog } from 'posthog-react-native';
@@ -46,6 +48,7 @@ const { width } = Dimensions.get('window');
 export default function StudentsScreen() {
   const router = useRouter();
   const color = useColorScheme();
+  const { data: shifts = [] } = useShiftsQuery();
   const theme = useTheme();
   const posthog = usePostHog();
 
@@ -56,6 +59,7 @@ export default function StudentsScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState('recent');
   const [days, setDays] = useState<number | undefined>(undefined);
+  const [quickFilter, setQuickFilter] = useState<string | undefined>(undefined);
 
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
@@ -74,7 +78,8 @@ export default function StudentsScreen() {
   const studentsQuery = useInfiniteStudentsQuery({
     name: debouncedSearch,
     filter,
-    days
+    days,
+    quickFilter
   });
 
   const dashboardQuery = useDashboardQuery();
@@ -180,60 +185,8 @@ export default function StudentsScreen() {
     studentsQuery.refetch();
   }, [studentsQuery.refetch, posthog]);
 
-  const mapToForm = (s: Student | null): StudentFormValues => {
-    const d = new Date().toISOString();
-    if (!s)
-      return {
-        name: '',
-        number: '',
-        joiningDate: d,
-        seat: '',
-        shift: 'First',
-        startTime: '09:00',
-        endTime: '18:00',
-        fees: '500',
-        gender: 'Male',
-        notes: '',
-        profilePicture: '',
-        fatherName: '',
-        address: '',
-        aadharNumber: ''
-      };
-    return {
-      name: s.name,
-      number: s.number,
-      joiningDate: s.joiningDate || d,
-      seat: s.seat ?? '',
-      shift: s.shift ?? 'Morning',
-      startTime: s.time?.[0]?.start ?? '09:00',
-      endTime: s.time?.[0]?.end ?? '18:00',
-      fees: (s.fees || s.fees === 0) ? String(s.fees || 500) : '500',
-      gender: s.gender ?? 'Male',
-      notes: s.notes ?? '',
-      fatherName: s.fatherName ?? '',
-      address: s.address ?? '',
-      aadharNumber: s.aadhaarNumber ?? '',
-      profilePicture: s.profilePicture || ''
-    };
-  };
-
   const saveStudent = async (values: any, onProgress?: (p: number) => void) => {
-
-    const payload = {
-      name: values.name,
-      number: values.number,
-      joiningDate: values.joiningDate,
-      seat: values.seat,
-      shift: values.shift,
-      time: [{ start: values.startTime, end: values.endTime }],
-      fees: Number(values.fees) || 0,
-      notes: values.notes,
-      gender: values.gender,
-      fatherName: values.fatherName,
-      address: values.address,
-      aadhaarNumber: values.aadharNumber,
-      profilePicture: values.profilePicture,
-    };
+    const payload = transformFormToPayload(values, shifts);
 
     try {
       if (editingStudent) {
@@ -262,12 +215,32 @@ export default function StudentsScreen() {
 
   const buildPaymentDefaults = (s: Student | null) => {
     const d = new Date().toISOString();
+    const today = d.slice(0, 10);
+
+    // Default to today if anything is missing
+    let startStr = today;
+
+    if (s) {
+      if (s.lastPayment && s.lastPayment.endDate) {
+        startStr = s.lastPayment.endDate.slice(0, 10);
+      } else if (s.joiningDate) {
+        startStr = s.joiningDate.slice(0, 10);
+      }
+    }
+
+    const start = new Date(startStr);
+    const startDate = start.toISOString().slice(0, 10);
+
+    // Add 1 month for end date
+    start.setMonth(start.getMonth() + 1);
+    const endDate = start.toISOString().slice(0, 10);
+
     return {
       student: s?._id || '',
-      rupees: 0,
-      startDate: d,
-      endDate: d,
-      paymentDate: d,
+      rupees: s?.fees || 0,
+      startDate: startDate,
+      endDate: endDate,
+      paymentDate: today,
       paymentMode: 'cash' as const,
       notes: ''
     };
@@ -307,7 +280,7 @@ export default function StudentsScreen() {
     return labels[filter] || 'PROFILES';
   }, [filter]);
 
-  const initialFormValues = useMemo(() => mapToForm(editingStudent), [editingStudent]);
+  const initialFormValues = useMemo(() => mapStudentToForm(editingStudent), [editingStudent]);
 
   const listHeader = useMemo(() => (
     <Animated.View entering={FadeInDown.duration(800)} style={styles.header}>
@@ -327,35 +300,89 @@ export default function StudentsScreen() {
           <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
         </View>
         <View style={styles.filterRow}>
-          <StudentFilters selected={filter} setSelected={(v) => { setFilter(v); setDays(undefined); }} theme={theme} />
+          <StudentFilters selected={filter} setSelected={(v) => { setFilter(v); setDays(undefined); setQuickFilter(undefined); }} theme={theme} />
         </View>
         {(filter === 'dues') && (
-          <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
-            <View style={styles.px_xl}>
-              <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.daysScroll}
-            >
-              {[3, 7, 15, 30, 45, 60].map(d => (
-                <TouchableOpacity
-                  key={d}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setDays(days === d ? undefined : d);
-                  }}
-                  style={[
-                    styles.daysChip,
-                    { backgroundColor: days === d ? theme.primary : theme.surfaceAlt, borderColor: days === d ? theme.primary : theme.border }
-                  ]}
+          <View style={{ gap: spacing.md, marginTop: 4 }}>
+            <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
+              <View style={[styles.px_xl, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="sparkles" size={12} color={theme.primary} />
+                  <Text style={[styles.daysLabel, { color: theme.muted }]}>QUICK DATE:</Text>
+                </View>
+                {quickFilter && (
+                  <TouchableOpacity onPress={() => setQuickFilter(undefined)}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#ff4444' }}>CLEAR</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.daysScroll}
+              >
+                {['yesterday', 'today', 'tomorrow'].map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setQuickFilter(quickFilter === f ? undefined : f);
+                      setDays(undefined);
+                    }}
+                    style={[
+                      styles.daysChip,
+                      {
+                        backgroundColor: quickFilter === f ? theme.primary : theme.surfaceAlt,
+                        borderColor: quickFilter === f ? theme.primary : theme.border,
+                        minWidth: 80,
+                        alignItems: 'center'
+                      }
+                    ]}
+                  >
+                    <Text style={[styles.daysText, { color: quickFilter === f ? '#fff' : theme.text, textTransform: 'capitalize' }]}>{f}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </Animated.View>
+
+            {!quickFilter && (
+              <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
+                <View style={[styles.px_xl, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="timer" size={12} color="#f59e0b" />
+                    <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
+                  </View>
+                  {days && (
+                    <TouchableOpacity onPress={() => setDays(undefined)}>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#ff4444' }}>CLEAR</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.daysScroll}
                 >
-                  <Text style={[styles.daysText, { color: days === d ? '#fff' : theme.text }]}>{d}+ Days</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Animated.View>
+                  {[3, 7, 15, 30, 45, 60].map(d => (
+                    <TouchableOpacity
+                      key={d}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setDays(days === d ? undefined : d);
+                        setQuickFilter(undefined);
+                      }}
+                      style={[
+                        styles.daysChip,
+                        { backgroundColor: days === d ? theme.primary : theme.surfaceAlt, borderColor: days === d ? theme.primary : theme.border }
+                      ]}
+                    >
+                      <Text style={[styles.daysText, { color: days === d ? '#fff' : theme.text }]}>{d}+ Days</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </Animated.View>
+            )}
+          </View>
         )}
       </View>
     </Animated.View>

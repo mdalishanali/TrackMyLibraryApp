@@ -19,6 +19,10 @@ export type StudentPayload = {
   status?: string;
   gender?: string;
   profilePicture?: string;
+  allocations?: string[];
+  fatherName?: string;
+  address?: string;
+  aadhaarNumber?: string;
 };
 
 type StudentsPage = {
@@ -30,7 +34,7 @@ type StudentsPage = {
   };
 };
 
-export const useStudentsQuery = (params?: { name?: string; filter?: string; limit?: number }) =>
+export const useStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; quickFilter?: string }) =>
   useQuery({
     queryKey: queryKeys.students(params),
     queryFn: async () => {
@@ -40,7 +44,7 @@ export const useStudentsQuery = (params?: { name?: string; filter?: string; limi
     placeholderData: (previousData) => previousData,
   });
 
-export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number }) =>
+export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string }) =>
   useInfiniteQuery<StudentsPage>({
     queryKey: queryKeys.students(params),
     initialPageParam: 1,
@@ -109,12 +113,16 @@ export const useUpdateStudent = (id?: string) => {
       return data;
     },
     onSuccess: (data, variables) => {
+      const targetId = variables.id || id;
       queryClient.invalidateQueries({ queryKey: ['students'] });
+      if (targetId) {
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.students(), targetId] });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.seats });
 
       posthog?.capture('student_updated', {
-        student_id: variables.id || id || 'unknown',
+        student_id: targetId || 'unknown',
         fields_updated: Object.keys(variables.payload),
       });
     },

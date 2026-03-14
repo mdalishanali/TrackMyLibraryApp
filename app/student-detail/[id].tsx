@@ -24,11 +24,13 @@ import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfi
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
 import { useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt } from '@/hooks/use-whatsapp';
+import { useShiftsQuery } from '@/hooks/use-shifts';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
-import { formatCurrency, formatDate } from '@/utils/format';
+import { formatCurrency, formatDate, formatTime } from '@/utils/format';
+import { transformFormToPayload, mapStudentToForm } from '@/utils/student-transform';
 import { showToast } from '@/lib/toast';
 import { Image } from 'expo-image';
 import { openWhatsappWithMessage } from '@/utils/whatsapp';
@@ -93,6 +95,7 @@ export default function StudentDetailScreen() {
   const deleteStudent = useDeleteStudent();
   const updateStudent = useUpdateStudent(id);
   const seatsQuery = useSeatsQuery();
+  const { data: shiftsData } = useShiftsQuery();
 
 
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -156,40 +159,41 @@ export default function StudentDetailScreen() {
     const allPayments = paymentsQuery.data?.pages?.flatMap(p => p.payments) || [];
     const lastPayment = allPayments[0];
 
-    let startDate = todayIso;
-    let endDate = todayIso;
-
+    // If no payment exists, use joining date
+    // If payment exists, use the endDate of the last payment
+    let startStr = student.joiningDate?.slice(0, 10) || todayIso;
     if (lastPayment && lastPayment.endDate) {
-      startDate = lastPayment.endDate.slice(0, 10);
-
-      const d = new Date(startDate);
-      d.setMonth(d.getMonth() + 1);
-      endDate = d.toISOString().slice(0, 10);
+      startStr = lastPayment.endDate.slice(0, 10);
     }
+
+    const d = new Date(startStr);
+    const startDate = d.toISOString().slice(0, 10);
+
+    // Add 1 month for end date
+    d.setMonth(d.getMonth() + 1);
+    const endDate = d.toISOString().slice(0, 10);
 
     setPaymentDefaults({
       ...basePaymentValues,
       rupees: student.fees ?? 0,
       startDate,
-      endDate
+      endDate,
+      paymentDate: todayIso
     });
     setEditingPaymentId(null);
     setIsPaymentOpen(true);
   };
 
+
   const handleUpdateStudent = async (values: any) => {
     try {
-      await updateStudent.mutateAsync({
-        payload: {
-          ...values,
-          fees: values.fees ? Number(values.fees) : undefined,
-          time: [{ start: values.startTime, end: values.endTime }]
-        }
-      });
+      const payload = transformFormToPayload(values, shiftsData || []);
+
+      await updateStudent.mutateAsync({ payload });
       setIsEditStudentOpen(false);
-      studentQuery.refetch();
-    } catch (error) {
-      // handled by mutation success/error toast usually
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update student';
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -352,7 +356,7 @@ export default function StudentDetailScreen() {
                 </Pressable>
 
                 <View style={styles.heroMeta}>
-                  <Text style={[styles.heroName, { color: theme.text }]}>{student.name}</Text>
+                <Text style={[styles.heroName, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
                   <View style={styles.heroRow}>
                   <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.danger) + '15' }]}>
                     <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.danger }]} />
@@ -360,58 +364,126 @@ export default function StudentDetailScreen() {
                       {student.status === 'Active' ? 'ACTIVE' : 'DELETED'}
                       </Text>
                     </View>
-                    <Text style={[styles.heroId, { color: theme.muted }]}>ID: {student.id || '—'}</Text>
+                  {student.gender && (
+                    <View style={[styles.statusTag, { backgroundColor: (student.gender === 'male' ? '#3b82f6' : '#ec4899') + '15' }]}>
+                      <Ionicons
+                        name={student.gender === 'male' ? 'male' : 'female'}
+                        size={10}
+                        color={student.gender === 'male' ? '#3b82f6' : '#ec4899'}
+                      />
+                      <Text style={[styles.statusText, { color: student.gender === 'male' ? '#3b82f6' : '#ec4899', textTransform: 'uppercase' }]}>
+                        {student.gender}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={[styles.statusTag, { backgroundColor: theme.primary + '10' }]}>
+                    <Text style={[styles.statusText, { color: theme.primary, letterSpacing: 0.5 }]}>ID: {student.id || '—'}</Text>
+                  </View>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.heroStats}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.heroStatsContainer}
+            >
                 <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
-                <Text style={[styles.statValue, { color: theme.text }]}>{(student.seatNumber !== undefined && student.seatNumber !== null) ? `#${student.seatNumber}` : '—'}</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {(student.seatNumber !== undefined && student.seatNumber !== null) ? `#${student.seatNumber}` : '—'}
+                </Text>
                   <Text style={[styles.statLabel, { color: theme.muted }]}>SEAT</Text>
                 </View>
+
                 <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
-                  <Text style={[styles.statValue, { color: theme.text }]}>{student.shift || '—'}</Text>
+                <Text style={[styles.statValue, { color: theme.text }]} numberOfLines={1}>
+                  {Array.isArray(student.shift) ? student.shift.join(', ') : (student.shift || '—')}
+                </Text>
                   <Text style={[styles.statLabel, { color: theme.muted }]}>SHIFT</Text>
                 </View>
+
+              {student.lastPayment?.endDate && (
                 <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
-                  <Text style={[styles.statValue, { color: theme.primary }]}>{formatCurrency(student.fees || 0)}</Text>
-                  <Text style={[styles.statLabel, { color: theme.muted }]}>MONTHLY</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons
+                      name={(() => {
+                        const days = Math.ceil((new Date(student.lastPayment!.endDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        return days < 3 ? 'alert-circle' : 'time';
+                      })()}
+                      size={14}
+                      color={(() => {
+                        const days = Math.ceil((new Date(student.lastPayment!.endDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        return days < 0 ? theme.danger : days < 5 ? theme.warning : theme.success;
+                      })()}
+                    />
+                    <Text style={[styles.statValue, {
+                      color: (() => {
+                        const days = Math.ceil((new Date(student.lastPayment!.endDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        return days < 0 ? theme.danger : days < 5 ? theme.warning : theme.success;
+                      })()
+                    }]}>
+                      {(() => {
+                        const days = Math.ceil((new Date(student.lastPayment!.endDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        return days < 0 ? 'EXPIRED' : `${days} DAYS`;
+                      })()}
+                    </Text>
+                  </View>
+                  <Text style={[styles.statLabel, { color: theme.muted }]}>REMIND IN</Text>
                 </View>
+              )}
+
+              <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {(() => {
+                    const joined = new Date(student.joiningDate || '');
+                    const diff = Math.floor((new Date().getTime() - joined.getTime()) / (1000 * 60 * 60 * 24));
+                    return diff < 0 ? '0' : String(diff);
+                  })()}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>DAYS ACTIVE</Text>
               </View>
 
+              <View style={[styles.statBox, { backgroundColor: theme.primary }]}>
+                <Text style={[styles.statValue, { color: '#fff' }]} numberOfLines={1}>
+                  {formatCurrency(student.fees || 0)}
+                </Text>
+                <Text style={[styles.statLabel, { color: '#fff' }]}>MONTHLY FEE</Text>
+                </View>
+            </ScrollView>
+
               <View style={styles.heroActions}>
+              <View style={styles.actionRow}>
                 <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setIsEditStudentOpen(true);
-                }}
-                style={({ pressed }) => [
-                  styles.editBtn,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                  pressed && { opacity: 0.8 }
-                ]}
-              >
-                <Ionicons name="create-outline" size={20} color={theme.text} />
-              </Pressable>
-              
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setIsChangeSeatOpen(true);
-                }}
-                style={({ pressed }) => [
-                  styles.editBtn,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                  pressed && { opacity: 0.8 }
-                ]}
-              >
-                <Ionicons name="swap-horizontal-outline" size={20} color={theme.text} />
-              </Pressable>
+                    setIsEditStudentOpen(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.editBtn,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                    pressed && { opacity: 0.8 }
+                  ]}
+                >
+                  <Ionicons name="create-outline" size={20} color={theme.text} />
+                </Pressable>
 
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setIsChangeSeatOpen(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.editBtn,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                    pressed && { opacity: 0.8 }
+                  ]}
+                >
+                  <Ionicons name="swap-horizontal-outline" size={20} color={theme.text} />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     openPayment();
                   }}
                   style={({ pressed }) => [
@@ -421,50 +493,136 @@ export default function StudentDetailScreen() {
                   ]}
                 >
                   <Ionicons name="wallet-outline" size={20} color="#fff" />
-                <Text style={styles.payBtnText}>Payment</Text>
+                  <Text style={styles.payBtnText}>Payment</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.actionRow}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleSendReminder();
+                  }}
+                  style={({ pressed }) => [
+                    styles.primaryActionBtn,
+                    { backgroundColor: theme.primary + '10', flex: 1, flexDirection: 'row', gap: 10 },
+                    pressed && { opacity: 0.7 }
+                  ]}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color={theme.primary} />
+                  <Text style={[styles.payBtnText, { color: theme.primary }]}>Record Reminder</Text>
                 </Pressable>
 
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  handleSendReminder();
-                }}
-                style={({ pressed }) => [
-                  styles.remindBtn,
-                  { backgroundColor: '#25D366' + '15' },
-                  pressed && { opacity: 0.7 }
-                ]}
-              >
-                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-              </Pressable>
-
-              <Pressable
+                <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setConfirmStudentDelete(true);
                   }}
                   style={({ pressed }) => [
-                    styles.delBtn,
+                    styles.iconBtn,
                     { backgroundColor: theme.danger + '10' },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
-                  <Ionicons name="trash-outline" size={20} color={theme.danger} />
+                  <Ionicons name="trash-outline" size={24} color={theme.danger} />
                 </Pressable>
+              </View>
             </View>
             </LinearGradient>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(200).duration(600)}>
-            <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Bio & Space</Text>
+        <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ gap: 24 }}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Library Membership</Text>
             <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
-            {student.fatherName && <DetailRow icon="person" label="Father Name" value={student.fatherName} theme={theme} />}
-            {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
-            {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
-            <DetailRow icon="business" label="Workspace" value={(student.seatNumber !== undefined && student.seatNumber !== null) ? `${student.floor ?? 'Section 1'} / Pos ${student.seatNumber}` : 'Unallocated'} theme={theme} />
-              <DetailRow icon="time" label="Schedule" value={student.shift || 'Morning Shift'} theme={theme} />
-              <DetailRow icon="calendar" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last />
+              <DetailRow
+                icon="business"
+                label="Workspace"
+                value={(student.seatNumber !== undefined && student.seatNumber !== null) ? `${student.floor ?? 'Section 1'} • Pos ${student.seatNumber}` : 'Unallocated'}
+                theme={theme}
+              />
+
+              <View style={[styles.detailRow, { paddingBottom: 0 }]}>
+                <View style={[styles.detailIcon, { backgroundColor: theme.primary + '10' }]}>
+                  <Ionicons name="time" size={18} color={theme.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.detailLabel, { color: theme.muted }]}>Schedule</Text>
+                  <View style={{ gap: 10, marginTop: 6 }}>
+                    {(() => {
+                      let shifts: string[] = [];
+                      if (Array.isArray(student.shift)) {
+                        shifts = student.shift;
+                      } else if (typeof student.shift === 'string') {
+                        shifts = student.shift.split(',').map(s => s.trim()).filter(Boolean);
+                      }
+
+                      const times = student.time || [];
+
+                      if (shifts.length === 0 && times.length === 0) {
+                        return <Text style={[styles.detailValue, { color: theme.text }]}>—</Text>;
+                      }
+
+                      // Map them together - if we have shifts but no times, show shifts. 
+                      // If we have more times than shifts, show times.
+                      const maxLength = Math.max(shifts.length, times.length);
+                      const rows = [];
+                      for (let i = 0; i < maxLength; i++) {
+                        rows.push(
+                          <View key={i} style={styles.scheduleMiniRow}>
+                            {shifts[i] && (
+                              <View style={[styles.schedulePill, { backgroundColor: theme.primary + '10' }]}>
+                                <Text style={[styles.schedulePillText, { color: theme.primary }]}>{shifts[i]}</Text>
+                              </View>
+                            )}
+                            <Text style={[styles.detailValue, { color: theme.text, marginTop: 0, flex: 1 }]}>
+                              {times[i] ? `${formatTime(times[i].start)} - ${formatTime(times[i].end)}` : (shifts[i] ? 'Time N/A' : '')}
+                            </Text>
+                          </View>
+                        );
+                      }
+                      return rows;
+                    })()}
+                  </View>
+                </View>
+              </View>
+
+              <DetailRow
+                icon="wallet"
+                label="Monthly Fee"
+                value={`${formatCurrency(student.fees || 0)}`}
+                theme={theme}
+              />
+              <DetailRow
+                icon="shield-checkmark"
+                label="Membership Validity"
+                value={student.lastPayment?.endDate ? `${formatDate(student.lastPayment.startDate)} — ${formatDate(student.lastPayment.endDate)}` : 'No active payment'}
+                theme={theme}
+                last
+              />
+            </View>
+          </View>
+
+          <View>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Personal Information</Text>
+            <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
+              {student.fatherName && <DetailRow icon="people" label="Father Name" value={student.fatherName} theme={theme} />}
+              {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
+              {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
+              <DetailRow icon="calendar-outline" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last={!student.notes} />
+              {student.notes && (
+                <View style={[styles.detailRow, { borderTopWidth: 1.5, borderTopColor: theme.border + '30' }]}>
+                  <View style={[styles.detailIcon, { backgroundColor: theme.warning + '10' }]}>
+                    <Ionicons name="document-text" size={20} color={theme.warning} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.detailLabel, { color: theme.muted }]}>Member Remarks</Text>
+                    <Text style={[styles.detailValue, { color: theme.text, fontSize: 13, lineHeight: 18, marginTop: 4 }]}>{student.notes}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
             </View>
           </Animated.View>
 
@@ -483,7 +641,7 @@ export default function StudentDetailScreen() {
             {paymentsQuery.data?.pages?.flatMap(p => p.payments).length ? (
               paymentsQuery.data.pages.flatMap(p => p.payments).map((payment, idx) => (
                 <View
-                  key={payment._id} 
+                  key={payment._id}
                   style={[styles.paymentCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
                 >
                   <View style={styles.paymentCardHeader}>
@@ -549,6 +707,12 @@ export default function StudentDetailScreen() {
                       <Ionicons name="checkmark-circle-outline" size={14} color={theme.primary} />
                       <Text style={[styles.payStatusText, { color: theme.text }]}>Paid on {formatDate(payment.paymentDate)}</Text>
                     </View>
+                    {payment.notes && (
+                      <View style={[styles.payNotes, { borderTopWidth: 1, borderTopColor: theme.border + '20' }]}>
+                        <Ionicons name="chatbox-ellipses-outline" size={12} color={theme.muted} />
+                        <Text style={[styles.payNotesText, { color: theme.muted }]}>{payment.notes}</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               ))
@@ -625,22 +789,7 @@ export default function StudentDetailScreen() {
           visible={isEditStudentOpen}
           onClose={() => setIsEditStudentOpen(false)}
           onSubmit={handleUpdateStudent}
-          initialValues={{
-            name: student.name || '',
-            number: student.number || '',
-            joiningDate: student.joiningDate?.slice(0, 10) || todayIso,
-            seat: student.seat || '',
-            shift: student.shift || '',
-            startTime: student.time?.[0]?.start || '09:00',
-            endTime: student.time?.[0]?.end || '18:00',
-            fees: String(student.fees || ''),
-            gender: student.gender || 'Male',
-            notes: student.notes || '',
-            fatherName: student.fatherName || '',
-            address: student.address || '',
-            aadharNumber: student.aadhaarNumber || '',
-            profilePicture: student.profilePicture || ''
-          }}
+          initialValues={mapStudentToForm(student)}
           seats={(seatsQuery.data ?? []).flatMap((f: any) =>
             (f.seats || []).map((s: any) => ({
               _id: s._id,
@@ -684,31 +833,55 @@ export default function StudentDetailScreen() {
 
 function DetailRow({ icon, label, value, theme, last }: any) {
   const isPhone = label === 'Phone';
+  const isWorkspace = label === 'Workspace';
+
+  const handleCopy = async (text: string) => {
+    // We would use Clipboard here if needed, but for now just Haptics
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast('Copied to clipboard');
+  };
 
   const content = (
-    <View style={[styles.detailRow, !last && { borderBottomWidth: 1, borderBottomColor: theme.border + '50' }]}>
-      <View style={[styles.detailIcon, { backgroundColor: theme.primary + '10' }]}>
-        <Ionicons name={icon} size={18} color={theme.primary} />
+    <View style={[
+      styles.detailRow,
+      !last && { borderBottomWidth: 1.5, borderBottomColor: theme.border + '30' }
+    ]}>
+      <View style={[styles.detailIcon, { backgroundColor: theme.primary + '08' }]}>
+        <Ionicons name={icon} size={20} color={theme.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.detailLabel, { color: theme.muted }]}>{label}</Text>
         <Text style={[styles.detailValue, { color: isPhone ? theme.primary : theme.text }]}>{value || '—'}</Text>
       </View>
-      {isPhone && (
-        <View style={{ justifyContent: 'center', marginRight: 4 }}>
-          <Ionicons name="call-outline" size={20} color={theme.primary} />
+      {isPhone && value && (
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => handleCopy(value)}
+            style={[styles.smallActionBtn, { backgroundColor: theme.surfaceAlt }]}
+          >
+            <Ionicons name="copy-outline" size={16} color={theme.muted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`https://wa.me/91${value}`)}
+            style={[styles.smallActionBtn, { backgroundColor: '#25D366' + '15' }]}
+          >
+            <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`tel:${value}`)}
+            style={[styles.smallActionBtn, { backgroundColor: theme.primary + '15' }]}
+          >
+            <Ionicons name="call" size={18} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
+      {isWorkspace && value !== 'Unallocated' && (
+        <View style={[styles.smallActionBtn, { backgroundColor: theme.primary + '10' }]}>
+          <Ionicons name="map-outline" size={18} color={theme.primary} />
         </View>
       )}
     </View>
   );
-
-  if (isPhone && value) {
-    return (
-      <TouchableOpacity onPress={() => Linking.openURL(`tel:${value}`)} activeOpacity={0.7}>
-        {content}
-      </TouchableOpacity>
-    );
-  }
 
   return content;
 }
@@ -803,38 +976,40 @@ const styles = StyleSheet.create({
   heroRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
   },
   statusTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   heroId: {
     fontSize: 11,
     fontWeight: '800',
     opacity: 0.6,
   },
-  heroStats: {
-    flexDirection: 'row',
+  heroStatsContainer: {
     gap: 12,
+    paddingRight: 20, // push and breathe
   },
   statBox: {
-    flex: 1,
-    padding: 14,
+    minWidth: 130,
+    padding: 16,
     borderRadius: 20,
     alignItems: 'center',
     gap: 4,
@@ -847,15 +1022,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   heroActions: {
+    gap: 12,
+  },
+  actionRow: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'center',
   },
   payBtn: {
     flex: 1,
-    height: 56,
-    borderRadius: 18,
+    height: 60,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -863,28 +1043,27 @@ const styles = StyleSheet.create({
   },
   payBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
   },
   editBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  delBtn: {
-    width: 48,
-    height: 56,
-    borderRadius: 18,
+  primaryActionBtn: {
+    height: 60,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  remindBtn: {
-    width: 48,
-    height: 56,
-    borderRadius: 18,
+  iconBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -919,9 +1098,32 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   detailValue: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     marginTop: 2,
+    letterSpacing: -0.2,
+  },
+  scheduleMiniRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  schedulePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  schedulePillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  smallActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   countBadge: {
     paddingHorizontal: 10,
@@ -961,9 +1163,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  payNotes: {
+    paddingTop: 10,
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  payNotesText: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    flex: 1,
   },
   payModeText: {
     fontSize: 10,
