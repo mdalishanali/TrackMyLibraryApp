@@ -190,26 +190,26 @@ export default function StudentsScreen() {
 
     try {
       if (editingStudent) {
-        await updateStudent.mutateAsync({ payload, onProgress });
+        await updateStudent.mutateAsync({ id: editingStudent._id, payload, onProgress });
+        showToast('Student updated', 'success');
       } else {
         await createStudent.mutateAsync({ payload, onProgress });
+        // Trigger rating prompt for new creations occasionally
+        setTimeout(() => triggerRating(), 1000);
       }
 
       setIsStudentFormOpen(false);
       setEditingStudent(null);
       setFilter('recent');
-      if (editingStudent) {
-        showToast('Student updated', 'success');
-      } else {
-        // Trigger rating prompt for new creations occasionally
-        setTimeout(() => triggerRating(), 1000);
-      }
     } catch (error: any) {
+      console.error('saveStudent (Directory) FAILED:', error);
       // Handle Student Limit Paywall
       if (error?.response?.status === 402) {
         setIsStudentFormOpen(false);
         presentPaywall();
       }
+      // RE-THROW so the modal knows it failed and doesn't close/reset
+      throw error;
     }
   };
 

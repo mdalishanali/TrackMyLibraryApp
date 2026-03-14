@@ -2,8 +2,18 @@ import { StudentFormValues } from '@/components/students/student-form-modal';
 import { StudentPayload } from '@/hooks/use-students';
 
 export const transformFormToPayload = (values: StudentFormValues, shifts: any[]): StudentPayload => {
-  // Map shift IDs back to names for the 'shift' string field the server expects
-  const selectedShifts = shifts.filter(s => values.shift?.includes(s._id));
+  // If values.shift contains something like "First" (legacy), try to find a shift with that name
+  const processedShiftIds = (values.shift || []).map(idOrName => {
+    // If it's a valid ObjectId hex string (24 chars), it's likely already an ID
+    if (/^[0-9a-fA-F]{24}$/.test(idOrName)) return idOrName;
+
+    // Otherwise try to find a shift with that name (case insensitive)
+    const found = shifts.find(s => s.name?.trim().toLowerCase() === idOrName.trim().toLowerCase());
+    return found?._id || null;
+  }).filter(Boolean);
+
+  // Map shift IDs back to names for the 'shift' string field the server expects (legacy compat)
+  const selectedShifts = shifts.filter(s => processedShiftIds.includes(s._id));
   
   const shiftNames = selectedShifts.map(s => s.name).join(', ') || 'Custom';
   
@@ -18,7 +28,7 @@ export const transformFormToPayload = (values: StudentFormValues, shifts: any[])
     number: values.number,
     joiningDate: values.joiningDate,
     seat: values.seat || undefined,
-    allocations: values.shift, // These are the IDs
+    allocations: processedShiftIds, // Use the resolved IDs
     shift: shiftNames,
     time: timeSlots.length > 0 ? timeSlots : [{ start: values.startTime || '09:00', end: values.endTime || '18:00' }],
     fees: Number(values.fees) || 0,
@@ -26,7 +36,7 @@ export const transformFormToPayload = (values: StudentFormValues, shifts: any[])
     gender: values.gender,
     fatherName: values.fatherName,
     address: values.address,
-    aadhaarNumber: values.aadharNumber,
+    aadhaarNumber: values.aadhaarNumber,
     profilePicture: values.profilePicture,
   };
 };
@@ -47,7 +57,7 @@ export const mapStudentToForm = (s: any): StudentFormValues => {
     profilePicture: '',
     fatherName: '',
     address: '',
-    aadharNumber: ''
+    aadhaarNumber: ''
   };
 
   return {
@@ -65,7 +75,7 @@ export const mapStudentToForm = (s: any): StudentFormValues => {
     notes: s.notes || '',
     fatherName: s.fatherName || '',
     address: s.address || '',
-    aadharNumber: s.aadhaarNumber || '',
+    aadhaarNumber: s.aadhaarNumber || '',
     profilePicture: s.profilePicture || ''
   };
 };

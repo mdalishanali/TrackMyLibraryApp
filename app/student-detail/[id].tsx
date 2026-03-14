@@ -190,11 +190,15 @@ export default function StudentDetailScreen() {
     try {
       const payload = transformFormToPayload(values, shiftsData || []);
 
-      await updateStudent.mutateAsync({ payload });
+      await updateStudent.mutateAsync({ id, payload });
+
       setIsEditStudentOpen(false);
+      showToast('Student updated', 'success');
     } catch (error: any) {
+      console.error('handleUpdateStudent (Detail) FAILED:', error);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update student';
       showToast(errorMessage, 'error');
+      throw error;
     }
   };
 

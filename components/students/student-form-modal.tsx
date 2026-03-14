@@ -29,7 +29,7 @@ const studentSchema = z.object({
     joiningDate: z.string().min(1, 'Joining date is required'),
     fatherName: z.string().optional(),
     address: z.string().optional(),
-    aadharNumber: z.string().optional(),
+    aadhaarNumber: z.string().optional(),
     seat: z.string().optional(),
     shift: z.array(z.string()).min(1, 'Select at least one shift'),
     allocations: z.array(z.string()).optional(),
@@ -194,7 +194,7 @@ export function StudentFormModal({
     }, [currentStep]);
 
     const steps = useMemo(() => [
-        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'aadharNumber', 'notes'] as (keyof StudentFormValues)[] },
+        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'aadhaarNumber', 'notes'] as (keyof StudentFormValues)[] },
         { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'fees'] as (keyof StudentFormValues)[] },
         { key: 'review', title: 'Review', fields: [] as (keyof StudentFormValues)[] },
     ], []);
@@ -233,30 +233,38 @@ export function StudentFormModal({
     const handlePrev = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
     const handleFinalSubmit = async () => {
-        const ok = await handleSubmit(async (vals) => {
-            try {
-                await onSubmit(vals, (p) => setUploadProgress(p));
-                // SUCCESS — only reset and go home if parent finished successfully
-                reset(initialValues);
-                setCurrentStep(0);
-            } catch (error) {
-                console.error('Submission failed:', error);
-                Alert.alert('Save Failed', (error as Error).message || 'Something went wrong while saving student details.');
-            } finally {
-                setUploadProgress(0);
+        // Wait for handleSubmit to finish the whole process
+        await handleSubmit(
+            async (vals) => {
+                try {
+                    setUploadProgress(1);
+                    await onSubmit(vals, (p) => setUploadProgress(p));
+                    // Only reset if we are NOT about to unmount (parent will handle state)
+                    // But if parent keeps it, we reset. 
+                    // To be safe and prevent "jump back" if closed, we can skip reset here
+                    // as reset(initialValues) might be triggering a re-render to step 0 before close.
+                } catch (error: any) {
+                    // Alert is handled in onSubmit usually, but we have one here too just in case
+                    if (!error?.handled) {
+                        Alert.alert('Save Failed', error.message || 'Something went wrong while saving student details.');
+                    }
+                } finally {
+                    setUploadProgress(0);
+                }
+            },
+            (errs) => {
+                // Jump to the first erroneous field's step
+                const fieldNames = Object.keys(errs);
+                if (fieldNames.length > 0) {
+                    const firstErrorField = fieldNames[0] as keyof StudentFormValues;
+                    const stepIndex = steps.findIndex(s => s.fields.includes(firstErrorField));
+                    if (stepIndex !== -1 && stepIndex !== currentStep) {
+                        setCurrentStep(stepIndex);
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    }
+                }
             }
-        })();
-
-        // If validation failed, handleSubmit callback above won't run.
-        // We need to find where the error is and jump to that step.
-        if (Object.keys(errors).length > 0) {
-            const firstErrorField = Object.keys(errors)[0] as keyof StudentFormValues;
-            const stepIndex = steps.findIndex(s => s.fields.includes(firstErrorField));
-            if (stepIndex !== -1 && stepIndex !== currentStep) {
-                setCurrentStep(stepIndex);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            }
-        }
+        )();
     };
 
     return (
@@ -411,7 +419,7 @@ export function StudentFormModal({
 
                                         <Text style={[styles.label, { fontSize: 16, color: theme.text, marginLeft: 4 }]}>Additional Details (Optional)</Text>
                                         <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                                            <FormField label="Aadhar Number (Optional)" name="aadharNumber" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="12-digit UID" />
+                                            <FormField label="Aadhaar Number (Optional)" name="aadhaarNumber" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="12-digit UID" />
                                             <FormField label="Notes (Optional)" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
                                         </AppCard>
                                     </View>
@@ -471,42 +479,43 @@ export function StudentFormModal({
 
 
                                             <View style={styles.formGroup}>
-                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Text style={[styles.label, { color: theme.text }]}>Shift Selection</Text>
-                                                    <TouchableOpacity onPress={() => { onClose(); router.push('/shifts'); }}>
-                                                        <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '800' }}>Manage Shifts</Text>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+                                                    <Text style={[styles.label, { color: theme.muted, marginBottom: 0 }]}>Shift Selection</Text>
+                                                    <TouchableOpacity onPress={() => { onClose(); router.push('/(tabs)/settings'); }}>
+                                                        <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>Manage Shifts</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                                 <ScrollView
                                                     horizontal
                                                     showsHorizontalScrollIndicator={false}
-                                                    contentContainerStyle={styles.shiftScrollContent}
+                                                    contentContainerStyle={[styles.shiftScrollContent, shiftOptions.length === 0 && { flex: 1, justifyContent: 'center' }]}
                                                 >
-                                                    {shiftOptions.map(opt => {
-                                                        const currentShifts = Array.isArray(values.shift) ? values.shift : [];
+                                                    {shiftOptions.length === 0 ? (
+                                                        <View style={{ padding: 12, alignItems: 'center', width: '100%' }}>
+                                                            <Text style={{ color: theme.muted, fontSize: 12, fontStyle: 'italic' }}>No shifts found. Please add a shift in settings.</Text>
+                                                        </View>
+                                                    ) : shiftOptions.map((opt) => {
+                                                        const currentShifts = values.shift || [];
                                                         const active = currentShifts.includes(opt.value);
 
                                                         const handleShiftToggle = () => {
-                                                             const is24Hours = opt.label.toLowerCase().includes('24 hour');
-                                                             let next: string[];
-
-                                                             if (active) {
-                                                                 // Deselecting current shift
-                                                                 next = currentShifts.filter(id => id !== opt.value);
-                                                             } else {
-                                                                 // Selecting a new shift
-                                                                 if (is24Hours) {
-                                                                     // If selecting 24 Hours, remove all others
-                                                                     next = [opt.value];
-                                                                 } else {
-                                                                     // If selecting something else, remove 24 Hours if it was present
-                                                                     const otherShiftsMinus24 = currentShifts.filter(id => {
-                                                                         const shiftOpt = shiftOptions.find(o => o.value === id);
-                                                                         return !shiftOpt?.label.toLowerCase().includes('24 hour');
-                                                                     });
-                                                                     next = [...otherShiftsMinus24, opt.value];
-                                                                 }
-                                                             }
+                                                            let next = [...currentShifts];
+                                                            if (active) {
+                                                                next = next.filter(id => id !== opt.value);
+                                                            } else {
+                                                                // Logical constraint: can't pick 24 Hour with others
+                                                                const is24Hour = opt.label.toLowerCase().includes('24 hour');
+                                                                if (is24Hour) {
+                                                                    next = [opt.value];
+                                                                } else {
+                                                                    // If selecting something else, remove 24 Hours if it was present
+                                                                    const otherShiftsMinus24 = currentShifts.filter(id => {
+                                                                        const shiftOpt = shiftOptions.find(o => o.value === id);
+                                                                        return !shiftOpt?.label.toLowerCase().includes('24 hour');
+                                                                    });
+                                                                    next = [...otherShiftsMinus24, opt.value];
+                                                                }
+                                                            }
                                                             setValue('shift', next);
                                                         };
 

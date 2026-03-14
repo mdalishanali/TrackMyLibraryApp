@@ -350,13 +350,18 @@ export default function SeatsScreen() {
       time: selectedShifts.map(s => ({ start: s.startTime, end: s.endTime }))
     };
 
-    if (studentDefaults?._id) {
-      await updateStudent.mutateAsync({ payload });
-    } else {
-      await createStudent.mutateAsync({ payload });
+    try {
+      if (studentDefaults?._id) {
+        await updateStudent.mutateAsync({ id: studentDefaults._id, payload });
+      } else {
+        await createStudent.mutateAsync({ payload });
+      }
+      setIsStudentModalOpen(false);
+      setStudentDefaults(null);
+    } catch (err) {
+      console.error('saveStudent Mutation FAILED:', err);
+      throw err;
     }
-    setIsStudentModalOpen(false);
-    setStudentDefaults(null);
   };
 
 
@@ -369,7 +374,10 @@ export default function SeatsScreen() {
       _id: occupant._id,
       name: occupant.name,
       number: occupant.number,
-      joiningDate: occupant.joiningDate,
+      joiningDate: occupant.joiningDate || new Date().toISOString().slice(0, 10),
+      fatherName: occupant.fatherName || '',
+      address: occupant.address || '',
+      aadhaarNumber: occupant.aadhaarNumber || '',
       seat: currentSeatId,
       shift: (() => {
         if (occupant.allocations && occupant.allocations.length > 0) {
@@ -381,7 +389,7 @@ export default function SeatsScreen() {
       })(),
       startTime: occupant.time?.[0]?.start || (shifts[0]?.startTime || '09:00'),
       endTime: occupant.time?.[0]?.end || (shifts[0]?.endTime || '18:00'),
-      fees: occupant.fees ? String(occupant.fees) : '',
+      fees: occupant.fees ? String(occupant.fees) : (shifts[0]?.price ? String(shifts[0].price) : '0'),
       gender: occupant.gender || 'Male',
       notes: occupant.notes || '',
       profilePicture: occupant.profilePicture || ''

@@ -100,7 +100,9 @@ export const useUpdateStudent = (id?: string) => {
   return useMutation({
     mutationFn: async ({ payload, id: overrideId, onProgress }: { payload: Partial<StudentPayload>; id?: string; onProgress?: (p: number) => void }) => {
       const targetId = overrideId || id;
-      if (!targetId) throw new Error('Missing student id');
+      if (!targetId) {
+        throw new Error('Missing student id');
+      }
 
       let finalProfilePicture = payload.profilePicture;
 
