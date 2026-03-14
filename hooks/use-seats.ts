@@ -12,11 +12,12 @@ export type SeatRangePayload = {
   endSeat: number;
 };
 
-export const useSeatsQuery = () =>
+export const useSeatsQuery = (shift?: string | null) =>
   useQuery({
-    queryKey: queryKeys.seats,
+    queryKey: [...queryKeys.seats, { shift }],
     queryFn: async () => {
-      const { data } = await api.get('/seats/students');
+      const url = shift ? `/seats/students?shift=${encodeURIComponent(shift)}` : '/seats/students';
+      const { data } = await api.get(url);
       return data.floors as any[];
     },
   });
@@ -80,6 +81,19 @@ export const useRenameSection = () =>
     mutationFn: async ({ oldFloor, newFloor }: { oldFloor: string; newFloor: string }) => {
       const { data } = await api.put('/seats/floor/rename', { oldFloor, newFloor }, {
         successToastMessage: 'Section renamed successfully'
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+    },
+  });
+
+export const useUpdateSeat = () =>
+  useMutation({
+    mutationFn: async ({ id, ...payload }: Partial<Seat> & { id: string }) => {
+      const { data } = await api.put(`/seats/${id}`, payload, {
+        successToastMessage: 'Seat updated successfully'
       });
       return data;
     },

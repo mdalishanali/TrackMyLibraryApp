@@ -18,6 +18,7 @@ export type PaymentPayload = {
 
 type PaymentsPage = {
   payments: Payment[];
+  totalRevenue?: number;
   pagination?: {
     total: number;
     page: number;

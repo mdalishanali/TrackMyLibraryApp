@@ -171,9 +171,15 @@ export default function PaymentsScreen() {
 
   const isInitialLoading = paymentsQuery.isLoading && payments.length === 0;
 
-  const totalRevenue = useMemo(() =>
-    payments.reduce((acc, p) => acc + (p.rupees || 0), 0),
-    [payments]);
+  const totalRevenue = useMemo(() => {
+    // Return the totalRevenue from the first page of the query result
+    // This represents the sum of ALL records matching the filter, not just the visible ones
+    return paymentsQuery.data?.pages[0]?.totalRevenue || 0;
+  }, [paymentsQuery.data]);
+
+  const totalTransactions = useMemo(() => {
+    return paymentsQuery.data?.pages[0]?.pagination?.total || 0;
+  }, [paymentsQuery.data]);
 
   return (
     <SafeScreen edges={['top']}>
@@ -198,7 +204,7 @@ export default function PaymentsScreen() {
                     <View style={styles.headerMeta}>
                       <View style={[styles.dot, { backgroundColor: theme.primary }]} />
                       <Text style={[styles.headerSubtitle, { color: theme.muted }]}>
-                        {payments.length} Transactions
+                        {totalTransactions} Transactions
                       </Text>
                     </View>
                   </View>

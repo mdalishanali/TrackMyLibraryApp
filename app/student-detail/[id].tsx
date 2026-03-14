@@ -29,6 +29,7 @@ import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorMod
 import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
+import { ActionRow, ShiftBadges, StatusBadges, StudentHeader, StudentMeta, TimeSlots, ValidityInfo } from '@/components/students/StudentSummary';
 import { formatCurrency, formatDate, formatTime } from '@/utils/format';
 import { transformFormToPayload, mapStudentToForm } from '@/utils/student-transform';
 import { showToast } from '@/lib/toast';
@@ -380,6 +381,11 @@ export default function StudentDetailScreen() {
                     <Text style={[styles.statusText, { color: theme.primary, letterSpacing: 0.5 }]}>ID: {student.id || '—'}</Text>
                   </View>
                   </View>
+
+                {/* Status Badges (Trial/Dues) */}
+                <View style={{ marginTop: 8 }}>
+                  <StatusBadges student={student as any} theme={theme} />
+                </View>
                 </View>
               </View>
 

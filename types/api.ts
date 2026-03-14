@@ -4,6 +4,8 @@ export type Seat = {
   floor?: number;
   floorId?: string;
   students?: Student[];
+  notes?: string;
+  status?: 'active' | 'maintenance' | 'reserved';
 };
 
 export type Student = {

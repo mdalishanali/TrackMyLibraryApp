@@ -30,11 +30,12 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { radius, spacing } from '@/constants/design';
-import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor, useRenameSection } from '@/hooks/use-seats';
+import { useCreateSeats, useSeatsQuery, useDeleteSeats, useDeleteFloor, useRenameSection, useUpdateSeat } from '@/hooks/use-seats';
 import { useCreateStudent, useUpdateStudent, useDeleteStudent } from '@/hooks/use-students';
 import { useShiftsQuery } from '@/hooks/use-shifts';
 import { useTheme } from '@/hooks/use-theme';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
+import { StatusBadges } from '@/components/students/StudentSummary';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
@@ -44,8 +45,8 @@ import { formatDate } from '@/utils/format';
 const { width, height } = Dimensions.get('window');
 const isTablet = width > 500;
 const numColumns = isTablet ? 3 : 2;
-const gridGap = 12;
-const sidePadding = spacing.xl;
+const gridGap = 8;
+const sidePadding = 14;
 const cardWidth = (width - (sidePadding * 2) - (gridGap * (numColumns - 1))) / numColumns;
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
 
@@ -55,11 +56,15 @@ export default function SeatsScreen() {
   // Track screen view
   useScreenView('Seats');
 
-  const seatsQuery = useSeatsQuery();
+  const [selectedShift, setSelectedShift] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+
+  const seatsQuery = useSeatsQuery(selectedShift);
   const createSeats = useCreateSeats();
   const deleteSeats = useDeleteSeats();
   const deleteFloor = useDeleteFloor();
   const renameSection = useRenameSection();
+  const updateSeat = useUpdateSeat();
   const { data: shifts = [] } = useShiftsQuery();
   const router = useRouter();
   const createStudent = useCreateStudent();
@@ -72,10 +77,14 @@ export default function SeatsScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectionSet, setSelectionSet] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [seatNotes, setSeatNotes] = useState('');
+  const [isUpdatingNotes, setIsUpdatingNotes] = useState(false);
 
   useEffect(() => {
     if (setup === 'true') {
-      setIsModalOpen(true);
+      handleOpenAddSeats();
       // Clear the param so it doesn't open again on tab clicks
       router.setParams({ setup: undefined } as any);
     }
@@ -130,20 +139,147 @@ export default function SeatsScreen() {
     }
   }, [floors, activeFloor]);
 
+  const paymentFilters = [
+    { label: 'Paid', value: 'Paid', color: theme.success },
+    { label: 'Unpaid', value: 'Unpaid', color: theme.danger },
+    { label: 'Trial', value: 'Trial', color: theme.warning },
+  ];
+
+  const getFilteredStudents = (students: any[]) => {
+    if (!students) return [];
+
+    // Find current shift info to match backend logic
+    const currentShiftObj = shifts.find(s => s.name === selectedShift);
+    const fStart = currentShiftObj?.startTime;
+    const fEnd = currentShiftObj?.endTime;
+    const isFullDay = fStart === '00:00' && fEnd === '23:59';
+
+    return students.filter((s: any) => {
+      let matchesShift = !selectedShift;
+
+      if (selectedShift) {
+        if (isFullDay) {
+          // Exact match on name for full day shifts
+          matchesShift = s.shift?.toLowerCase().includes(selectedShift.toLowerCase()) ||
+            s.shiftNames?.some((sn: string) => sn.toLowerCase().includes(selectedShift.toLowerCase()));
+        } else if (fStart && fEnd) {
+          // Time overlap logic for partial shifts (e.g. Full Day student covers Morning slot)
+          matchesShift = s.shiftTimes?.some((st: any) => {
+            return fStart < st.endTime && st.startTime < fEnd;
+          }) || s.shift?.toLowerCase().includes(selectedShift.toLowerCase());
+        } else {
+          matchesShift = s.shift?.toLowerCase().includes(selectedShift.toLowerCase());
+        }
+      }
+
+      let matchesPayment = true;
+      if (selectedPayment) {
+        if (selectedPayment === 'Unpaid') {
+          matchesPayment = s.paymentStatus === 'Unpaid' || s.paymentStatus === 'Trial';
+        } else {
+          matchesPayment = s.paymentStatus === selectedPayment;
+        }
+      }
+
+      const matchesSearch = !searchQuery.trim() ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.number.includes(searchQuery);
+
+      return matchesShift && matchesPayment && matchesSearch;
+    });
+  };
+
   const currentSeats = useMemo(() => {
     if (!activeFloor) return [];
-    return (seatsByFloor[activeFloor] || []).sort((a, b) => a.seatNumber - b.seatNumber);
-  }, [seatsByFloor, activeFloor]);
+    let baseSeats = (seatsByFloor[activeFloor] || [])
+      // Guard: skip any seat that has no valid _id or seatNumber (data integrity)
+      .filter((s: any) => s._id && s.seatNumber != null)
+      .sort((a, b) => a.seatNumber - b.seatNumber);
+
+    // Filter by payment status
+    if (selectedPayment) {
+      baseSeats = baseSeats.filter(seat => {
+        const filtered = getFilteredStudents(seat.students || []);
+        if (filtered.length === 0 && (!seat.students || seat.students.length === 0)) return true; // Vacant seats stay
+        return filtered.length > 0;
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      baseSeats = baseSeats.filter(seat => {
+        // Always show seat if number matches
+        if (String(seat.seatNumber).includes(query)) return true;
+
+        // Otherwise, checking if ANY student matching OTHER filters also matches search
+        const filtered = getFilteredStudents(seat.students || []);
+        return filtered.length > 0; // getFilteredStudents already checks matchesSearch
+      });
+    }
+
+    return baseSeats;
+  }, [seatsByFloor, activeFloor, selectedPayment, searchQuery]);
+
+  useEffect(() => {
+    if (selectedSeat) {
+      setSeatNotes(selectedSeat.notes || '');
+    }
+  }, [selectedSeat]);
+
+  const handleUpdateSeatDetails = async () => {
+    if (!selectedSeat) return;
+    setIsUpdatingNotes(true);
+    try {
+      await updateSeat.mutateAsync({
+        id: selectedSeat._id,
+        notes: seatNotes,
+        status: selectedSeat.status
+      });
+      setSelectedSeat({ ...selectedSeat, notes: seatNotes });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast('Seat notes updated successfully', 'success');
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast((error as Error).message, 'error');
+    } finally {
+      setIsUpdatingNotes(false);
+    }
+  };
 
   const occupancyStats = useMemo(() => {
     const total = currentSeats.length;
-    const occupied = currentSeats.filter(seat => seat.students && seat.students.length > 0).length;
+    const occupied = currentSeats.filter(seat => {
+      const filtered = getFilteredStudents(seat.students || []);
+      return filtered.length > 0;
+    }).length;
     return { total, occupied, vacant: total - occupied };
-  }, [currentSeats]);
+  }, [currentSeats, selectedShift, selectedPayment, searchQuery]);
+
+
 
 
   const resolveOccupant = (seat: any) => {
-    return seat.students?.[0] || null;
+    const filtered = getFilteredStudents(seat.students || []);
+    const student = filtered[0];
+    if (!student) return null;
+
+    // Enrich with daysOverdue for dashboard display
+    if (student.daysOverdue === undefined) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (student.paymentStatus === 'Trial') {
+        const joined = new Date(student.joiningDate || today);
+        joined.setHours(0, 0, 0, 0);
+        student.daysOverdue = Math.max(0, Math.floor((today.getTime() - joined.getTime()) / 86400000));
+      } else if (student.paymentStatus === 'Unpaid' && (student.lastPayment?.endDate || student.endDate)) {
+        const end = new Date(student.lastPayment?.endDate || student.endDate);
+        end.setHours(0, 0, 0, 0);
+        student.daysOverdue = Math.max(0, Math.floor((today.getTime() - end.getTime()) / 86400000));
+      }
+    }
+
+    return student;
   };
 
   const handleFloorSelect = (f: string) => {
@@ -152,13 +288,13 @@ export default function SeatsScreen() {
   };
 
   const handleOpenAddSeats = () => {
-    if (!activeFloor) return;
+    const floorToUse = activeFloor || 'Section 1';
     const seats = currentSeats;
-    const lastSeatNumber = seats.length > 0
-      ? Math.max(...seats.map(s => Number(s.seatNumber)))
+    const lastSeatNumber = (seats && seats.length > 0)
+      ? Math.max(...seats.map(s => Number(s.seatNumber || 0)))
       : 0;
 
-    setFloor(activeFloor);
+    setFloor(floorToUse);
     setStartSeat(String(lastSeatNumber + 1));
     setEndSeat('');
     setIsModalOpen(true);
@@ -235,9 +371,14 @@ export default function SeatsScreen() {
       number: occupant.number,
       joiningDate: occupant.joiningDate,
       seat: currentSeatId,
-      shift: occupant.allocations
-        ? occupant.allocations.map((a: any) => typeof a === 'string' ? a : a._id)
-        : (shifts.filter(s => s.name === occupant.shift).map(s => s._id) || (shifts[0] ? [shifts[0]._id] : [])),
+      shift: (() => {
+        if (occupant.allocations && occupant.allocations.length > 0) {
+          return occupant.allocations.map((a: any) => typeof a === 'string' ? a : a._id);
+        }
+        // Fallback for old data: match by shift name or take first shift
+        const matched = shifts.filter(s => s.name === occupant.shift).map(s => s._id);
+        return matched.length > 0 ? matched : (shifts[0] ? [shifts[0]._id] : []);
+      })(),
       startTime: occupant.time?.[0]?.start || (shifts[0]?.startTime || '09:00'),
       endTime: occupant.time?.[0]?.end || (shifts[0]?.endTime || '18:00'),
       fees: occupant.fees ? String(occupant.fees) : '',
@@ -369,198 +510,280 @@ export default function SeatsScreen() {
           style={StyleSheet.absoluteFill}
         />
 
-        <View style={styles.header}>
-          <Animated.View entering={FadeInDown.duration(600)}>
-            <View style={styles.headerTitleRow}>
-              <View>
-                <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
-                <Text style={[styles.title, { color: theme.text }]}>Space Grid</Text>
-              </View>
-              <View style={styles.headerActions}>
-                {isSelectionMode ? (
-                  <>
-                    <Pressable
-                      onPress={() => {
-                        setIsSelectionMode(false);
-                        setSelectionSet(new Set());
-                      }}
-                      style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
-                    >
-                      <Ionicons name="close" size={20} color={theme.text} />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        const allIds = currentSeats.map(s => s._id);
-                        const isAllSelected = allIds.every(id => selectionSet.has(id));
-
-                        if (isAllSelected) {
-                          setSelectionSet(new Set());
-                        } else {
-                          setSelectionSet(new Set(allIds));
-                        }
-                      }}
-                      style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
-                    >
-                      <Ionicons name="checkmark-done-outline" size={20} color={theme.primary} />
-                    </Pressable>
-                    <Pressable
-                      onPress={handleBulkDelete}
-                      disabled={selectionSet.size === 0}
-                      style={[
-                        styles.headerIconBtn, 
-                        { backgroundColor: theme.danger + '15' },
-                        selectionSet.size === 0 && { opacity: 0.5 }
-                      ]}
-                    >
-                      <Ionicons name="trash" size={20} color={theme.danger} />
-                      {selectionSet.size > 0 && (
-                        <View style={[styles.selectionBadge, { backgroundColor: theme.danger }]}>
-                          <Text style={styles.selectionBadgeText}>{selectionSet.size}</Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  </>
-                ) : (
-                  <>
-                    <Pressable
-                      onPress={() => setIsSelectionMode(true)}
-                      style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
-                    >
-                      <Ionicons name="trash-outline" size={20} color={theme.text} />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setIsModalOpen(true);
-                      }}
-                      style={({ pressed }) => [
-                        styles.addBtn,
-                        { backgroundColor: theme.primary, shadowColor: theme.primary },
-                        pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }
-                      ]}
-                    >
-                      <Ionicons name="add" size={24} color="#fff" />
-                    </Pressable>
-                  </>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.summaryVal, { color: theme.primary }]}>{occupancyStats.occupied}</Text>
-                <Text style={[styles.summaryLab, { color: theme.muted }]}>FILLED</Text>
-              </View>
-              <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.summaryVal, { color: theme.success }]}>{occupancyStats.vacant}</Text>
-                <Text style={[styles.summaryLab, { color: theme.muted }]}>VACANT</Text>
-              </View>
-              <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.summaryVal, { color: theme.text }]}>{occupancyStats.total}</Text>
-                <Text style={[styles.summaryLab, { color: theme.muted }]}>TOTAL</Text>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-
-        <View style={styles.floorNavContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.floorNavScroll}
-          >
-            {floors.map((f) => {
-              const active = activeFloor === f;
-              return (
-                <Pressable
-                  key={f}
-                  onPress={() => handleFloorSelect(f)}
-                  onLongPress={() => {
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                    Alert.alert(
-                      `Section: ${f}`,
-                      "Manage this section's name or layout.",
-                      [
-                        { 
-                          text: "Rename Section", 
-                          onPress: () => {
-                            setRenamingSection(f);
-                            setNewSectionName(f);
-                            setIsRenameModalOpen(true);
-                          }
-                        },
-                        { 
-                          text: "Delete Section", 
-                          style: "destructive", 
-                          onPress: () => {
-                            setConfirmConfig({
-                              visible: true,
-                              title: `Delete Section ${f}?`,
-                              description: `Are you sure you want to delete Section ${f}? All seats and student assignments in this section will be permanently removed.`,
-                              type: 'deleteFloor',
-                              onConfirm: async () => {
-                                try {
-                                  await deleteFloor.mutateAsync(f);
-                                  setConfirmConfig(prev => ({ ...prev, visible: false }));
-                                  const remaining = floors.filter(fl => fl !== f);
-                                  if (remaining.length > 0) setActiveFloor(remaining[0]);
-                                  else setActiveFloor(null);
-                                } catch (error) {
-                                  Alert.alert('Error', (error as Error).message);
-                                }
-                              }
-                            });
-                          }
-                        },
-                        { text: "Cancel", style: "cancel" }
-                      ]
-                    );
-                  }}
-                  style={({ pressed }) => [
-                    styles.floorTab,
-                    {
-                      backgroundColor: active ? theme.primary : theme.surface,
-                      borderColor: active ? theme.primary : theme.border,
-                      opacity: pressed ? 0.8 : 1,
-                      flexDirection: 'row',
-                      gap: 6
-                    },
-                    active && styles.floorTabActive
-                  ]}
-                >
-                  <Text style={[styles.floorTabText, { color: active ? '#fff' : theme.text }]}>
-                    {f === '0' ? 'OTHERS' : f.toString().toUpperCase()}
-                  </Text>
-                  {active && f !== '0' && (
-                    <Ionicons name="pencil" size={10} color="#fff" style={{ opacity: 0.8 }} />
-                  )}
-                </Pressable>
-              );
-            })}
-
-          </ScrollView>
-          {floors.length > 0 && (
-            <View style={styles.floorNavHint}>
-              <Ionicons name="information-circle-outline" size={12} color={theme.muted} />
-              <Text style={[styles.floorNavHintText, { color: theme.muted }]}>
-                Long press section to rename or delete
-              </Text>
-            </View>
-          )}
-        </View>
-
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={seatsQuery.isRefetching} onRefresh={seatsQuery.refetch} tintColor={theme.primary} />}
         >
-          <Animated.View
-            key={activeFloor}
-            entering={FadeIn.duration(400)}
-            style={styles.seatsGrid}
-          >
+          <View style={styles.header}>
+            <Animated.View entering={FadeInDown.duration(600)}>
+              <View style={styles.headerTitleRow}>
+                <View>
+                  <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
+                  <Text style={[styles.title, { color: theme.text }]}>Space Grid</Text>
+                </View>
+                <View style={styles.headerActions}>
+                  {isSelectionMode ? (
+                    <>
+                      <Pressable
+                        onPress={() => {
+                          setIsSelectionMode(false);
+                          setSelectionSet(new Set());
+                        }}
+                        style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
+                      >
+                        <Ionicons name="close" size={20} color={theme.text} />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          const allIds = currentSeats.map(s => s._id);
+                          const isAllSelected = allIds.every(id => selectionSet.has(id));
+
+                          if (isAllSelected) {
+                            setSelectionSet(new Set());
+                          } else {
+                            setSelectionSet(new Set(allIds));
+                          }
+                        }}
+                        style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
+                      >
+                        <Ionicons name="checkmark-done-outline" size={20} color={theme.primary} />
+                      </Pressable>
+                      <Pressable
+                        onPress={handleBulkDelete}
+                        disabled={selectionSet.size === 0}
+                        style={[
+                          styles.headerIconBtn,
+                          { backgroundColor: theme.danger + '15' },
+                          selectionSet.size === 0 && { opacity: 0.5 }
+                        ]}
+                      >
+                        <Ionicons name="trash" size={20} color={theme.danger} />
+                        {selectionSet.size > 0 && (
+                          <View style={[styles.selectionBadge, { backgroundColor: theme.danger }]}>
+                            <Text style={styles.selectionBadgeText}>{selectionSet.size}</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    </>
+                  ) : (
+                    <>
+                      <Pressable
+                        onPress={() => setIsSelectionMode(true)}
+                        style={[styles.headerIconBtn, { backgroundColor: theme.surfaceAlt }]}
+                      >
+                        <Ionicons name="trash-outline" size={20} color={theme.text} />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            handleOpenAddSeats();
+                        }}
+                        style={({ pressed }) => [
+                          styles.addBtn,
+                          { backgroundColor: theme.primary, shadowColor: theme.primary },
+                          pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] }
+                        ]}
+                      >
+                        <Ionicons name="add" size={24} color="#fff" />
+                      </Pressable>
+                    </>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.searchContainer}>
+                <View style={[styles.searchBar, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+                  <Ionicons name="search" size={18} color={theme.muted} />
+                  <TextInput
+                    placeholder="Find student or seat..."
+                    placeholderTextColor={theme.muted}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    style={[styles.searchInput, { color: theme.text }]}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                      <Ionicons name="close-circle" size={18} color={theme.muted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.summaryVal, { color: theme.primary }]}>{occupancyStats.occupied}</Text>
+                  <Text style={[styles.summaryLab, { color: theme.muted }]}>FILLED</Text>
+                </View>
+                <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.summaryVal, { color: theme.success }]}>{occupancyStats.vacant}</Text>
+                  <Text style={[styles.summaryLab, { color: theme.muted }]}>VACANT</Text>
+                </View>
+                <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.summaryVal, { color: theme.text }]}>{occupancyStats.total}</Text>
+                  <Text style={[styles.summaryLab, { color: theme.muted }]}>TOTAL</Text>
+                </View>
+              </View>
+            </Animated.View>
+          </View>
+
+          <View style={styles.floorNavContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.floorNavScroll}
+            >
+              {floors.map((f) => {
+                const active = activeFloor === f;
+                return (
+                  <Pressable
+                    key={f}
+                    onPress={() => handleFloorSelect(f)}
+                    onLongPress={() => {
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                      Alert.alert(
+                        `Section: ${f}`,
+                        "Manage this section's name or layout.",
+                        [
+                          {
+                            text: "Rename Section",
+                            onPress: () => {
+                              setRenamingSection(f);
+                              setNewSectionName(f);
+                              setIsRenameModalOpen(true);
+                            }
+                          },
+                          {
+                            text: "Delete Section",
+                            style: "destructive",
+                            onPress: () => {
+                              setConfirmConfig({
+                                visible: true,
+                                title: `Delete Section ${f}?`,
+                                description: `Are you sure you want to delete Section ${f}? All seats and student assignments in this section will be permanently removed.`,
+                                type: 'deleteFloor',
+                                onConfirm: async () => {
+                                  try {
+                                    await deleteFloor.mutateAsync(f);
+                                    setConfirmConfig(prev => ({ ...prev, visible: false }));
+                                    const remaining = floors.filter(fl => fl !== f);
+                                    if (remaining.length > 0) setActiveFloor(remaining[0]);
+                                    else setActiveFloor(null);
+                                  } catch (error) {
+                                    Alert.alert('Error', (error as Error).message);
+                                  }
+                                }
+                              });
+                            }
+                          },
+                          { text: "Cancel", style: "cancel" }
+                        ]
+                      );
+                    }}
+                    style={({ pressed }) => [
+                      styles.floorTab,
+                      {
+                        backgroundColor: active ? theme.primary : theme.surface,
+                        borderColor: active ? theme.primary : theme.border,
+                        opacity: pressed ? 0.8 : 1,
+                        flexDirection: 'row',
+                        gap: 8,
+                        paddingHorizontal: 16,
+                        height: 44,
+                      },
+                      active && styles.floorTabActive
+                    ]}
+                  >
+                    <Text style={[styles.floorTabText, { color: active ? '#fff' : theme.text, fontSize: 13, fontWeight: '900' }]}>
+                      {f === '0' ? 'OTHERS' : f.toString().toUpperCase()}
+                    </Text>
+                    {active && f !== '0' && (
+                      <Ionicons name="pencil" size={12} color="#fff" style={{ opacity: 0.8 }} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <View style={[styles.filterContainer, { marginTop: -8 }]}>
+            {/* SHIFT ROW */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterLabel, { color: theme.muted }]}>SHIFT</Text>
+                <TouchableOpacity
+                  onPress={() => setSelectedShift(null)}
+                  style={[styles.filterChip, !selectedShift && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                >
+                  <Text style={[styles.filterChipText, { color: !selectedShift ? '#fff' : theme.text }]}>ALL</Text>
+                </TouchableOpacity>
+                {shifts.map(shift => (
+                  <TouchableOpacity
+                    key={shift._id}
+                    onPress={() => setSelectedShift(shift.name === selectedShift ? null : shift.name)}
+                    style={[styles.filterChip, selectedShift === shift.name && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
+                  >
+                    <Text style={[styles.filterChipText, { color: selectedShift === shift.name ? theme.primary : theme.text }]}>{shift.name.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* DUES ROW */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterScroll, { marginTop: 8 }]}>
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterLabel, { color: theme.muted }]}>DUES</Text>
+                <TouchableOpacity
+                  onPress={() => setSelectedPayment(null)}
+                  style={[styles.filterChip, !selectedPayment && { backgroundColor: theme.text, borderColor: theme.text }]}
+                >
+                  <Text style={[styles.filterChipText, { color: !selectedPayment ? '#fff' : theme.text }]}>ALL</Text>
+                </TouchableOpacity>
+                {paymentFilters.map(pf => (
+                  <TouchableOpacity
+                    key={pf.value}
+                    onPress={() => setSelectedPayment(pf.value === selectedPayment ? null : pf.value)}
+                    style={[styles.filterChip, selectedPayment === pf.value && { backgroundColor: pf.color + '15', borderColor: pf.color }]}
+                  >
+                    <Text style={[styles.filterChipText, { color: selectedPayment === pf.value ? pf.color : theme.text }]}>{pf.label.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          <View style={[styles.floorNavHint, { paddingHorizontal: sidePadding, marginBottom: 10, marginTop: -4 }]}>
+            <Ionicons name="information-circle-outline" size={12} color={theme.muted} />
+            <Text style={[styles.floorNavHintText, { color: theme.muted }]}>
+              Long press section to rename or delete
+            </Text>
+          </View>
+
+          <View style={{ position: 'relative' }}>
+            {/* Filter loading overlay */}
+            {seatsQuery.isFetching && !seatsQuery.isLoading && (
+              <Animated.View
+                entering={FadeIn.duration(150)}
+                style={[
+                  styles.filterLoadingOverlay,
+                  { backgroundColor: theme.background + 'CC' }
+                ]}
+              >
+                <View style={[styles.filterLoadingPill, { backgroundColor: theme.surface, shadowColor: theme.primary }]}>
+                  <ActivityIndicator size="small" color={theme.primary} />
+                  <Text style={[styles.filterLoadingText, { color: theme.text }]}>Applying filter…</Text>
+                </View>
+              </Animated.View>
+            )}
+
+            <Animated.View
+              key={activeFloor}
+              entering={FadeIn.duration(400)}
+              style={[styles.seatsGrid, seatsQuery.isFetching && !seatsQuery.isLoading && { opacity: 0.4 }]}
+            >
+
             {floors.filter(f => f !== '0').length === 0 && !seatsQuery.isLoading ? (
               <View style={styles.emptyContainer}>
                 <View style={[styles.emptyIconCircle, { backgroundColor: theme.primary + '10' }]}>
@@ -572,7 +795,7 @@ export default function SeatsScreen() {
                 </Text>
 
                 <Pressable
-                  onPress={() => setIsModalOpen(true)}
+                    onPress={handleOpenAddSeats}
                   style={({ pressed }) => [
                     styles.emptyBtn,
                     { backgroundColor: theme.primary },
@@ -584,34 +807,38 @@ export default function SeatsScreen() {
                 </Pressable>
               </View>
             ) : (
-                <>
-                  {!isSelectionMode && activeFloor && currentSeats.length > 0 && (
-                    <TouchableOpacity
-                      onPress={handleOpenAddSeats}
-                      style={[
-                        styles.addMoreBtn,
-                        {
-                          width: cardWidth,
-                          height: 135,
-                          borderColor: theme.border,
-                          backgroundColor: theme.surfaceAlt + '40',
-                          marginBottom: gridGap
-                        }
-                      ]}
-                    >
-                      <View style={[styles.addMoreCircle, { backgroundColor: theme.primary + '15' }]}>
-                        <Ionicons name="add" size={24} color={theme.primary} />
-                      </View>
-                      <Text style={[styles.addMoreText, { color: theme.muted }]}>
-                        ADD MORE SEATS TO {activeFloor.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
+                  <>
+                    {/* "Add More Seats" Card */}
+                    {!isSelectionMode && (
+                      <Animated.View
+                        entering={FadeInDown.duration(400)}
+                        style={{ width: cardWidth, marginBottom: gridGap }}
+                      >
+                        <Pressable
+                          onPress={handleOpenAddSeats}
+                          style={({ pressed }) => [
+                            styles.addMoreCard,
+                            {
+                              backgroundColor: theme.surfaceAlt + '40',
+                              borderColor: theme.border,
+                              borderStyle: 'dashed',
+                            },
+                            pressed && styles.cardPressed
+                          ]}
+                        >
+                          <View style={[styles.addMoreIconWrap, { backgroundColor: theme.primary + '15' }]}>
+                            <Ionicons name="add" size={24} color={theme.primary} />
+                          </View>
+                          <Text style={[styles.addMoreText, { color: theme.text }]}>ADD MORE SEATS TO {activeFloor}</Text>
+                        </Pressable>
+                      </Animated.View>
                   )}
+
                   {currentSeats.map((item, sIdx) => {
                     const occupant = resolveOccupant(item);
                     const available = !occupant;
-                    const statusColor = available ? theme.success : theme.danger;
-
+                    const statusColor = available ? theme.success : theme.primary;
+                    const isMaintenance = item.status === 'maintenance';
                     const isSelected = selectionSet.has(item._id);
 
                     return (
@@ -640,67 +867,102 @@ export default function SeatsScreen() {
                             styles.seatCard,
                             {
                               backgroundColor: theme.surface,
-                              borderColor: isSelected ? theme.primary : (selectedSeat?._id === item._id ? theme.primary : theme.border),
+                              borderColor: isSelected
+                                ? theme.primary
+                                : isMaintenance
+                                  ? theme.warning + '60'
+                                  : available
+                                    ? theme.border
+                                    : theme.primary + '30',
                             },
                             isSelected && styles.seatCardSelected,
                             pressed && styles.cardPressed
                           ]}
                         >
+                          {/* Center Content */}
+                          <View style={styles.seatCardInner}>
+                            {/* Top Left: seat number + indicator */}
+                            <View style={styles.seatCardTopLeft}>
+                              <View style={[styles.seatDot, { backgroundColor: isMaintenance ? theme.warning : available ? theme.success : theme.primary }]} />
+                              <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
+                              {item.notes && <Ionicons name="document-text" size={11} color={theme.warning} style={{ marginLeft: 2 }} />}
+                              {isMaintenance && <Ionicons name="construct" size={11} color={theme.warning} style={{ marginLeft: 2 }} />}
+                            </View>
+
+                            <View style={styles.seatCardTopRight}>
+                              {occupant?.paymentStatus === 'Trial' && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <Ionicons name="flask" size={11} color={theme.info} />
+                                  <Text style={{ fontSize: 9, fontWeight: '700', color: theme.info, marginLeft: 2 }}>
+                                    {occupant.daysOverdue ?? 0}d
+                                  </Text>
+                                </View>
+                              )}
+                              {occupant?.paymentStatus === 'Unpaid' && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <Ionicons name="alert-circle" size={11} color={theme.danger} />
+                                  <Text style={{ fontSize: 9, fontWeight: '700', color: theme.danger, marginLeft: 2 }}>
+                                    {occupant.daysOverdue ?? 0}d
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Center avatar/icon */}
+                            <View style={styles.seatAvatarRow}>
+                              {occupant ? (
+                                <Image
+                                  source={{ uri: occupant.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(occupant.name)}&background=0D8ABC&color=fff&bold=true` }}
+                                  style={styles.seatAvatarLarge}
+                                  contentFit="cover"
+                                  transition={400}
+                                  placeholder={BLURHASH}
+                                />
+                              ) : (
+                                <View style={[styles.seatEmptyIconLarge, { borderColor: theme.border }]}>
+                                  <Ionicons name={isMaintenance ? "construct-outline" : "add"} size={22} color={theme.muted + '80'} />
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Bottom: name + shift OR vacant label */}
+                            <View style={styles.seatCardFooter}>
+                              {occupant ? (
+                                <>
+                                  <Text style={[styles.seatOccupantNameCenter, { color: theme.text }]} numberOfLines={1}>
+                                    {getFilteredStudents(item.students!).length === 1
+                                      ? occupant.name.split(' ')[0]
+                                      : `${occupant.name.split(' ')[0]} +${getFilteredStudents(item.students!).length - 1}`
+                                    }
+                                  </Text>
+                                  <View style={styles.seatShiftRowCenter}>
+                                    <Text style={[styles.seatShiftChipOutlined, { color: theme.primary, borderColor: theme.primary + '40' }]} numberOfLines={1}>
+                                      {occupant.shift?.split(' ')[0] ?? '—'}
+                                    </Text>
+                                  </View>
+                                </>
+                              ) : (
+                                <Text style={[styles.seatVacantLabelCenter, { color: isMaintenance ? theme.warning : theme.muted + '80' }]}>
+                                  {isMaintenance ? 'REPAIR' : 'AVAILABLE'}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+
+                          {/* absolute positioned selection tick over the card */}
                           {isSelectionMode && (
                             <View style={[styles.seatSelectedIndicator, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
                               <Ionicons name={isSelected ? "checkmark" : "add"} size={14} color={isSelected ? "#fff" : theme.muted} />
                             </View>
                           )}
-
-                          <View style={styles.seatCardHeader}>
-                            <View style={[styles.seatStatusBadge, { backgroundColor: statusColor + '15' }]}>
-                              <View style={[styles.statusMiniDot, { backgroundColor: statusColor }]} />
-                              <Text style={[styles.seatNumber, { color: theme.text }]}>{item.seatNumber}</Text>
-                            </View>
-
-                          {occupant && (
-                            <Image
-                              source={{ uri: occupant.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(occupant.name)}&background=0D8ABC&color=fff` }}
-                              style={styles.miniAvatar}
-                              contentFit="cover"
-                              transition={500}
-                              placeholder={BLURHASH}
-                            />
-                          )}
-                        </View>
-
-                        <View style={styles.seatBodyInfo}>
-                          {item.students && item.students.length > 0 ? (
-                            <>
-                              <Text style={[styles.seatOccupantName, { color: theme.text }]} numberOfLines={1}>
-                                {item.students.length === 1
-                                  ? item.students[0].name
-                                  : `${item.students[0].name.split(' ')[0]} +${item.students.length - 1}`
-                                }
-                              </Text>
-                              <View style={styles.shiftRow}>
-                                <Ionicons name="time-outline" size={10} color={theme.primary} />
-                                <Text style={[styles.seatShiftText, { color: theme.primary }]} numberOfLines={1}>
-                                  {item.students.length === 1
-                                    ? item.students[0].shift
-                                    : Array.from(new Set(item.students.map((s: any) => s.shift))).join(', ')
-                                  }
-                                </Text>
-                              </View>
-                            </>
-                          ) : (
-                            <Text style={[styles.seatOccupantName, { color: theme.muted, opacity: 0.5 }]}>VACANT</Text>
-                          )}
-                        </View>
-
-                        <View style={[styles.indicatorLine, { backgroundColor: statusColor }]} />
-                      </Pressable>
-                    </Animated.View>
-                  );
+                        </Pressable>
+                      </Animated.View>
+                    );
                   })}
                 </>
             )}
-          </Animated.View>
+            </Animated.View>
+          </View>
         </ScrollView>
 
 
@@ -799,57 +1061,75 @@ export default function SeatsScreen() {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       {(() => {
-                        const count = selectedSeat.students?.filter((s: any) => s.status === 'Active').length || 0;
-                        return <AppBadge tone={count > 0 ? 'danger' : 'success'}>{count > 0 ? `${count} OCCUPIED` : 'VACANT'}</AppBadge>
+                        const filtered = getFilteredStudents(selectedSeat.students || []);
+                        const count = filtered.filter((s: any) => s.status === 'Active').length;
+                        return <AppBadge tone={count > 0 ? 'danger' : 'success'}>
+                          {count > 0 ? `${count} ${selectedShift ? selectedShift.toUpperCase() + ' ' : ''}OCCUPIED` : 'VACANT'}
+                        </AppBadge>
                       })()}
-                      <TouchableOpacity 
-                        onPress={() => handleSingleDelete(selectedSeat._id)}
-                        style={[
-                          styles.miniDeleteBtn,
-                          { backgroundColor: theme.danger + '10' }
-                        ]}
-                      >
-                        <Ionicons name="trash-outline" size={20} color={theme.danger} />
-                      </TouchableOpacity>
+
                     </View>
                   </View>
 
-                  <View style={[styles.sheetBody, { borderTopColor: theme.border + '50' }]}>
-                    {(!selectedSeat.students || selectedSeat.students.length === 0) ? (
-                      <View style={styles.vacantState}>
-                        <Text style={[styles.vacantText, { color: theme.muted }]}>This seat is currently empty.</Text>
-                        <AppButton
-                          onPress={() => {
-                            setStudentDefaults({
-                              name: '',
-                              number: '',
-                              joiningDate: new Date().toISOString().slice(0, 10),
-                              seat: selectedSeat._id ?? '',
-                              shift: shifts[0] ? [shifts[0]._id] : [],
-                              startTime: shifts[0]?.startTime || '09:00',
-                              endTime: shifts[0]?.endTime || '18:00',
-                              fees: '',
-                              gender: 'Male',
-                              notes: '',
-                              profilePicture: ''
-                            });
-                            setIsStudentModalOpen(true);
-                            setSelectedSeat(null);
-                          }}
-                          fullWidth
-                          style={{ height: 56, borderRadius: 16 }}
+                  <ScrollView
+                    style={{ maxHeight: height * 0.7 }}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                  >
+                    <View style={[styles.conditionCard, { backgroundColor: theme.surfaceAlt + '80', borderColor: theme.border }]}>
+                      <View style={styles.conditionHeader}>
+                        <View style={styles.conditionTitleRow}>
+                          <Ionicons name="construct-outline" size={16} color={theme.warning} />
+                          <Text style={[styles.conditionTitle, { color: theme.text }]}>SEAT CONDITION & MAINTENANCE</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={handleUpdateSeatDetails}
+                          disabled={isUpdatingNotes || seatNotes === (selectedSeat.notes || '')}
+                          style={[
+                            styles.saveNotesBtn,
+                            {
+                              backgroundColor: isUpdatingNotes
+                                ? theme.primary + '20'
+                                : seatNotes !== (selectedSeat.notes || '')
+                                  ? theme.primary
+                                  : theme.primary + '10'
+                            }
+                          ]}
                         >
-                          Assign Member
-                        </AppButton>
+                          {isUpdatingNotes ? (
+                            <ActivityIndicator size="small" color={theme.primary} />
+                          ) : (
+                            <Text style={[
+                              styles.saveNotesText,
+                              {
+                                color: seatNotes !== (selectedSeat.notes || '') ? '#fff' : theme.primary
+                              }
+                            ]}>
+                              {seatNotes !== (selectedSeat.notes || '') ? 'SAVE' : 'SAVED'}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
                       </View>
-                    ) : (
-                        <>
-                          <ScrollView
-                            style={{ maxHeight: 500 }}
-                            showsVerticalScrollIndicator={true}
-                            contentContainerStyle={{ paddingBottom: 24 }}
-                          >
-                            {selectedSeat.students.map((occupant: any, idx: number) => (
+                      <TextInput
+                        placeholder="Enter seat condition (e.g. Broken charger, table damp...)"
+                        placeholderTextColor={theme.muted + '80'}
+                        value={seatNotes}
+                        onChangeText={setSeatNotes}
+                        multiline
+                        style={[styles.notesInput, { color: theme.text, backgroundColor: theme.surface }]}
+                      />
+                    </View>
+
+                    <View style={[styles.sheetBody, { borderTopColor: theme.border + '50', marginTop: 24 }]}>
+                      {(!getFilteredStudents(selectedSeat.students).length) ? (
+                        <View style={styles.vacantState}>
+                          <Text style={[styles.vacantText, { color: theme.muted, marginBottom: 12 }]}>
+                            {selectedShift ? `No members found for ${selectedShift} shift.` : 'This seat is currently empty.'}
+                          </Text>
+                        </View>
+                      ) : (
+                          <View style={{ marginBottom: 32 }}>
+                            {getFilteredStudents(selectedSeat.students).map((occupant: any, idx: number) => (
                               <View key={occupant._id} style={[styles.occupantItem, idx !== 0 && { marginTop: 24, paddingTop: 24, borderTopWidth: 1, borderTopColor: theme.border + '40' }]}>
                                 <View style={styles.occupantMain}>
                                   <View style={[styles.occupantAvatar, { backgroundColor: theme.primary + '10', overflow: 'hidden' }]}>
@@ -862,101 +1142,99 @@ export default function SeatsScreen() {
                                         placeholder={BLURHASH}
                                       />
                                     ) : (
-                                      <Text style={[styles.avatarText, { color: theme.primary }]}>{occupant.name[0].toUpperCase()}</Text>
+                                      <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text style={[styles.avatarText, { color: theme.primary }]}>{occupant.name[0].toUpperCase()}</Text>
+                                      </View>
                                     )}
                                   </View>
                                   <View style={{ flex: 1 }}>
-                                    <Text style={[styles.occupantName, { color: theme.text }]} numberOfLines={1}>{occupant.name}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <Text style={[styles.occupantName, { color: theme.text, flex: 1 }]} numberOfLines={1}>{occupant.name}</Text>
+                                      <StatusBadges student={occupant as any} theme={theme} />
+                                    </View>
                                     <Text style={[styles.occupantPhone, { color: theme.muted }]}>{occupant.number}</Text>
                                   </View>
                                 </View>
 
-                                <View style={styles.occupantGrid}>
-                                  <View style={styles.gridItem}>
-                                    <Text style={[styles.gridLabel, { color: theme.muted }]}>SHIFT</Text>
-                                    <Text style={[styles.gridValue, { color: theme.text }]}>{occupant.shift}</Text>
-                                  </View>
-                                  <View style={styles.gridItem}>
-                                    <Text style={[styles.gridLabel, { color: theme.muted }]}>JOINED</Text>
-                                    <Text style={[styles.gridValue, { color: theme.text }]}>{formatDate(occupant.joiningDate)}</Text>
-                                  </View>
+                              <View style={styles.occupantGrid}>
+                                <View style={styles.gridItem}>
+                                  <Text style={[styles.gridLabel, { color: theme.muted }]}>SHIFT</Text>
+                                  <Text style={[styles.gridValue, { color: theme.text }]}>{occupant.shift}</Text>
                                 </View>
-
-                                    <View style={styles.sheetSmallActions}>
-                                      <TouchableOpacity
-                                        onPress={() => {
-                                          setSelectedSeat(null);
-                                          // Small delay ensures navigation starts after modal is dismissed
-                                          setTimeout(() => {
-                                            router.push(`/student-detail/${occupant._id}?backTo=seats`);
-                                          }, 400);
-                                        }}
-                                        style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-                                      >
-                                        <Ionicons name="eye-outline" size={14} color={theme.text} />
-                                        <Text style={[styles.smallBtnText, { color: theme.text }]}>View</Text>
-                                      </TouchableOpacity>
-
-                                      <TouchableOpacity
-                                        onPress={() => handleEditOccupant(occupant)}
-                                        style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-                                      >
-                                        <Ionicons name="create-outline" size={14} color={theme.text} />
-                                        <Text style={[styles.smallBtnText, { color: theme.text }]}>Edit</Text>
-                                      </TouchableOpacity>
-
-                                      <TouchableOpacity
-                                        onPress={() => handleChangeSeat(occupant)}
-                                        style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-                                      >
-                                        <Ionicons name="swap-horizontal-outline" size={14} color={theme.text} />
-                                        <Text style={[styles.smallBtnText, { color: theme.text }]}>Seat</Text>
-                                      </TouchableOpacity>
-
-                                      <View style={{ flex: 1 }} />
-
-
-
-                                      <TouchableOpacity
-                                        onPress={() => handleDeleteOccupant(occupant)}
-                                        style={[styles.smallIconBtn, { backgroundColor: theme.danger + '10', borderColor: theme.border }]}
-                                      >
-                                        <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                                      </TouchableOpacity>
-                                    </View>
+                                <View style={styles.gridItem}>
+                                  <Text style={[styles.gridLabel, { color: theme.muted }]}>JOINED</Text>
+                                  <Text style={[styles.gridValue, { color: theme.text }]}>{formatDate(occupant.joiningDate)}</Text>
+                                </View>
                               </View>
-                            ))}
-                          </ScrollView>
 
-                          <View style={styles.sheetActions}>
-                            <AppButton
-                              fullWidth
-                              variant="primary"
-                              style={{ height: 54, borderRadius: 16 }}
-                              onPress={() => {
-                                setStudentDefaults({
-                                  name: '',
-                                  number: '',
-                                  joiningDate: new Date().toISOString().slice(0, 10),
-                                  seat: selectedSeat._id ?? '',
-                                  shift: shifts[0] ? [shifts[0]._id] : [],
-                                  startTime: shifts[0]?.startTime || '09:00',
-                                  endTime: shifts[0]?.endTime || '18:00',
-                                  fees: '',
-                                  gender: 'Male',
-                                  notes: '',
-                                  profilePicture: ''
-                                });
-                                setIsStudentModalOpen(true);
-                                setSelectedSeat(null);
-                              }}
-                            >
-                              Assign Another Shift
-                            </AppButton>
-                          </View>
-                      </>
-                    )}
-                  </View>
+                              <View style={styles.sheetSmallActions}>
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    setSelectedSeat(null);
+                                    setTimeout(() => {
+                                      router.push(`/student-detail/${occupant._id}?backTo=seats`);
+                                    }, 400);
+                                  }}
+                                  style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                >
+                                  <Ionicons name="eye-outline" size={14} color={theme.text} />
+                                  <Text style={[styles.smallBtnText, { color: theme.text }]}>View</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                  onPress={() => handleEditOccupant(occupant)}
+                                  style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                >
+                                  <Ionicons name="create-outline" size={14} color={theme.text} />
+                                  <Text style={[styles.smallBtnText, { color: theme.text }]}>Edit</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                  onPress={() => handleChangeSeat(occupant)}
+                                  style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                >
+                                  <Ionicons name="swap-horizontal-outline" size={14} color={theme.text} />
+                                  <Text style={[styles.smallBtnText, { color: theme.text }]}>Seat</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                  onPress={() => Linking.openURL(`tel:${occupant.number}`)}
+                                  style={[styles.smallBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                >
+                                  <Ionicons name="call-outline" size={14} color={theme.text} />
+                                  <Text style={[styles.smallBtnText, { color: theme.text }]}>Call</Text>
+                                  </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <AppButton
+                        onPress={() => {
+                          setStudentDefaults({
+                            name: '',
+                            number: '',
+                            joiningDate: new Date().toISOString().slice(0, 10),
+                            seat: selectedSeat._id ?? '',
+                            shift: shifts[0] ? [shifts[0]._id] : [],
+                            startTime: shifts[0]?.startTime || '09:00',
+                            endTime: shifts[0]?.endTime || '18:00',
+                            fees: '',
+                            gender: 'Male',
+                            notes: '',
+                            profilePicture: ''
+                          });
+                          setIsStudentModalOpen(true);
+                          setSelectedSeat(null);
+                        }}
+                        fullWidth
+                        style={{ height: 56, borderRadius: 16 }}
+                      >
+                        Assign Member
+                      </AppButton>
+                    </View>
+                  </ScrollView>
                 </View>
               )}
             </Animated.View>
@@ -968,7 +1246,7 @@ export default function SeatsScreen() {
             visible={isStudentModalOpen}
             onClose={() => setIsStudentModalOpen(false)}
             onSubmit={saveStudent}
-            initialValues={studentDefaults}
+            initialValues={studentDefaults!}
             seats={(seatsQuery.data ?? []).flatMap((f: any) =>
               (f.seats || []).map((s: any) => ({
                 _id: s._id,
@@ -978,7 +1256,7 @@ export default function SeatsScreen() {
             )}
             theme={theme}
             isSubmitting={createStudent.isPending || updateStudent.isPending}
-            title={studentDefaults._id ? 'Edit Member' : 'Add Member'}
+            title={studentDefaults!._id ? 'Edit Member' : 'Add Member'}
           />
         )}
 
@@ -1076,10 +1354,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: sidePadding,
     paddingTop: 0,
-    paddingBottom: spacing.md,
-    gap: spacing.lg,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   headerPreTitle: {
     fontSize: 10,
@@ -1092,9 +1370,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '900',
-    letterSpacing: -1,
+    letterSpacing: -0.8,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1162,20 +1440,82 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     marginTop: spacing.md,
   },
   summaryCard: {
     flex: 1,
-    padding: 12,
-    borderRadius: 20,
+    padding: 10,
+    borderRadius: 18,
     borderWidth: 1.5,
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
+  },
+  searchContainer: {
+    paddingHorizontal: 0,
+    marginBottom: spacing.xs,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    padding: 0,
+  },
+  conditionCard: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1.5,
+  },
+  conditionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  conditionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  conditionTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  saveNotesBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveNotesText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  notesInput: {
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 13,
+    fontWeight: '600',
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   summaryVal: {
     fontSize: 18,
@@ -1187,15 +1527,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   floorNavContainer: {
-    paddingTop: spacing.md,
-    paddingBottom: 4,
+    paddingTop: spacing.sm,
+    paddingBottom: 2,
   },
   floorNavHint: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: spacing.xl,
-    marginTop: 8,
+    paddingHorizontal: sidePadding,
+    marginTop: 6,
     opacity: 0.6,
   },
   floorNavHintText: {
@@ -1218,8 +1558,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   floorNavScroll: {
-    paddingHorizontal: spacing.xl,
-    gap: 10,
+    paddingHorizontal: sidePadding,
+    gap: 8,
   },
   floorTab: {
     height: 48,
@@ -1242,26 +1582,136 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 0,
     paddingBottom: 140,
   },
   seatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: gridGap,
+    paddingHorizontal: sidePadding,
   },
   seatCard: {
-    borderRadius: 24,
-    padding: 14,
+    borderRadius: 18,
     borderWidth: 1.5,
-    height: 135,
-    justifyContent: 'space-between',
-    position: 'relative',
+    height: 130,
     overflow: 'hidden',
+    position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+  },
+  seatCardInner: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  seatCardTopLeft: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seatCardTopRight: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seatDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  seatNumber: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  seatAvatarRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  seatAvatarLarge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#FFC107', // yellow colored ring like web
+  },
+  seatEmptyIconLarge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seatCardFooter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 'auto',
+  },
+  seatOccupantNameCenter: {
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  seatShiftRowCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seatShiftChipOutlined: {
+    fontSize: 7.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  seatVacantLabelCenter: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  addMoreCard: {
+    borderRadius: 20,
+    borderWidth: 2,
+    height: 130,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  addMoreIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addMoreText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   seatCardHeader: {
     flexDirection: 'row',
@@ -1292,34 +1742,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  seatNumber: {
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  seatBodyInfo: {
-    gap: 2,
-  },
-  seatOccupantName: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  shiftRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  seatShiftText: {
-    fontSize: 9,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  indicatorLine: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
+
   cardPressed: {
     transform: [{ scale: 0.95 }],
     opacity: 0.9,
@@ -1543,15 +1966,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-  addMoreBtn: {
-    borderRadius: 24,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    gap: 12,
-  },
   addMoreCircle: {
     width: 44,
     height: 44,
@@ -1559,11 +1973,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addMoreText: {
+  filterContainer: {
+    paddingVertical: 12,
+  },
+  filterScroll: {
+    paddingHorizontal: sidePadding,
+    gap: 10,
+  },
+  filterGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterLabel: {
     fontSize: 10,
     fontWeight: '900',
-    textAlign: 'center',
+    letterSpacing: 1,
+    marginRight: 4,
+    width: 45,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  filterLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterLoadingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 100,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  filterLoadingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: '900',
     letterSpacing: 0.5,
-    lineHeight: 14,
   },
 });

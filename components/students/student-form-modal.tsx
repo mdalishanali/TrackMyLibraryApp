@@ -11,6 +11,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { router } from 'expo-router';
 
@@ -231,17 +232,32 @@ export function StudentFormModal({
 
     const handlePrev = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
-    const handleFinalSubmit = handleSubmit(async (vals) => {
-        try {
-            await onSubmit(vals, (p) => setUploadProgress(p));
-            reset(initialValues);
-            setCurrentStep(0);
-        } catch (error) {
-            console.error('Submission failed:', error);
-        } finally {
-            setUploadProgress(0);
+    const handleFinalSubmit = async () => {
+        const ok = await handleSubmit(async (vals) => {
+            try {
+                await onSubmit(vals, (p) => setUploadProgress(p));
+                // SUCCESS — only reset and go home if parent finished successfully
+                reset(initialValues);
+                setCurrentStep(0);
+            } catch (error) {
+                console.error('Submission failed:', error);
+                Alert.alert('Save Failed', (error as Error).message || 'Something went wrong while saving student details.');
+            } finally {
+                setUploadProgress(0);
+            }
+        })();
+
+        // If validation failed, handleSubmit callback above won't run.
+        // We need to find where the error is and jump to that step.
+        if (Object.keys(errors).length > 0) {
+            const firstErrorField = Object.keys(errors)[0] as keyof StudentFormValues;
+            const stepIndex = steps.findIndex(s => s.fields.includes(firstErrorField));
+            if (stepIndex !== -1 && stepIndex !== currentStep) {
+                setCurrentStep(stepIndex);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            }
         }
-    });
+    };
 
     return (
         <Modal animationType="slide" visible={visible} onRequestClose={handleClose} transparent>
