@@ -23,6 +23,7 @@ export type AuthUser = {
   email: string;
   contactNumber?: string;
   company?: Company;
+  accessibleCompanies?: Company[];
   role?: string;
 };
 

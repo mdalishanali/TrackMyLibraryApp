@@ -253,6 +253,14 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
+              icon="business"
+              label="Branch Switcher"
+              description="Manage multiple libraries"
+              onPress={() => router.push('/library-switcher')}
+              themeTint="#F97316"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
               icon="log-out"
               label="Sign Out"
               description="Log out from this device"

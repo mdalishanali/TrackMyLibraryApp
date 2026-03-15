@@ -22,6 +22,8 @@ import { useSubscription } from '@/providers/subscription-provider';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { useCreateStudent } from '@/hooks/use-students';
+import { useShiftsQuery } from '@/hooks/use-shifts';
+import { transformFormToPayload } from '@/utils/student-transform';
 import { showToast } from '@/lib/toast';
 import { useScreenView } from '@/hooks/use-screen-view';
 import { Skeleton, SkeletonCard, SkeletonMetricCard, SkeletonList } from '@/components/ui/skeleton';
@@ -367,6 +369,7 @@ export default function DashboardScreen() {
   const dashboardQuery = useDashboardQuery();
   const seatsQuery = useSeatsQuery();
   const createStudent = useCreateStudent();
+  const { data: shiftsData } = useShiftsQuery();
 
   const isLoading = dashboardQuery.isLoading || seatsQuery.isLoading;
 
@@ -380,21 +383,7 @@ export default function DashboardScreen() {
 
   const saveStudent = async (data: StudentFormValues) => {
     try {
-      const payload: any = {
-        name: data.name,
-        number: data.number,
-        joiningDate: data.joiningDate,
-        seat: data.seat,
-        shift: data.shift,
-        time: [{ start: data.startTime, end: data.endTime }],
-        fees: data.fees ? Number(data.fees) : 0,
-        notes: data.notes,
-        profilePicture: data.profilePicture, // Pass the URI or base64
-        fatherName: data.fatherName,
-        address: data.address,
-        aadharNumber: data.aadharNumber,
-        gender: data.gender,
-      };
+      const payload = transformFormToPayload(data, shiftsData || []);
 
       await createStudent.mutateAsync({ payload });
       setIsStudentFormOpen(false);

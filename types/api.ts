@@ -30,6 +30,7 @@ export type Student = {
   fatherName?: string;
   address?: string;
   aadhaarNumber?: string;
+  preparationFor?: string;
   floor?: number | string;
   allocations?: string[] | Shift[];
 };

@@ -319,7 +319,7 @@ export default function Signup() {
                     returnKeyType: 'next',
                   })}
 
-                  {renderInputField('contactNumber', 'Phone Number', '+91 98765 43210', 'call-outline', {
+                  {renderInputField('contactNumber', 'Phone Number', '98765 43210', 'call-outline', {
                     keyboardType: 'phone-pad',
                     returnKeyType: 'next',
                   })}

@@ -21,6 +21,7 @@ import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { AppBadge } from '@/components/ui/app-badge';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
+import { PREPARATION_OPTIONS } from '@/constants/preparation-options';
 import { formatDate } from '@/utils/format';
 
 const studentSchema = z.object({
@@ -30,8 +31,9 @@ const studentSchema = z.object({
     fatherName: z.string().optional(),
     address: z.string().optional(),
     aadhaarNumber: z.string().optional(),
+    preparationFor: z.string().optional(),
     seat: z.string().optional(),
-    shift: z.array(z.string()).min(1, 'Select at least one shift'),
+    shift: z.array(z.string()).default([]),
     allocations: z.array(z.string()).optional(),
     startTime: z.string().optional(),
     endTime: z.string().optional(),
@@ -194,7 +196,7 @@ export function StudentFormModal({
     }, [currentStep]);
 
     const steps = useMemo(() => [
-        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'aadhaarNumber', 'notes'] as (keyof StudentFormValues)[] },
+        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'preparationFor', 'aadhaarNumber', 'notes'] as (keyof StudentFormValues)[] },
         { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'fees'] as (keyof StudentFormValues)[] },
         { key: 'review', title: 'Review', fields: [] as (keyof StudentFormValues)[] },
     ], []);
@@ -419,6 +421,50 @@ export function StudentFormModal({
 
                                         <Text style={[styles.label, { fontSize: 16, color: theme.text, marginLeft: 4 }]}>Additional Details (Optional)</Text>
                                         <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Preparation For (Optional)</Text>
+                                                <View style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, height: 'auto', minHeight: 50, paddingVertical: 0 }]}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Ionicons name="school-outline" size={18} color={theme.muted} style={{ marginRight: 8 }} />
+                                                        <TextInput
+                                                            style={{ flex: 1, fontSize: 14, color: theme.text, paddingVertical: 14 }}
+                                                            placeholder="Type or select exam..."
+                                                            placeholderTextColor={theme.muted}
+                                                            value={values.preparationFor || ''}
+                                                            onChangeText={(text) => setValue('preparationFor', text)}
+                                                        />
+                                                        {values.preparationFor ? (
+                                                            <TouchableOpacity onPress={() => setValue('preparationFor', '')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                                                <Ionicons name="close-circle" size={18} color={theme.muted} />
+                                                            </TouchableOpacity>
+                                                        ) : null}
+                                                    </View>
+                                                </View>
+                                                {values.preparationFor && values.preparationFor.length > 0 && (() => {
+                                                    const filtered = PREPARATION_OPTIONS.filter(
+                                                        (o) => o.value && o.value.toLowerCase().includes((values.preparationFor || '').toLowerCase()) && o.value !== values.preparationFor
+                                                    );
+                                                    if (filtered.length === 0) return null;
+                                                    return (
+                                                        <ScrollView
+                                                            horizontal={false}
+                                                            nestedScrollEnabled
+                                                            style={{ maxHeight: 120, marginTop: 4, borderRadius: 10, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface }}
+                                                            keyboardShouldPersistTaps="handled"
+                                                        >
+                                                            {filtered.slice(0, 6).map((opt) => (
+                                                                <TouchableOpacity
+                                                                    key={opt.value}
+                                                                    onPress={() => setValue('preparationFor', opt.value)}
+                                                                    style={{ paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: theme.border + '50' }}
+                                                                >
+                                                                    <Text style={{ color: theme.text, fontSize: 14 }}>{opt.label}</Text>
+                                                                </TouchableOpacity>
+                                                            ))}
+                                                        </ScrollView>
+                                                    );
+                                                })()}
+                                            </View>
                                             <FormField label="Aadhaar Number (Optional)" name="aadhaarNumber" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="12-digit UID" />
                                             <FormField label="Notes (Optional)" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
                                         </AppCard>
@@ -582,6 +628,7 @@ export function StudentFormModal({
                                             <View style={styles.reviewGrid}>
                                                 <ReviewItem label="JOINED" value={formatDate(values.joiningDate)} theme={theme} />
                                                 <ReviewItem label="GENDER" value={values.gender} theme={theme} />
+                                                {values.preparationFor && <ReviewItem label="PREPARING FOR" value={values.preparationFor} theme={theme} />}
                                                 <ReviewItem label="SHIFTS" value={shiftOptions.filter(o => values.shift?.includes(o.value)).map(o => o.label).join(', ') || 'N/A'} theme={theme} />
                                                 <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : '0'} theme={theme} />
                                                 {values.fatherName && <ReviewItem label="FATHER" value={values.fatherName} theme={theme} />}

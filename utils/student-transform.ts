@@ -29,7 +29,6 @@ export const transformFormToPayload = (values: StudentFormValues, shifts: any[])
     joiningDate: values.joiningDate,
     seat: values.seat || undefined,
     allocations: processedShiftIds, // Use the resolved IDs
-    shift: shiftNames,
     time: timeSlots.length > 0 ? timeSlots : [{ start: values.startTime || '09:00', end: values.endTime || '18:00' }],
     fees: Number(values.fees) || 0,
     notes: values.notes,
@@ -37,6 +36,7 @@ export const transformFormToPayload = (values: StudentFormValues, shifts: any[])
     fatherName: values.fatherName,
     address: values.address,
     aadhaarNumber: values.aadhaarNumber,
+    preparationFor: values.preparationFor,
     profilePicture: values.profilePicture,
   };
 };
@@ -57,7 +57,8 @@ export const mapStudentToForm = (s: any): StudentFormValues => {
     profilePicture: '',
     fatherName: '',
     address: '',
-    aadhaarNumber: ''
+    aadhaarNumber: '',
+    preparationFor: ''
   };
 
   return {
@@ -76,6 +77,7 @@ export const mapStudentToForm = (s: any): StudentFormValues => {
     fatherName: s.fatherName || '',
     address: s.address || '',
     aadhaarNumber: s.aadhaarNumber || '',
+    preparationFor: s.preparationFor || '',
     profilePicture: s.profilePicture || ''
   };
 };

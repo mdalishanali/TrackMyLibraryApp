@@ -647,6 +647,7 @@ export default function StudentDetailScreen() {
               {student.fatherName && <DetailRow icon="people" label="Father Name" value={student.fatherName} theme={theme} />}
               {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
               {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
+              {student.preparationFor && <DetailRow icon="school" label="Preparation For" value={student.preparationFor} theme={theme} />}
               <DetailRow icon="calendar-outline" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last={!student.notes} />
               {student.notes && (
                 <View style={[styles.detailRow, { borderTopWidth: 1.5, borderTopColor: theme.border + '30' }]}>

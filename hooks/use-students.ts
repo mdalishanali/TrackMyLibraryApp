@@ -23,6 +23,7 @@ export type StudentPayload = {
   fatherName?: string;
   address?: string;
   aadhaarNumber?: string;
+  preparationFor?: string;
 };
 
 type StudentsPage = {
