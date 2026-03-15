@@ -64,4 +64,5 @@ export type Shift = {
   endTime: string;
   price: number;
   isFullDay?: boolean;
+  isActive?: boolean;
 };

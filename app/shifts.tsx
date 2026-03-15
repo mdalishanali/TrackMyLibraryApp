@@ -20,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing, radius, typography } from '@/constants/design';
 import { useTheme } from '@/hooks/use-theme';
 import { useShiftsQuery, useCreateShift, useUpdateShift } from '@/hooks/use-shifts';
@@ -37,12 +38,16 @@ const PRESETS = [
 export default function ShiftsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { data: shifts = [], isLoading } = useShiftsQuery();
+  const { data: shifts = [], isLoading } = useShiftsQuery({ includeInactive: true });
+  const activeShifts = useMemo(() => shifts.filter(s => s.isActive !== false), [shifts]);
+  const inactiveShifts = useMemo(() => shifts.filter(s => s.isActive === false), [shifts]);
+  const availablePresets = useMemo(() => PRESETS.filter(p => !shifts.some(s => s.name.toLowerCase() === p.name.toLowerCase())), [shifts]);
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [shiftToToggle, setShiftToToggle] = useState<any | null>(null);
   const [form, setForm] = useState({
     name: '',
     startTime: '09:00',
@@ -105,6 +110,26 @@ export default function ShiftsScreen() {
       endTime: shift.endTime,
       price: String(shift.price),
     });
+  };
+
+  const toggleActive = (shift: any) => {
+    setShiftToToggle(shift);
+  };
+
+  const confirmToggleActive = async () => {
+    if (!shiftToToggle) return;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await updateShift.mutateAsync({
+        id: shiftToToggle._id,
+        payload: { isActive: shiftToToggle.isActive === false ? true : false },
+      });
+      showToast(shiftToToggle.isActive === false ? 'Shift activated' : 'Shift deactivated', 'success');
+    } catch (e) {
+      showToast('Failed to update shift status', 'error');
+    } finally {
+      setShiftToToggle(null);
+    }
   };
 
   const toDisplayTime = (t: string) => {
@@ -170,7 +195,7 @@ export default function ShiftsScreen() {
           </Animated.View>
 
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Active Shifts ({shifts.length})</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Active Shifts ({activeShifts.length})</Text>
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -192,7 +217,7 @@ export default function ShiftsScreen() {
             <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.grid}>
-              {shifts.map((shift, idx) => (
+              {activeShifts.map((shift, idx) => (
                 <Animated.View
                   key={shift._id}
                   entering={FadeInDown.delay(idx * 100)}
@@ -220,6 +245,12 @@ export default function ShiftsScreen() {
                     </View>
                     <View style={styles.actionRow}>
                       <Pressable
+                        onPress={() => toggleActive(shift)}
+                        style={styles.actionBtn}
+                      >
+                        <Ionicons name="eye-off-outline" size={18} color={theme.danger} />
+                      </Pressable>
+                      <Pressable
                         onPress={() => startEditing(shift)}
                         style={styles.actionBtn}
                       >
@@ -230,39 +261,98 @@ export default function ShiftsScreen() {
                 </Animated.View>
               ))}
 
-              {/* Preset Cards */}
-              {PRESETS.filter(p => !shifts.some(s => s.name.toLowerCase() === p.name.toLowerCase())).map((preset, idx) => (
-                <Pressable
-                  key={preset.label}
-                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setIsAdding(true);
-                    setForm({ ...preset, price: '' });
-                  }}
-                  style={({ pressed }) => [
-                    styles.shiftCard,
-                    styles.presetCard,
-                    { borderColor: theme.border, backgroundColor: theme.surface + '50' },
-                    pressed && { scale: 0.98 }
-                  ]}
-                >
-                   <View style={styles.cardTop}>
-                    <View style={[styles.iconBox, { backgroundColor: theme.muted + '15' }]}>
-                      <Ionicons name="add" size={24} color={theme.muted} />
-                    </View>
-                    <View style={[styles.typeBadge, { backgroundColor: theme.surfaceAlt }]}>
-                       <Text style={[styles.typeText, { color: theme.muted }]}>PRESET</Text>
-                    </View>
+              {inactiveShifts.length > 0 && (
+                <>
+                  <View style={[styles.sectionHeader, { marginTop: spacing.xl }]}>
+                    <Text style={[styles.sectionTitle, { color: theme.muted }]}>Inactive Shifts ({inactiveShifts.length})</Text>
                   </View>
-                  <Text style={[styles.shiftName, { color: theme.muted }]}>{preset.name.toUpperCase()}</Text>
-                   <Text style={[styles.shiftTime, { color: theme.muted }]}>
-                    {toDisplayTime(preset.startTime)} – {toDisplayTime(preset.endTime)}
-                  </Text>
-                   <View style={[styles.cardFooter, { borderTopColor: theme.border + '50' }]}>
-                     <Text style={[styles.presetAction, { color: theme.primary }]}>+ Click to configure</Text>
-                   </View>
-                </Pressable>
-              ))}
+                  {inactiveShifts.map((shift, idx) => (
+                    <Animated.View
+                      key={shift._id}
+                      entering={FadeInDown.delay(idx * 100)}
+                      layout={Layout.springify()}
+                      style={[styles.shiftCard, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, opacity: 0.6 }]}
+                    >
+                      <View style={styles.cardTop}>
+                        <View style={[styles.iconBox, { backgroundColor: theme.muted + '15' }]}>
+                          <Ionicons name="time" size={24} color={theme.muted} />
+                        </View>
+                        <View style={styles.priceTag}>
+                          <Text style={[styles.priceLabel, { color: theme.muted }]}>MONTHLY</Text>
+                          <Text style={[styles.priceValue, { color: theme.muted, textDecorationLine: 'line-through' }]}>₹{shift.price}</Text>
+                        </View>
+                      </View>
+                      
+                      <Text style={[styles.shiftName, { color: theme.muted }]}>{shift.name.toUpperCase()}</Text>
+                      <Text style={[styles.shiftTime, { color: theme.muted }]}>
+                        {toDisplayTime(shift.startTime)} – {toDisplayTime(shift.endTime)}
+                      </Text>
+
+                      <View style={[styles.cardFooter, { borderTopColor: theme.border + '50' }]}>
+                        <View style={[styles.typeBadge, { backgroundColor: theme.muted + '10' }]}>
+                          <Text style={[styles.typeText, { color: theme.muted }]}>INACTIVE</Text>
+                        </View>
+                        <View style={styles.actionRow}>
+                          <Pressable
+                            onPress={() => toggleActive(shift)}
+                            style={styles.actionBtn}
+                          >
+                            <Ionicons name="eye-outline" size={18} color={theme.primary} />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => startEditing(shift)}
+                            style={styles.actionBtn}
+                          >
+                            <Ionicons name="pencil" size={18} color={theme.muted} />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </Animated.View>
+                  ))}
+                </>
+              )}
+
+              {/* Preset Cards */}
+              {availablePresets.length > 0 && (
+                <>
+                  <View style={[styles.sectionHeader, { marginTop: spacing.xl }]}>
+                    <Text style={[styles.sectionTitle, { color: theme.muted }]}>Suggested Presets ({availablePresets.length})</Text>
+                  </View>
+                  {availablePresets.map((preset, idx) => (
+                    <Pressable
+                      key={preset.label}
+                       onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setIsAdding(true);
+                        setForm({ ...preset, price: '' });
+                      }}
+                      style={({ pressed }) => [
+                        styles.shiftCard,
+                        styles.presetCard,
+                        { borderColor: theme.border, backgroundColor: theme.surface + '50' },
+                        pressed && { scale: 0.98 }
+                      ]}
+                    >
+                       <View style={styles.cardTop}>
+                        <View style={[styles.iconBox, { backgroundColor: theme.muted + '15' }]}>
+                          <Ionicons name="add" size={24} color={theme.muted} />
+                        </View>
+                        <View style={[styles.typeBadge, { backgroundColor: theme.surfaceAlt }]}>
+                           <Text style={[styles.typeText, { color: theme.muted }]}>PRESET</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.shiftName, { color: theme.muted }]}>{preset.name.toUpperCase()}</Text>
+                       <Text style={[styles.shiftTime, { color: theme.muted }]}>
+                        {toDisplayTime(preset.startTime)} – {toDisplayTime(preset.endTime)}
+                      </Text>
+                       <View style={[styles.cardFooter, { borderTopColor: theme.border + '50' }]}>
+                         <Text style={[styles.presetAction, { color: theme.primary }]}>+ Click to configure</Text>
+                       </View>
+                    </Pressable>
+                  ))}
+                </>
+              )}
+
             </View>
           )}
         </ScrollView>
@@ -377,6 +467,16 @@ export default function ShiftsScreen() {
             </Modal>
           )}
         </Modal>
+
+        <ConfirmDialog
+          visible={!!shiftToToggle}
+          title={`${shiftToToggle?.isActive === false ? 'Activate' : 'Deactivate'} Shift`}
+          description={`Are you sure you want to ${shiftToToggle?.isActive === false ? 'activate' : 'deactivate'} this shift?`}
+          onCancel={() => setShiftToToggle(null)}
+          onConfirm={confirmToggleActive}
+          loading={updateShift.isPending}
+          destructive={shiftToToggle?.isActive !== false}
+        />
       </View>
     </SafeScreen>
   );

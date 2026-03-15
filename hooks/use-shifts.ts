@@ -4,11 +4,11 @@ import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { Shift } from '@/types/api';
 
-export const useShiftsQuery = () =>
+export const useShiftsQuery = (options?: { includeInactive?: boolean }) =>
   useQuery({
-    queryKey: queryKeys.shifts,
+    queryKey: [...queryKeys.shifts, options?.includeInactive],
     queryFn: async () => {
-      const { data } = await api.get('/shifts');
+      const { data } = await api.get('/shifts' + (options?.includeInactive ? '?includeInactive=true' : ''));
       return (data.shifts || []) as Shift[];
     },
   });
