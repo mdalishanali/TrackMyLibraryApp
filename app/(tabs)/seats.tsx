@@ -945,7 +945,7 @@ export default function SeatsScreen() {
                                   </Text>
                                   <View style={styles.seatShiftRowCenter}>
                                     <Text style={[styles.seatShiftChipOutlined, { color: theme.primary, borderColor: theme.primary + '40' }]} numberOfLines={1}>
-                                      {occupant.shift?.split(' ')[0] ?? '—'}
+                                      {occupant.shift || '—'}
                                     </Text>
                                   </View>
                                 </>
