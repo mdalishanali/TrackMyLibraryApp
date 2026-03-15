@@ -36,8 +36,10 @@ export function useSwitchLibrary() {
       if (data?.user) {
         updateUser(data.user);
       }
-      queryClient.clear(); // Important to clear any library-bound queries!
-      queryClient.invalidateQueries(); 
+      // resetQueries is more forceful: it clears cache AND triggers refetch of active queries
+      // We clear() first to be absolutely sure no old data flashes
+      queryClient.clear();
+      queryClient.resetQueries(); 
     },
   });
 }

@@ -35,7 +35,11 @@ export default function LibrarySwitcherScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await switchLibrary.mutateAsync(companyId);
       showToast('Switched branch successfully', 'success');
-      router.back();
+      
+      // Small delay to allow queryClient to process reset and start fetches
+      setTimeout(() => {
+        router.back();
+      }, 100);
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message || 'Failed to switch branch');
     }
