@@ -14,7 +14,7 @@ import {
   ValidityInfo,
 } from './StudentSummary';
 
-const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onAvatarPress, index = 0 }: any) => {
+const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onSmsRemind, onAvatarPress, index = 0 }: any) => {
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 50).duration(600)}
@@ -59,6 +59,7 @@ const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onR
                 onDelete: () => onDelete(student._id),
                 onPay: () => onPay(student),
                 onRemind: () => onRemind(student),
+                onSmsRemind: onSmsRemind ? () => onSmsRemind(student) : undefined,
               }}
             />
           </View>

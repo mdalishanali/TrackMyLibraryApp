@@ -127,7 +127,7 @@ export default function SettingsScreen() {
                 } else {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                 }
-                isPro && !isExpiringSoon ? presentCustomerCenter() : presentPaywall();
+                presentPaywall();
               }}
               style={({ pressed }) => [
                 styles.upgradeBtn,

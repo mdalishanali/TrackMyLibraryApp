@@ -481,8 +481,12 @@ export function StudentFormModal({
                                             <View style={styles.formGroup}>
                                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
                                                     <Text style={[styles.label, { color: theme.muted, marginBottom: 0 }]}>Shift Selection</Text>
-                                                    <TouchableOpacity onPress={() => { onClose(); router.push('/(tabs)/settings'); }}>
-                                                        <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>Manage Shifts</Text>
+                                                    <TouchableOpacity 
+                                                        onPress={() => { onClose(); router.push('/(tabs)/settings'); }}
+                                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                                    >
+                                                        <Text style={{ color: theme.primary, fontWeight: '800', fontSize: 13, textDecorationLine: 'underline' }}>Manage Shifts</Text>
+                                                        <Ionicons name="open-outline" size={14} color={theme.primary} />
                                                     </TouchableOpacity>
                                                 </View>
                                                 <ScrollView

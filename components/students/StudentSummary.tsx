@@ -51,6 +51,7 @@ type Actions = {
   onDelete?: () => void;
   onPay?: () => void;
   onRemind?: () => void;
+  onSmsRemind?: () => void;
 };
 
 type Theme = ReturnType<typeof themeFor>;
@@ -379,7 +380,20 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
             style={[styles.actionBtn, { backgroundColor: '#25D366' + '15', borderColor: '#25D366' + '30', flex: 1 }]}
           >
             <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-            <Text style={[styles.actionBtnText, { color: '#25D366' }]}>Send Reminder</Text>
+            <Text style={[styles.actionBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {actions.onSmsRemind ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_sms_clicked');
+              actions.onSmsRemind?.();
+            }}
+            style={[styles.actionBtn, { backgroundColor: theme.info + '15', borderColor: theme.info + '30', flex: 1 }]}
+          >
+            <Ionicons name="chatbubble-outline" size={18} color={theme.info} />
+            <Text style={[styles.actionBtnText, { color: theme.info }]}>SMS Reminder</Text>
           </TouchableOpacity>
         ) : null}
 

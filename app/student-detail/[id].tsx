@@ -60,6 +60,7 @@ export default function StudentDetailScreen() {
   const { data: templates } = useWhatsappTemplates();
   const { user } = useAuth();
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
+  const [reminderChannel, setReminderChannel] = useState<'whatsapp' | 'sms' | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const sendReceiptMutation = useSendPaymentReceipt();
   const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
@@ -231,6 +232,12 @@ export default function StudentDetailScreen() {
   };
 
   const handleSendReminder = async () => {
+    setReminderChannel('whatsapp');
+    setIsTemplateSelectorOpen(true);
+  };
+
+  const handleSendSmsReminder = async () => {
+    setReminderChannel('sms');
     setIsTemplateSelectorOpen(true);
   };
 
@@ -244,8 +251,13 @@ export default function StudentDetailScreen() {
       });
 
       if (res.phone && res.message) {
-        openWhatsappWithMessage(res.phone, res.message);
+        if (reminderChannel === 'sms') {
+          Linking.openURL(`sms:${res.phone}?body=${encodeURIComponent(res.message)}`);
+        } else {
+          openWhatsappWithMessage(res.phone, res.message);
+        }
       }
+      setReminderChannel(null);
     } catch (error) {
       showToast('Failed to prepare reminder', 'error');
     }
@@ -515,12 +527,27 @@ export default function StudentDetailScreen() {
                   }}
                   style={({ pressed }) => [
                     styles.primaryActionBtn,
-                    { backgroundColor: theme.primary + '10', flex: 1, flexDirection: 'row', gap: 10 },
+                    { backgroundColor: '#25D366' + '15', flex: 1, flexDirection: 'row', gap: 6 },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
-                  <Ionicons name="logo-whatsapp" size={20} color={theme.primary} />
-                  <Text style={[styles.payBtnText, { color: theme.primary }]}>Record Reminder</Text>
+                  <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+                  <Text style={[styles.payBtnText, { color: '#25D366', fontSize: 13 }]}>WhatsApp</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleSendSmsReminder();
+                  }}
+                  style={({ pressed }) => [
+                    styles.primaryActionBtn,
+                    { backgroundColor: theme.info + '15', flex: 1, flexDirection: 'row', gap: 6 },
+                    pressed && { opacity: 0.7 }
+                  ]}
+                >
+                  <Ionicons name="chatbubble-outline" size={18} color={theme.info} />
+                  <Text style={[styles.payBtnText, { color: theme.info, fontSize: 13 }]}>SMS</Text>
                 </Pressable>
 
                 <Pressable
@@ -775,7 +802,10 @@ export default function StudentDetailScreen() {
         visible={isTemplateSelectorOpen}
         templates={Array.isArray(templates) ? templates : []}
         onSelect={handleSelectTemplate}
-        onClose={() => setIsTemplateSelectorOpen(false)}
+        onClose={() => {
+          setIsTemplateSelectorOpen(false);
+          setReminderChannel(null);
+        }}
         theme={theme}
       />
 

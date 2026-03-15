@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,6 +68,7 @@ export default function StudentsScreen() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Student | null>(null);
   const [reminderTarget, setReminderTarget] = useState<Student | null>(null);
+  const [reminderChannel, setReminderChannel] = useState<'whatsapp' | 'sms' | null>(null);
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
 
   useEffect(() => {
@@ -146,6 +147,13 @@ export default function StudentsScreen() {
 
   const handleSendReminder = useCallback(async (student: any) => {
     setReminderTarget(student);
+    setReminderChannel('whatsapp');
+    setIsTemplateSelectorOpen(true);
+  }, []);
+
+  const handleSendSmsReminder = useCallback(async (student: any) => {
+    setReminderTarget(student);
+    setReminderChannel('sms');
     setIsTemplateSelectorOpen(true);
   }, []);
 
@@ -161,8 +169,13 @@ export default function StudentsScreen() {
       setReminderTarget(null);
 
       if (res.phone && res.message) {
-        openWhatsappWithMessage(res.phone, res.message);
+        if (reminderChannel === 'sms') {
+          Linking.openURL(`sms:${res.phone}?body=${encodeURIComponent(res.message)}`);
+        } else {
+          openWhatsappWithMessage(res.phone, res.message);
+        }
       }
+      setReminderChannel(null);
     } catch (e) {
       showToast('Failed to prepare reminder', 'error');
     }
@@ -398,6 +411,7 @@ export default function StudentsScreen() {
         onDelete={removeStudent}
         onPay={openPayment}
         onRemind={handleSendReminder}
+        onSmsRemind={handleSendSmsReminder}
         headerComponent={listHeader}
         onLoadMore={handleLoadMore}
         refreshing={studentsQuery.isRefetching}
@@ -475,6 +489,7 @@ export default function StudentsScreen() {
         onClose={() => {
           setIsTemplateSelectorOpen(false);
           setReminderTarget(null);
+          setReminderChannel(null);
         }}
         theme={theme}
       />
