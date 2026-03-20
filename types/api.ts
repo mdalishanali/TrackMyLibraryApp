@@ -33,6 +33,12 @@ export type Student = {
   preparationFor?: string;
   floor?: number | string;
   allocations?: string[] | Shift[];
+  statusHistory?: {
+    status: 'Active' | 'Inactive' | 'Joined';
+    date: string;
+    comment?: string;
+    _id?: string;
+  }[];
 };
 
 export type Payment = {

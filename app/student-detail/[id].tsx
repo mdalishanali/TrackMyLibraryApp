@@ -131,6 +131,16 @@ export default function StudentDetailScreen() {
   }
 
   const student = studentQuery.data;
+
+  const originalJoinDate = useMemo(() => 
+    student?.statusHistory?.find(h => h.status === 'Joined')?.date,
+    [student?.statusHistory]
+  );
+  const isRejoined = useMemo(() => 
+    (student?.statusHistory?.filter(h => h.status === 'Active') || []).length > 0,
+    [student?.statusHistory]
+  );
+
   if (!student) {
     return (
       <SafeScreen>
@@ -373,7 +383,15 @@ export default function StudentDetailScreen() {
                 </Pressable>
 
                 <View style={styles.heroMeta}>
-                <Text style={[styles.heroName, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <Text style={[styles.heroName, { color: theme.text, flexShrink: 1 }]} numberOfLines={1}>{student.name}</Text>
+                    {isRejoined && (
+                      <View style={[styles.rejoinedBadge, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
+                        <Ionicons name="sparkles" size={10} color={theme.primary} />
+                        <Text style={[styles.rejoinedText, { color: theme.primary }]}>RETURNING</Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={styles.heroRow}>
                   <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.danger) + '15' }]}>
                     <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.danger }]} />
@@ -648,7 +666,22 @@ export default function StudentDetailScreen() {
               {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
               {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
               {student.preparationFor && <DetailRow icon="school" label="Preparation For" value={student.preparationFor} theme={theme} />}
-              <DetailRow icon="calendar-outline" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last={!student.notes} />
+              <DetailRow 
+                icon="calendar-outline" 
+                label={isRejoined ? "Current Session" : "Enrolled On"} 
+                value={formatDate(student.joiningDate)} 
+                theme={theme} 
+                last={!student.notes && !originalJoinDate} 
+              />
+              {originalJoinDate && (
+                <DetailRow 
+                  icon="star-outline" 
+                  label="Member Since" 
+                  value={formatDate(originalJoinDate)} 
+                  theme={theme} 
+                  last={!student.notes} 
+                />
+              )}
               {student.notes && (
                 <View style={[styles.detailRow, { borderTopWidth: 1.5, borderTopColor: theme.border + '30' }]}>
                   <View style={[styles.detailIcon, { backgroundColor: theme.warning + '10' }]}>
@@ -663,6 +696,36 @@ export default function StudentDetailScreen() {
             </View>
             </View>
           </Animated.View>
+
+          <View>
+            <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Personal Information</Text>
+            {/* ... Personal Info Content ... */}
+          </View>
+
+          {student.statusHistory && student.statusHistory.length > 0 && (
+            <View>
+              <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Status Timeline</Text>
+              <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border, paddingVertical: 16 }]}>
+                {student.statusHistory.slice().reverse().map((item, index) => (
+                  <View key={item._id || index} style={[styles.timelineItem, index === student.statusHistory!.length - 1 && { borderBottomWidth: 0 }]}>
+                    <View style={styles.timelineIndicator}>
+                      <View style={[styles.timelineDot, { backgroundColor: item.status === 'Joined' ? theme.primary : item.status === 'Active' ? theme.success : theme.danger }]} />
+                      {index !== student.statusHistory!.length - 1 && <View style={[styles.timelineLine, { backgroundColor: theme.border + '50' }]} />}
+                    </View>
+                    <View style={styles.timelineContent}>
+                      <View style={styles.timelineHeader}>
+                        <Text style={[styles.timelineStatus, { color: item.status === 'Joined' ? theme.primary : item.status === 'Active' ? theme.success : theme.danger }]}>
+                          {item.status === 'Joined' ? 'ADMISSION' : item.status.toUpperCase()}
+                        </Text>
+                        <Text style={[styles.timelineDate, { color: theme.muted }]}>{formatDate(item.date)}</Text>
+                      </View>
+                      {item.comment && <Text style={[styles.timelineComment, { color: theme.muted }]}>{item.comment}</Text>}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={{ gap: 16 }}>
             <View style={styles.sectionHeader}>
@@ -1046,9 +1109,71 @@ const styles = StyleSheet.create({
   },
   heroStatsContainer: {
     gap: 12,
-    paddingRight: 20, // push and breathe
+    paddingRight: 20,
   },
-  statBox: {
+  rejoinedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  rejoinedText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  timelineIndicator: {
+    width: 20,
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    zIndex: 1,
+    marginTop: 4,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    position: 'absolute',
+    top: 16,
+    bottom: -12,
+    left: 9,
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  timelineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timelineStatus: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  timelineDate: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  timelineComment: {
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  heroId: {
     minWidth: 130,
     padding: 16,
     borderRadius: 20,
