@@ -506,37 +506,6 @@ export default function StudentDetailScreen() {
             </ScrollView>
 
               <View style={styles.heroActions}>
-              {/* Reactivate Banner for Inactive Students */}
-              {student.status === 'Inactive' && (
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setConfirmReactivate(true);
-                  }}
-                  style={({ pressed }) => [{
-                    backgroundColor: theme.success,
-                    borderRadius: 20,
-                    height: 60,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    shadowColor: theme.success,
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 12,
-                    elevation: 6,
-                  }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
-                >
-                  {isReactivating ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Ionicons name="arrow-up-circle" size={22} color="#fff" />
-                  )}
-                  <Text style={[styles.payBtnText, { fontSize: 15, letterSpacing: 0.5 }]}>MAKE ACTIVE</Text>
-                </Pressable>
-              )}
-
               <View style={styles.actionRow}>
                 <Pressable
                   onPress={() => {
@@ -701,6 +670,38 @@ export default function StudentDetailScreen() {
                 last
               />
             </View>
+
+              {/* Reactivate Button for Inactive Students */}
+              {student.status === 'Inactive' && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setConfirmReactivate(true);
+                  }}
+                  style={({ pressed }) => [{
+                    backgroundColor: theme.success,
+                    borderRadius: 24,
+                    height: 56,
+                    flexDirection: 'row' as const,
+                    alignItems: 'center' as const,
+                    justifyContent: 'center' as const,
+                    gap: 10,
+                    marginTop: 16,
+                    shadowColor: theme.success,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 10,
+                    elevation: 4,
+                  }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+                >
+                  {isReactivating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="arrow-up-circle" size={20} color="#fff" />
+                  )}
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 }}>MAKE ACTIVE</Text>
+                </Pressable>
+              )}
           </View>
 
           <View>
