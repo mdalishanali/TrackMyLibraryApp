@@ -267,7 +267,24 @@ export function StatusBadges({ student, theme }: { student: Student; theme: Them
   const isTrial = student.paymentStatus === 'Trial' || student.status === 'Trial';
   const isDues = student.paymentStatus === 'Unpaid';
   const isPaid = student.paymentStatus === 'Paid';
-  const overDueDays = student.daysOverdue ?? 0;
+
+  // Self-compute daysOverdue so this component works regardless of caller
+  const overDueDays = (() => {
+    if (student.daysOverdue !== undefined) return student.daysOverdue;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (isTrial && student.joiningDate) {
+      const joined = new Date(student.joiningDate);
+      joined.setHours(0, 0, 0, 0);
+      return Math.max(0, Math.floor((today.getTime() - joined.getTime()) / 86400000));
+    }
+    if (isDues && (student.lastPayment?.endDate)) {
+      const end = new Date(student.lastPayment.endDate);
+      end.setHours(0, 0, 0, 0);
+      return Math.max(0, Math.floor((today.getTime() - end.getTime()) / 86400000));
+    }
+    return 0;
+  })();
 
   if (!isTrial && !isDues && !isPaid) return null;
 

@@ -57,6 +57,7 @@ export default function SeatsScreen() {
   useScreenView('Seats');
 
   const [selectedShift, setSelectedShift] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<'vacant' | 'occupied' | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
 
   const seatsQuery = useSeatsQuery(selectedShift);
@@ -196,6 +197,19 @@ export default function SeatsScreen() {
       .filter((s: any) => s._id && s.seatNumber != null)
       .sort((a, b) => a.seatNumber - b.seatNumber);
 
+    // Filter by occupancy status
+    if (selectedStatus === 'vacant') {
+      baseSeats = baseSeats.filter(seat => {
+        const filtered = getFilteredStudents(seat.students || []);
+        return filtered.length === 0;
+      });
+    } else if (selectedStatus === 'occupied') {
+      baseSeats = baseSeats.filter(seat => {
+        const filtered = getFilteredStudents(seat.students || []);
+        return filtered.length > 0;
+      });
+    }
+
     // Filter by payment status
     if (selectedPayment) {
       baseSeats = baseSeats.filter(seat => {
@@ -219,7 +233,7 @@ export default function SeatsScreen() {
     }
 
     return baseSeats;
-  }, [seatsByFloor, activeFloor, selectedPayment, searchQuery]);
+  }, [seatsByFloor, activeFloor, selectedStatus, selectedPayment, searchQuery]);
 
   useEffect(() => {
     if (selectedSeat) {
@@ -739,6 +753,31 @@ export default function SeatsScreen() {
               </View>
             </ScrollView>
 
+            {/* STATUS ROW */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterScroll, { marginTop: 8 }]}>
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterLabel, { color: theme.muted }]}>STATUS</Text>
+                <TouchableOpacity
+                  onPress={() => setSelectedStatus(null)}
+                  style={[styles.filterChip, !selectedStatus && { backgroundColor: theme.text, borderColor: theme.text }]}
+                >
+                  <Text style={[styles.filterChipText, { color: !selectedStatus ? '#fff' : theme.text }]}>ALL</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setSelectedStatus(selectedStatus === 'vacant' ? null : 'vacant')}
+                  style={[styles.filterChip, selectedStatus === 'vacant' && { backgroundColor: theme.success + '15', borderColor: theme.success }]}
+                >
+                  <Text style={[styles.filterChipText, { color: selectedStatus === 'vacant' ? theme.success : theme.text }]}>VACANT</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setSelectedStatus(selectedStatus === 'occupied' ? null : 'occupied')}
+                  style={[styles.filterChip, selectedStatus === 'occupied' && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
+                >
+                  <Text style={[styles.filterChipText, { color: selectedStatus === 'occupied' ? theme.primary : theme.text }]}>OCCUPIED</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
             {/* DUES ROW */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterScroll, { marginTop: 8 }]}>
               <View style={styles.filterGroup}>
@@ -1173,6 +1212,12 @@ export default function SeatsScreen() {
                                   <Text style={[styles.gridLabel, { color: theme.muted }]}>JOINED</Text>
                                   <Text style={[styles.gridValue, { color: theme.text }]}>{formatDate(occupant.joiningDate)}</Text>
                                 </View>
+                                {occupant.lastPayment?.endDate && (
+                                  <View style={styles.gridItem}>
+                                    <Text style={[styles.gridLabel, { color: theme.muted }]}>PAID TILL</Text>
+                                    <Text style={[styles.gridValue, { color: occupant.paymentStatus === 'Paid' ? theme.success : theme.danger }]}>{formatDate(occupant.lastPayment.endDate)}</Text>
+                                  </View>
+                                )}
                               </View>
 
                               <View style={styles.sheetSmallActions}>
@@ -1998,7 +2043,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1,
     marginRight: 4,
-    width: 45,
+    width: 54,
   },
   filterChip: {
     paddingHorizontal: 14,
