@@ -23,6 +23,7 @@ import { AppButton } from '@/components/ui/app-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { spacing, radius, typography } from '@/constants/design';
 import { useTheme } from '@/hooks/use-theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useShiftsQuery, useCreateShift, useUpdateShift } from '@/hooks/use-shifts';
 import { showToast } from '@/lib/toast';
 
@@ -37,6 +38,8 @@ const PRESETS = [
 
 export default function ShiftsScreen() {
   const theme = useTheme();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { data: shifts = [], isLoading } = useShiftsQuery({ includeInactive: true });
   const activeShifts = useMemo(() => shifts.filter(s => s.isActive !== false), [shifts]);
@@ -447,6 +450,7 @@ export default function ShiftsScreen() {
                   <DateTimePicker
                     mode="time"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    themeVariant={isDark ? 'dark' : 'light'}
                     value={parseTime(timePickerOpen === 'start' ? form.startTime : form.endTime)}
                     onChange={(e, d) => {
                       if (d) {
