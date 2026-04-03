@@ -38,7 +38,7 @@ const StudentSearchBar = memo(({ search, setSearch, theme }: StudentSearchBarPro
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search members by name..."
+        placeholder="Search by name or number..."
         placeholderTextColor={theme.muted}
         style={[styles.input, { color: theme.text }]}
         selectionColor={theme.primary}
