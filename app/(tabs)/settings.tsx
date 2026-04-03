@@ -270,6 +270,20 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {/* Digital Access Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Digital Access</Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ActionRow
+              icon="qr-code"
+              label="Library QR Code"
+              description="Real-time seat availability for students"
+              onPress={() => router.push('/qr-code')}
+              themeTint={theme.primary}
+            />
+          </View>
+
           {/* Automation Section */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Automation</Text>

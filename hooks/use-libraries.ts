@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth';
 
@@ -40,6 +40,16 @@ export function useSwitchLibrary() {
       // We clear() first to be absolutely sure no old data flashes
       queryClient.clear();
       queryClient.resetQueries(); 
+    },
+  });
+}
+
+export function useLibraryQr() {
+  return useQuery({
+    queryKey: ['library', 'qr'],
+    queryFn: async () => {
+      const response = await api.get('/library/qr');
+      return response.data as { qrCode: string; url: string };
     },
   });
 }
