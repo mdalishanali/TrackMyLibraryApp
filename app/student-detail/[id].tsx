@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
 import { ActionRow, ShiftBadges, StatusBadges, StudentHeader, StudentMeta, TimeSlots, ValidityInfo } from '@/components/students/StudentSummary';
+import { StatusTimeline } from '@/components/students/StatusTimeline';
 import { formatCurrency, formatDate, formatTime } from '@/utils/format';
 import { transformFormToPayload, mapStudentToForm } from '@/utils/student-transform';
 import { showToast } from '@/lib/toast';
@@ -52,6 +53,8 @@ export default function StudentDetailScreen() {
   const isPaymentSaving = createPayment.isPending || updatePayment.isPending;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
+  const [confirmReactivate, setConfirmReactivate] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
   const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
@@ -131,16 +134,6 @@ export default function StudentDetailScreen() {
   }
 
   const student = studentQuery.data;
-
-  const originalJoinDate = useMemo(() => 
-    student?.statusHistory?.find(h => h.status === 'Joined')?.date,
-    [student?.statusHistory]
-  );
-  const isRejoined = useMemo(() => 
-    (student?.statusHistory?.filter(h => h.status === 'Active') || []).length > 0,
-    [student?.statusHistory]
-  );
-
   if (!student) {
     return (
       <SafeScreen>
@@ -163,6 +156,24 @@ export default function StudentDetailScreen() {
     } catch (e: any) {
       const errorMessage = e?.response?.data?.message || e?.message || 'Failed to delete student';
       showToast(errorMessage, 'error');
+    }
+  };
+
+  const handleReactivate = async () => {
+    setIsReactivating(true);
+    try {
+      await updateStudent.mutateAsync({
+        id,
+        payload: { status: 'Active' }
+      });
+      setConfirmReactivate(false);
+      showToast('Student reactivated successfully 🎉', 'success');
+      studentQuery.refetch();
+    } catch (e: any) {
+      const errorMessage = e?.response?.data?.message || e?.message || 'Failed to reactivate student';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsReactivating(false);
     }
   };
 
@@ -303,15 +314,15 @@ export default function StudentDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LinearGradient
-          colors={[theme.primary + '15', 'transparent']}
-          style={styles.bgGradient}
-        />
+      <LinearGradient
+        colors={[theme.primary + '15', 'transparent']}
+        style={styles.bgGradient}
+      />
 
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             if (backTo === 'seats') {
               router.navigate('/(tabs)/seats');
             } else if (router.canGoBack()) {
@@ -319,55 +330,55 @@ export default function StudentDetailScreen() {
             } else {
               router.replace('/(tabs)/students');
             }
-            }}
-            style={({ pressed }) => [
-              styles.headerBtn,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-              pressed && { opacity: 0.7 }
-            ]}
-          >
-            <Ionicons name="chevron-back" size={24} color={theme.text} />
-          </Pressable>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Member Profile</Text>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push({ pathname: '/(tabs)/students', params: { search: student.name } });
-            }}
-            style={({ pressed }) => [
-              styles.headerBtn,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-              pressed && { opacity: 0.7 }
-            ]}
-          >
-            <Ionicons name="search" size={20} color={theme.text} />
-          </Pressable>
-        </View>
-
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: spacing.xl + insets.bottom }
+          }}
+          style={({ pressed }) => [
+            styles.headerBtn,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            pressed && { opacity: 0.7 }
           ]}
-          onScroll={handleScroll}
-          scrollEventThrottle={200}
-          showsVerticalScrollIndicator={false}
         >
-          <Animated.View entering={FadeInDown.duration(800)}>
-            <LinearGradient
-              colors={[theme.surface, theme.surface]}
-              style={[styles.heroCard, { borderColor: theme.border }]}
-            >
-              <View style={styles.heroMain}>
-                <Pressable
-                  onPress={() => student.profilePicture && setPreviewVisible(true)}
-                  style={({ pressed }) => [
-                    styles.avatarWrapper,
-                    { shadowColor: theme.primary },
-                    pressed && { transform: [{ scale: 0.95 }] }
-                  ]}
-                >
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
+        </Pressable>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Member Profile</Text>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push({ pathname: '/(tabs)/students', params: { search: student.name } });
+          }}
+          style={({ pressed }) => [
+            styles.headerBtn,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            pressed && { opacity: 0.7 }
+          ]}
+        >
+          <Ionicons name="search" size={20} color={theme.text} />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: spacing.xl + insets.bottom }
+        ]}
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View entering={FadeInDown.duration(800)}>
+          <LinearGradient
+            colors={[theme.surface, theme.surface]}
+            style={[styles.heroCard, { borderColor: theme.border }]}
+          >
+            <View style={styles.heroMain}>
+              <Pressable
+                onPress={() => student.profilePicture && setPreviewVisible(true)}
+                style={({ pressed }) => [
+                  styles.avatarWrapper,
+                  { shadowColor: theme.primary },
+                  pressed && { transform: [{ scale: 0.95 }] }
+                ]}
+              >
                 <View style={[styles.heroAvatar, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
                   <Image
                     source={{ uri: student.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
@@ -376,29 +387,21 @@ export default function StudentDetailScreen() {
                     transition={1000}
                     placeholder={BLURHASH}
                   />
-                  </View>
-                  <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]}>
-                    <Ionicons name="camera" size={10} color="#fff" />
-                  </View>
-                </Pressable>
+                </View>
+                <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]}>
+                  <Ionicons name="camera" size={10} color="#fff" />
+                </View>
+              </Pressable>
 
-                <View style={styles.heroMeta}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <Text style={[styles.heroName, { color: theme.text, flexShrink: 1 }]} numberOfLines={1}>{student.name}</Text>
-                    {isRejoined && (
-                      <View style={[styles.rejoinedBadge, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
-                        <Ionicons name="sparkles" size={10} color={theme.primary} />
-                        <Text style={[styles.rejoinedText, { color: theme.primary }]}>RETURNING</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.heroRow}>
+              <View style={styles.heroMeta}>
+                <Text style={[styles.heroName, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
+                <View style={styles.heroRow}>
                   <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.danger) + '15' }]}>
                     <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.danger }]} />
                     <Text style={[styles.statusText, { color: student.status === 'Active' ? theme.success : theme.danger }]}>
-                      {student.status === 'Active' ? 'ACTIVE' : 'DELETED'}
-                      </Text>
-                    </View>
+                      {student.status === 'Active' ? 'ACTIVE' : 'INACTIVE'}
+                    </Text>
+                  </View>
                   {student.gender && (
                     <View style={[styles.statusTag, { backgroundColor: (student.gender === 'male' ? '#3b82f6' : '#ec4899') + '15' }]}>
                       <Ionicons
@@ -414,33 +417,40 @@ export default function StudentDetailScreen() {
                   <View style={[styles.statusTag, { backgroundColor: theme.primary + '10' }]}>
                     <Text style={[styles.statusText, { color: theme.primary, letterSpacing: 0.5 }]}>ID: {student.id || '—'}</Text>
                   </View>
-                  </View>
+                </View>
 
                 {/* Status Badges (Trial/Dues) */}
                 <View style={{ marginTop: 8 }}>
-                  <StatusBadges student={student as any} theme={theme} />
-                </View>
+                  <StatusBadges student={{
+                    ...student,
+                    daysOverdue: student.lastPayment?.endDate
+                      ? Math.max(0, Math.ceil((new Date().getTime() - new Date(student.lastPayment.endDate).getTime()) / (1000 * 60 * 60 * 24)))
+                      : student.joiningDate
+                        ? Math.max(0, Math.ceil((new Date().getTime() - new Date(student.joiningDate).getTime()) / (1000 * 60 * 60 * 24)))
+                        : 0
+                  } as any} theme={theme} />
                 </View>
               </View>
+            </View>
 
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.heroStatsContainer}
             >
-                <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
+              <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
                 <Text style={[styles.statValue, { color: theme.text }]}>
                   {(student.seatNumber !== undefined && student.seatNumber !== null) ? `#${student.seatNumber}` : '—'}
                 </Text>
-                  <Text style={[styles.statLabel, { color: theme.muted }]}>SEAT</Text>
-                </View>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>SEAT</Text>
+              </View>
 
-                <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
+              <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
                 <Text style={[styles.statValue, { color: theme.text }]} numberOfLines={1}>
                   {Array.isArray(student.shift) ? student.shift.join(', ') : (student.shift || '—')}
                 </Text>
-                  <Text style={[styles.statLabel, { color: theme.muted }]}>SHIFT</Text>
-                </View>
+                <Text style={[styles.statLabel, { color: theme.muted }]}>SHIFT</Text>
+              </View>
 
               {student.lastPayment?.endDate && (
                 <View style={[styles.statBox, { backgroundColor: theme.surfaceAlt }]}>
@@ -488,10 +498,10 @@ export default function StudentDetailScreen() {
                   {formatCurrency(student.fees || 0)}
                 </Text>
                 <Text style={[styles.statLabel, { color: '#fff' }]}>MONTHLY FEE</Text>
-                </View>
+              </View>
             </ScrollView>
 
-              <View style={styles.heroActions}>
+            <View style={styles.heroActions}>
               <View style={styles.actionRow}>
                 <Pressable
                   onPress={() => {
@@ -583,8 +593,8 @@ export default function StudentDetailScreen() {
                 </Pressable>
               </View>
             </View>
-            </LinearGradient>
-          </Animated.View>
+          </LinearGradient>
+        </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(200).duration(600)} style={{ gap: 24 }}>
           <View>
@@ -656,6 +666,38 @@ export default function StudentDetailScreen() {
                 last
               />
             </View>
+
+              {/* Reactivate Button — only for Inactive students */}
+              {student.status === 'Inactive' && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setConfirmReactivate(true);
+                  }}
+                  style={({ pressed }) => [{
+                    backgroundColor: theme.success,
+                    borderRadius: 24,
+                    height: 56,
+                    flexDirection: 'row' as const,
+                    alignItems: 'center' as const,
+                    justifyContent: 'center' as const,
+                    gap: 10,
+                    marginTop: 16,
+                    shadowColor: theme.success,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 10,
+                    elevation: 4,
+                  }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+                >
+                  {isReactivating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="arrow-up-circle" size={20} color="#fff" />
+                  )}
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 }}>MAKE ACTIVE</Text>
+                </Pressable>
+              )}
           </View>
 
           <View>
@@ -666,22 +708,7 @@ export default function StudentDetailScreen() {
               {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
               {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
               {student.preparationFor && <DetailRow icon="school" label="Preparation For" value={student.preparationFor} theme={theme} />}
-              <DetailRow 
-                icon="calendar-outline" 
-                label={isRejoined ? "Current Session" : "Enrolled On"} 
-                value={formatDate(student.joiningDate)} 
-                theme={theme} 
-                last={!student.notes && !originalJoinDate} 
-              />
-              {originalJoinDate && (
-                <DetailRow 
-                  icon="star-outline" 
-                  label="Member Since" 
-                  value={formatDate(originalJoinDate)} 
-                  theme={theme} 
-                  last={!student.notes} 
-                />
-              )}
+              <DetailRow icon="calendar-outline" label="Enrolled On" value={formatDate(student.joiningDate)} theme={theme} last={!student.notes} />
               {student.notes && (
                 <View style={[styles.detailRow, { borderTopWidth: 1.5, borderTopColor: theme.border + '30' }]}>
                   <View style={[styles.detailIcon, { backgroundColor: theme.warning + '10' }]}>
@@ -694,141 +721,115 @@ export default function StudentDetailScreen() {
                 </View>
               )}
             </View>
-            </View>
-          </Animated.View>
-
-          <View>
-            <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Personal Information</Text>
-            {/* ... Personal Info Content ... */}
           </View>
+        </Animated.View>
 
           {student.statusHistory && student.statusHistory.length > 0 && (
-            <View>
-              <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Status Timeline</Text>
-              <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border, paddingVertical: 16 }]}>
-                {student.statusHistory.slice().reverse().map((item, index) => (
-                  <View key={item._id || index} style={[styles.timelineItem, index === student.statusHistory!.length - 1 && { borderBottomWidth: 0 }]}>
-                    <View style={styles.timelineIndicator}>
-                      <View style={[styles.timelineDot, { backgroundColor: item.status === 'Joined' ? theme.primary : item.status === 'Active' ? theme.success : theme.danger }]} />
-                      {index !== student.statusHistory!.length - 1 && <View style={[styles.timelineLine, { backgroundColor: theme.border + '50' }]} />}
-                    </View>
-                    <View style={styles.timelineContent}>
-                      <View style={styles.timelineHeader}>
-                        <Text style={[styles.timelineStatus, { color: item.status === 'Joined' ? theme.primary : item.status === 'Active' ? theme.success : theme.danger }]}>
-                          {item.status === 'Joined' ? 'ADMISSION' : item.status.toUpperCase()}
-                        </Text>
-                        <Text style={[styles.timelineDate, { color: theme.muted }]}>{formatDate(item.date)}</Text>
-                      </View>
-                      {item.comment && <Text style={[styles.timelineComment, { color: theme.muted }]}>{item.comment}</Text>}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
+            <StatusTimeline history={student.statusHistory} theme={theme} />
           )}
 
         <Animated.View entering={FadeInDown.delay(400).duration(600)} style={{ gap: 16 }}>
-            <View style={styles.sectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Payment History</Text>
-                <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
-                  <Text style={[styles.countText, { color: theme.primary }]}>
-                    {paymentsQuery.data?.pages?.[0]?.pagination?.total || 0}
-                  </Text>
-                </View>
+          <View style={styles.sectionHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Payment History</Text>
+              <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
+                <Text style={[styles.countText, { color: theme.primary }]}>
+                  {paymentsQuery.data?.pages?.[0]?.pagination?.total || 0}
+                </Text>
               </View>
             </View>
+          </View>
 
-            {paymentsQuery.data?.pages?.flatMap(p => p.payments).length ? (
-              paymentsQuery.data.pages.flatMap(p => p.payments).map((payment, idx) => (
-                <View
-                  key={payment._id}
-                  style={[styles.paymentCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                >
-                  <View style={styles.paymentCardHeader}>
-                    <View style={styles.payMain}>
-                      <Text style={[styles.payAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
-                      <View style={[styles.payModePill, { backgroundColor: theme.primary + '10' }]}>
-                        <Ionicons name={payment.paymentMode === 'cash' ? 'cash' : 'phone-portrait'} size={10} color={theme.primary} />
-                        <Text style={[styles.payModeText, { color: theme.primary }]}>{payment.paymentMode?.toUpperCase() || 'CASH'}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.payActions}>
-                      <Pressable
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          startEditPayment(payment);
-                        }}
-                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
-                      >
-                        <Ionicons name="create-outline" size={18} color={theme.primary} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => setDeleteTarget(payment._id)}
-                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
-                      >
-                        <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleSendReceipt(payment._id)}
-                        disabled={sendReceiptMutation.isPending}
-                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
-                      >
-                        <Ionicons
-                          name="logo-whatsapp"
-                          size={18}
-                          color="#25D366"
-                        />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleSharePdf(payment._id)}
-                        disabled={sharingPaymentId === payment._id}
-                        style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
-                      >
-                        {sharingPaymentId === payment._id ? (
-                          <ActivityIndicator size="small" color={theme.primary} />
-                        ) : (
-                          <Ionicons
-                            name="share-outline"
-                            size={18}
-                            color={theme.primary}
-                          />
-                        )}
-                      </Pressable>
+          {paymentsQuery.data?.pages?.flatMap(p => p.payments).length ? (
+            paymentsQuery.data.pages.flatMap(p => p.payments).map((payment, idx) => (
+              <View
+                key={payment._id}
+                style={[styles.paymentCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              >
+                <View style={styles.paymentCardHeader}>
+                  <View style={styles.payMain}>
+                    <Text style={[styles.payAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
+                    <View style={[styles.payModePill, { backgroundColor: theme.primary + '10' }]}>
+                      <Ionicons name={payment.paymentMode === 'cash' ? 'cash' : 'phone-portrait'} size={10} color={theme.primary} />
+                      <Text style={[styles.payModeText, { color: theme.primary }]}>{payment.paymentMode?.toUpperCase() || 'CASH'}</Text>
                     </View>
                   </View>
-                  <View style={[styles.payBody, { backgroundColor: theme.surfaceAlt }]}>
-                    <View style={styles.payRow}>
-                      <Ionicons name="calendar-outline" size={14} color={theme.muted} />
-                      <Text style={[styles.payDateText, { color: theme.text }]}>
-                        {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <Ionicons name="checkmark-circle-outline" size={14} color={theme.primary} />
-                      <Text style={[styles.payStatusText, { color: theme.text }]}>Paid on {formatDate(payment.paymentDate)}</Text>
-                    </View>
-                    {payment.notes && (
-                      <View style={[styles.payNotes, { borderTopWidth: 1, borderTopColor: theme.border + '20' }]}>
-                        <Ionicons name="chatbox-ellipses-outline" size={12} color={theme.muted} />
-                        <Text style={[styles.payNotesText, { color: theme.muted }]}>{payment.notes}</Text>
-                      </View>
-                    )}
+                  <View style={styles.payActions}>
+                    <Pressable
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        startEditPayment(payment);
+                      }}
+                      style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      <Ionicons name="create-outline" size={18} color={theme.primary} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setDeleteTarget(payment._id)}
+                      style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={theme.danger} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleSendReceipt(payment._id)}
+                      disabled={sendReceiptMutation.isPending}
+                      style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      <Ionicons
+                        name="logo-whatsapp"
+                        size={18}
+                        color="#25D366"
+                      />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleSharePdf(payment._id)}
+                      disabled={sharingPaymentId === payment._id}
+                      style={({ pressed }) => [styles.payIconBtn, pressed && { opacity: 0.6 }]}
+                    >
+                      {sharingPaymentId === payment._id ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : (
+                        <Ionicons
+                          name="share-outline"
+                          size={18}
+                          color={theme.primary}
+                        />
+                      )}
+                    </Pressable>
                   </View>
                 </View>
-              ))
-            ) : (
-                <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Ionicons name="receipt-outline" size={48} color={theme.muted + '20'} />
-                  <Text style={[styles.emptyText, { color: theme.muted }]}>No transaction history</Text>
+                <View style={[styles.payBody, { backgroundColor: theme.surfaceAlt }]}>
+                  <View style={styles.payRow}>
+                    <Ionicons name="calendar-outline" size={14} color={theme.muted} />
+                    <Text style={[styles.payDateText, { color: theme.text }]}>
+                      {formatDate(payment.startDate)} — {formatDate(payment.endDate)}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <Ionicons name="checkmark-circle-outline" size={14} color={theme.primary} />
+                    <Text style={[styles.payStatusText, { color: theme.text }]}>Paid on {formatDate(payment.paymentDate)}</Text>
+                  </View>
+                  {payment.notes && (
+                    <View style={[styles.payNotes, { borderTopWidth: 1, borderTopColor: theme.border + '20' }]}>
+                      <Ionicons name="chatbox-ellipses-outline" size={12} color={theme.muted} />
+                      <Text style={[styles.payNotesText, { color: theme.muted }]}>{payment.notes}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-            )}
+            ))
+          ) : (
+            <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Ionicons name="receipt-outline" size={48} color={theme.muted + '20'} />
+              <Text style={[styles.emptyText, { color: theme.muted }]}>No transaction history</Text>
+            </View>
+          )}
         </Animated.View>
 
-            {paymentsQuery.isFetchingNextPage && (
-              <View style={{ padding: 20 }}>
-                <ActivityIndicator color={theme.primary} />
-              </View>
+        {paymentsQuery.isFetchingNextPage && (
+          <View style={{ padding: 20 }}>
+            <ActivityIndicator color={theme.primary} />
+          </View>
         )}
       </ScrollView>
 
@@ -875,9 +876,12 @@ export default function StudentDetailScreen() {
 
       <ConfirmDialog
         visible={confirmStudentDelete}
-        title="Mark as Inactive?"
-        description={`Are you sure you want to deactivate ${student.name}? Their seat will be freed up, but their record and payment history will be kept.`}
-        confirmText="MARK INACTIVE"
+        title={student.status === 'Inactive' ? 'Delete Permanently?' : 'Mark as Inactive?'}
+        description={student.status === 'Inactive'
+          ? `Are you sure you want to permanently delete ${student.name}? This action cannot be undone.`
+          : `Are you sure you want to deactivate ${student.name}? Their seat will be freed up, but their record and payment history will be kept.`
+        }
+        confirmText={student.status === 'Inactive' ? 'DELETE' : 'MARK INACTIVE'}
         destructive
         loading={deleteStudent.isPending}
         onCancel={() => setConfirmStudentDelete(false)}
@@ -886,6 +890,16 @@ export default function StudentDetailScreen() {
           setConfirmStudentDelete(false);
           router.back();
         }}
+      />
+
+      <ConfirmDialog
+        visible={confirmReactivate}
+        title="Reactivate Student?"
+        description={`This will mark ${student.name} as Active again. Their joining date will be reset to today and previous payment records will be cleared. Proceed?`}
+        confirmText="REACTIVATE"
+        loading={isReactivating}
+        onCancel={() => setConfirmReactivate(false)}
+        onConfirm={handleReactivate}
       />
 
       {student && (
@@ -1109,71 +1123,9 @@ const styles = StyleSheet.create({
   },
   heroStatsContainer: {
     gap: 12,
-    paddingRight: 20,
+    paddingRight: 20, // push and breathe
   },
-  rejoinedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  rejoinedText: {
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  timelineIndicator: {
-    width: 20,
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    zIndex: 1,
-    marginTop: 4,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    position: 'absolute',
-    top: 16,
-    bottom: -12,
-    left: 9,
-  },
-  timelineContent: {
-    flex: 1,
-  },
-  timelineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timelineStatus: {
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  timelineDate: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  timelineComment: {
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 16,
-    fontWeight: '500',
-  },
-  heroId: {
+  statBox: {
     minWidth: 130,
     padding: 16,
     borderRadius: 20,
