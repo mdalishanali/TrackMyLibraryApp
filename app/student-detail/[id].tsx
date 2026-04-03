@@ -52,6 +52,8 @@ export default function StudentDetailScreen() {
   const isPaymentSaving = createPayment.isPending || updatePayment.isPending;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [confirmStudentDelete, setConfirmStudentDelete] = useState(false);
+  const [confirmReactivate, setConfirmReactivate] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
   const [isChangeSeatOpen, setIsChangeSeatOpen] = useState(false);
@@ -163,6 +165,24 @@ export default function StudentDetailScreen() {
     } catch (e: any) {
       const errorMessage = e?.response?.data?.message || e?.message || 'Failed to delete student';
       showToast(errorMessage, 'error');
+    }
+  };
+
+  const handleReactivate = async () => {
+    setIsReactivating(true);
+    try {
+      await updateStudent.mutateAsync({
+        id,
+        payload: { status: 'Active' }
+      });
+      setConfirmReactivate(false);
+      showToast('Student reactivated successfully 🎉', 'success');
+      studentQuery.refetch();
+    } catch (e: any) {
+      const errorMessage = e?.response?.data?.message || e?.message || 'Failed to reactivate student';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsReactivating(false);
     }
   };
 
@@ -396,7 +416,7 @@ export default function StudentDetailScreen() {
                   <View style={[styles.statusTag, { backgroundColor: (student.status === 'Active' ? theme.success : theme.danger) + '15' }]}>
                     <View style={[styles.statusDot, { backgroundColor: student.status === 'Active' ? theme.success : theme.danger }]} />
                     <Text style={[styles.statusText, { color: student.status === 'Active' ? theme.success : theme.danger }]}>
-                      {student.status === 'Active' ? 'ACTIVE' : 'DELETED'}
+                      {student.status === 'Active' ? 'ACTIVE' : 'INACTIVE'}
                       </Text>
                     </View>
                   {student.gender && (
@@ -492,6 +512,37 @@ export default function StudentDetailScreen() {
             </ScrollView>
 
               <View style={styles.heroActions}>
+              {/* Reactivate Banner for Inactive Students */}
+              {student.status === 'Inactive' && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setConfirmReactivate(true);
+                  }}
+                  style={({ pressed }) => [{
+                    backgroundColor: theme.success,
+                    borderRadius: 20,
+                    height: 60,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    shadowColor: theme.success,
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    elevation: 6,
+                  }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+                >
+                  {isReactivating ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="arrow-up-circle" size={22} color="#fff" />
+                  )}
+                  <Text style={[styles.payBtnText, { fontSize: 15, letterSpacing: 0.5 }]}>MAKE ACTIVE</Text>
+                </Pressable>
+              )}
+
               <View style={styles.actionRow}>
                 <Pressable
                   onPress={() => {
@@ -568,19 +619,35 @@ export default function StudentDetailScreen() {
                   <Text style={[styles.payBtnText, { color: theme.info, fontSize: 13 }]}>SMS</Text>
                 </Pressable>
 
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setConfirmStudentDelete(true);
-                  }}
-                  style={({ pressed }) => [
-                    styles.iconBtn,
-                    { backgroundColor: theme.danger + '10' },
-                    pressed && { opacity: 0.7 }
-                  ]}
-                >
-                  <Ionicons name="trash-outline" size={24} color={theme.danger} />
-                </Pressable>
+                {student.status !== 'Inactive' ? (
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setConfirmStudentDelete(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      { backgroundColor: theme.danger + '10' },
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Ionicons name="trash-outline" size={24} color={theme.danger} />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setConfirmStudentDelete(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      { backgroundColor: theme.danger + '10' },
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Ionicons name="trash-outline" size={24} color={theme.danger} />
+                  </Pressable>
+                )}
               </View>
             </View>
             </LinearGradient>
@@ -886,6 +953,16 @@ export default function StudentDetailScreen() {
           setConfirmStudentDelete(false);
           router.back();
         }}
+      />
+
+      <ConfirmDialog
+        visible={confirmReactivate}
+        title="Reactivate Student?"
+        description={`This will mark ${student.name} as Active again. Their joining date will be reset to today and previous payment records will be cleared. Proceed?`}
+        confirmText="REACTIVATE"
+        loading={isReactivating}
+        onCancel={() => setConfirmReactivate(false)}
+        onConfirm={handleReactivate}
       />
 
       {student && (
