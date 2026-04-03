@@ -134,15 +134,6 @@ export default function StudentDetailScreen() {
 
   const student = studentQuery.data;
 
-  const originalJoinDate = useMemo(() => 
-    student?.statusHistory?.find(h => h.status === 'Joined')?.date,
-    [student?.statusHistory]
-  );
-  const isRejoined = useMemo(() => 
-    (student?.statusHistory?.filter(h => h.status === 'Active') || []).length > 0,
-    [student?.statusHistory]
-  );
-
   if (!student) {
     return (
       <SafeScreen>
@@ -154,6 +145,9 @@ export default function StudentDetailScreen() {
       </SafeScreen>
     );
   }
+
+  const originalJoinDate = student.statusHistory?.find((h: any) => h.status === 'Joined')?.date;
+  const isRejoined = (student.statusHistory?.filter((h: any) => h.status === 'Active') || []).length > 0;
 
   const confirmDeleteStudent = async () => {
     if (deleteStudent.isPending) return;
@@ -619,35 +613,19 @@ export default function StudentDetailScreen() {
                   <Text style={[styles.payBtnText, { color: theme.info, fontSize: 13 }]}>SMS</Text>
                 </Pressable>
 
-                {student.status !== 'Inactive' ? (
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      setConfirmStudentDelete(true);
-                    }}
-                    style={({ pressed }) => [
-                      styles.iconBtn,
-                      { backgroundColor: theme.danger + '10' },
-                      pressed && { opacity: 0.7 }
-                    ]}
-                  >
-                    <Ionicons name="trash-outline" size={24} color={theme.danger} />
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      setConfirmStudentDelete(true);
-                    }}
-                    style={({ pressed }) => [
-                      styles.iconBtn,
-                      { backgroundColor: theme.danger + '10' },
-                      pressed && { opacity: 0.7 }
-                    ]}
-                  >
-                    <Ionicons name="trash-outline" size={24} color={theme.danger} />
-                  </Pressable>
-                )}
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setConfirmStudentDelete(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.iconBtn,
+                    { backgroundColor: theme.danger + '10' },
+                    pressed && { opacity: 0.7 }
+                  ]}
+                >
+                  <Ionicons name="trash-outline" size={24} color={theme.danger} />
+                </Pressable>
               </View>
             </View>
             </LinearGradient>
