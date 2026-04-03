@@ -12,6 +12,7 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
 import { ActivityProvider } from '@/providers/activity-provider';
 import { OfflineIndicator } from '@/components/ui/offline-indicator';
+import { BugBubble } from '@lokal-dev/react-native-bugbubble';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -87,6 +88,7 @@ export default Sentry.wrap(function RootLayout() {
           </PostHogProvider>
         </QueryProvider>
       </SafeAreaProvider>
+      {__DEV__ && <BugBubble />}
     </GestureHandlerRootView>
   );
 });
