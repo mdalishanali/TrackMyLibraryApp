@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View, Pressable, ScrollView, Linking, Share } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -9,10 +9,25 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
+import { STORE_URLS } from '@/constants/config';
 
 export default function ReferralScreen() {
   const theme = useTheme();
   const router = useRouter();
+
+  const handleShareLink = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    const message = `Hey! I'm using Track My Library to manage my seats and fees. It's truly simplified my work and made everything professional. 🛡️📚\n\nDownload Now:\n🌐 Website: https://TrackMyLibrary.in\n🤖 Android: ${STORE_URLS.android}\n🍎 iOS: ${STORE_URLS.ios}`;
+    
+    try {
+      await Share.share({
+        message,
+        title: 'Track My Library - Referral',
+      });
+    } catch (error) {
+      console.error('Sharing failed', error);
+    }
+  };
 
   const handleWhatsAppDM = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -23,6 +38,7 @@ export default function ReferralScreen() {
 
   return (
     <SafeScreen>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Header */}
         <View style={styles.header}>
@@ -80,19 +96,38 @@ export default function ReferralScreen() {
             </View>
           </Animated.View>
 
-          {/* Action Button */}
-          <Animated.View entering={FadeInDown.delay(400).duration(800)}>
+          {/* Action Buttons */}
+          <Animated.View entering={FadeInDown.delay(400).duration(800)} style={styles.actionBox}>
             <Pressable
-              onPress={handleWhatsAppDM}
+              onPress={handleShareLink}
               style={({ pressed }) => [
                 styles.actionBtn,
                 { backgroundColor: theme.primary },
                 pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }
               ]}
             >
-              <Ionicons name="logo-whatsapp" size={24} color="#fff" />
-              <Text style={styles.actionBtnText}>DM to Claim Bonus</Text>
+              <LinearGradient
+                colors={['#8B5CF6', '#EC4899']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Ionicons name="share-social" size={24} color="#fff" />
+              <Text style={styles.actionBtnText}>Share with Friends</Text>
             </Pressable>
+
+            <Pressable
+              onPress={handleWhatsAppDM}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { backgroundColor: 'rgba(37, 211, 102, 0.15)' },
+                pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }
+              ]}
+            >
+              <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+              <Text style={[styles.actionBtnText, { color: '#25D366' }]}>DM to Claim Bonus</Text>
+            </Pressable>
+
             <Text style={[styles.phoneNote, { color: theme.muted }]}>
               WhatsApp us at +91 6391417248
             </Text>
@@ -209,6 +244,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '800',
+  },
+  actionBox: {
+    gap: 12,
   },
   phoneNote: {
     textAlign: 'center',
