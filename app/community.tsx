@@ -16,7 +16,7 @@ export default function CommunityScreen() {
 
   const handleJoinNow = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const groupLink = 'https://chat.whatsapp.com/EXAMPLE_GROUP_LINK';
+    const groupLink = 'https://chat.whatsapp.com/EwWTjFuXvP9CiLPVmhFMlu?mode=gi_t';
     Linking.openURL(groupLink);
   };
 
