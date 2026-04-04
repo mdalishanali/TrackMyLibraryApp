@@ -677,6 +677,9 @@ export default function DashboardScreen() {
             </View>
           </View>
 
+          {/* Engagement Banners (Referral & Community) */}
+          <BannersSection theme={theme} />
+
           {/* Recent Students Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
@@ -730,9 +733,6 @@ export default function DashboardScreen() {
               )}
             </View>
           </View>
-
-          {/* Engagement Banners (Referral & Community) */}
-          <BannersSection theme={theme} />
         </ScrollView>
 
         <StudentFormModal
