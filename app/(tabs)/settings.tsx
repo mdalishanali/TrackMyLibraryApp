@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Image, Linking } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,7 +39,7 @@ export default function SettingsScreen() {
   const posthog = usePostHog();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
+  
   // Track screen view
   useScreenView('Settings');
 
@@ -88,9 +89,17 @@ export default function SettingsScreen() {
               />
               <View style={styles.heroContent}>
                 <View style={[styles.avatarBox, { backgroundColor: theme.primary + '20', borderColor: theme.border }]}>
-                  <Text style={[styles.avatarText, { color: theme.primary }]}>
-                    {(user?.name ?? 'U').slice(0, 1).toUpperCase()}
-                  </Text>
+                  {user?.company?.libraryLogo && typeof user.company.libraryLogo === 'string' && !user.company.libraryLogo.startsWith('{') ? (
+                    <Image
+                      source={{ uri: user.company.libraryLogo }}
+                      style={styles.avatarImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={[styles.avatarText, { color: theme.primary }]}>
+                      {(user?.name ?? 'U').slice(0, 1).toUpperCase()}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.heroMeta}>
                   <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
@@ -258,6 +267,14 @@ export default function SettingsScreen() {
               description="Manage multiple libraries"
               onPress={() => router.push('/library-switcher')}
               themeTint="#F97316"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="color-wand"
+              label="Library Branding"
+              description="Upload logo for invoices & receipts"
+              onPress={() => router.push('/branding')}
+              themeTint="#8B5CF6"
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
@@ -556,6 +573,11 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: '800',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
   },
   heroMeta: {
     flex: 1,

@@ -11,6 +11,7 @@ type ProfilePayload = {
   contactNumber?: string;
   businessName?: string;
   businessAddress?: string;
+  libraryLogo?: string;
 };
 
 export const useUpdateProfile = () => {

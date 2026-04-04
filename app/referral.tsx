@@ -85,7 +85,7 @@ export default function ReferralScreen() {
               {"\n\n"}
               We really need your support to keep improving and reaching more people. If you've found our app helpful, please consider referring it to your fellow library owners.
               {"\n\n"}
-              You can also visit our official website at <Text style={{ color: theme.primary, fontWeight: '700' }} onPress={() => Linking.openURL('https://TrackmYlibrary.in')}>TrackmYlibrary.in</Text> to learn more about our future vision.
+              You can also visit our official website at <Text style={{ color: theme.primary, fontWeight: '700' }} onPress={() => Linking.openURL('https://TrackMyLibrary.in')}>TrackmYlibrary.in</Text> to learn more about our future vision.
             </Text>
 
             <View style={[styles.infoCard, { backgroundColor: theme.surfaceAlt }]}>

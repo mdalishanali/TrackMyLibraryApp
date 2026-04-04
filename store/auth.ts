@@ -14,6 +14,7 @@ export type Company = {
   subscriptionStatus: 'Trialing' | 'Active' | 'Expired' | 'None';
   subscriptionEndDate?: string;
   revenueCatId?: string;
+  libraryLogo?: string;
 };
 
 export type AuthUser = {

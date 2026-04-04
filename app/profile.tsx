@@ -13,10 +13,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, Layout } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import axios from 'axios';
 
+import { api } from '@/lib/api-client';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { spacing, radius, typography } from '@/constants/design';
@@ -46,6 +51,77 @@ export default function ProfileScreen() {
   const [businessAddress, setBusinessAddress] = useState(
     typeof user?.company === 'object' ? (user.company as any)?.businessAddress ?? '' : ''
   );
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePickImage = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const selectedImage = result.assets[0];
+        
+        // Manipulate image (resize to 512x512)
+        const manipulated = await ImageManipulator.manipulateAsync(
+          selectedImage.uri,
+          [{ resize: { width: 512, height: 512 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+
+        uploadLogo(manipulated.uri);
+      }
+    } catch (error) {
+      console.error('Image picking error:', error);
+      showToast('Failed to pick image', 'error');
+    }
+  };
+
+  const uploadLogo = async (uri: string) => {
+    setIsUploading(true);
+    try {
+      // 1. Get Presigned URL
+      const fileName = `logo-${Date.now()}.jpg`;
+      const fileType = 'image/jpeg';
+      
+      const { data: presignedData } = await api.get('/students/presigned-url', {
+        params: { fileName, fileType }
+      });
+
+      const { uploadUrl, fileUrl } = presignedData;
+
+      // 2. Upload to S3 using XHR (required for binary blobs on React Native)
+      const blobResponse = await fetch(uri);
+      const blob = await blobResponse.blob();
+      
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', fileType);
+        xhr.onload = () => {
+          if (xhr.status === 200) resolve(true);
+          else reject(new Error('S3 Upload failed'));
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(blob);
+      });
+
+      // 3. Save to Profile
+      await updateProfile.mutateAsync({ libraryLogo: fileUrl });
+      showToast('Logo Updated', 'success');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      showToast('Upload failed', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const onSaveProfile = async () => {
     try {
@@ -103,11 +179,34 @@ export default function ProfileScreen() {
                   style={StyleSheet.absoluteFill}
                 />
                 <View style={styles.heroContent}>
-                  <View style={[styles.avatarBox, { backgroundColor: theme.primary + '20', borderColor: theme.border }]}>
-                    <Text style={[styles.avatarText, { color: theme.primary }]}>
-                      {(name || user?.name || 'A').slice(0, 1).toUpperCase()}
-                    </Text>
-                  </View>
+                  <Pressable 
+                    onPress={handlePickImage}
+                    disabled={isUploading}
+                    style={({ pressed }) => [
+                      styles.avatarBox, 
+                      { backgroundColor: theme.primary + '20', borderColor: theme.border },
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    {isUploading ? (
+                      <ActivityIndicator color={theme.primary} />
+                    ) : (user?.company?.libraryLogo && typeof user.company.libraryLogo === 'string' && !user.company.libraryLogo.startsWith('{')) ? (
+                      <Image
+                        source={{ uri: user.company.libraryLogo }}
+                        style={styles.avatarImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={[styles.avatarText, { color: theme.primary }]}>
+                          {(name || user?.name || 'A').slice(0, 1).toUpperCase()}
+                        </Text>
+                        <View style={styles.editBadge}>
+                          <Ionicons name="camera" size={10} color="#fff" />
+                        </View>
+                      </View>
+                    )}
+                  </Pressable>
                   <View style={styles.heroMeta}>
                     <Text style={[styles.heroName, { color: theme.text }]} numberOfLines={1}>
                       {name || 'Add Name'}
@@ -153,7 +252,16 @@ export default function ProfileScreen() {
               </Animated.View>
 
               <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Business Details</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Business Details</Text>
+                    <Pressable 
+                        onPress={handlePickImage}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                    >
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: theme.primary }}>Change Logo</Text>
+                        <Ionicons name="image-outline" size={14} color={theme.primary} />
+                    </Pressable>
+                </View>
               </Animated.View>
 
               <Animated.View entering={FadeInDown.delay(500).duration(600)} style={styles.inputGroup}>
@@ -322,6 +430,24 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: '800',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: '#374151',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroMeta: {
     flex: 1,

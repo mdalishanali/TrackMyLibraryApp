@@ -35,7 +35,7 @@ export const pickOrCaptureImage = async (source: 'gallery' | 'camera'): Promise<
       : ImagePicker.launchCameraAsync;
 
     const result = await launchMethod({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true, // Re-enabling as per request
       aspect: [1, 1], // Square crop for passport photos
       quality: 0.4, 

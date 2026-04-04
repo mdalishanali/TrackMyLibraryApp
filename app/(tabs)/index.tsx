@@ -543,9 +543,18 @@ export default function DashboardScreen() {
                       pressed && { transform: [{ scale: 0.95 }] },
                     ]}
                   >
-                    <Text style={[styles.avatarText, { color: theme.primary }]}>
-                      {user?.name?.[0]?.toUpperCase() || 'U'}
-                    </Text>
+                    {user?.company?.libraryLogo ? (
+                      <Image
+                        source={{ uri: user.company.libraryLogo }}
+                        style={styles.avatarImage}
+                        contentFit="cover"
+                        transition={500}
+                      />
+                    ) : (
+                      <Text style={[styles.avatarText, { color: theme.primary }]}>
+                        {user?.name?.[0]?.toUpperCase() || 'U'}
+                      </Text>
+                    )}
                     {isPro && (
                       <View style={styles.proIndicator}>
                         <Ionicons name="star" size={10} color="#fff" />
@@ -776,6 +785,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 21,
   },
   avatarText: {
     fontSize: 24,
