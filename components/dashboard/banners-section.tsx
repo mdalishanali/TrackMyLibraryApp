@@ -90,7 +90,6 @@ const styles = StyleSheet.create({
   bannerSection: {
     gap: spacing.md,
     marginBottom: spacing.xl,
-    paddingHorizontal: spacing.xl,
   },
   engagementBanner: {
     flexDirection: 'row',
@@ -101,6 +100,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   bannerGradient: {
     ...StyleSheet.absoluteFillObject,
