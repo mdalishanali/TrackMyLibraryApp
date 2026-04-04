@@ -23,7 +23,7 @@ import { useStudentQuery } from '@/hooks/use-student';
 import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfinitePaymentsQuery, useUpdatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
-import { useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt } from '@/hooks/use-whatsapp';
+import { useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt, useAutomationSettings } from '@/hooks/use-whatsapp';
 import { useShiftsQuery } from '@/hooks/use-shifts';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
@@ -61,6 +61,7 @@ export default function StudentDetailScreen() {
 
   const feeReminderMutation = useSendTemplate();
   const { data: templates } = useWhatsappTemplates();
+  const { data: automationSettings } = useAutomationSettings();
   const { user } = useAuth();
   const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
   const [reminderChannel, setReminderChannel] = useState<'whatsapp' | 'sms' | null>(null);
@@ -262,14 +263,20 @@ export default function StudentDetailScreen() {
     setIsTemplateSelectorOpen(true);
   };
 
-  const handleSelectTemplate = async (tpl: any) => {
+  const handleSelectTemplate = async (tpl: any, method: 'api' | 'handset') => {
     setIsTemplateSelectorOpen(false);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const res = await feeReminderMutation.mutateAsync({
         studentId: student._id,
-        templateType: tpl.type
+        templateType: tpl.type,
+        method
       });
+
+      if (method === 'api' && res.success) {
+        showToast('Message sent automatically!', 'success');
+        return;
+      }
 
       if (res.phone && res.message) {
         if (reminderChannel === 'sms') {
@@ -279,15 +286,17 @@ export default function StudentDetailScreen() {
         }
       }
       setReminderChannel(null);
-    } catch (error) {
-      showToast('Failed to prepare reminder', 'error');
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Failed to prepare reminder';
+      showToast(msg, 'error');
     }
   };
 
   const handleSendReceipt = async (paymentId: string) => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const res = await sendReceiptMutation.mutateAsync(paymentId);
+      // Handset mode for single receipt (default)
+      const res = await sendReceiptMutation.mutateAsync({ paymentId, method: 'handset' });
       showToast('Prepared!', 'success');
 
       if (res.phone && res.message) {
@@ -872,6 +881,7 @@ export default function StudentDetailScreen() {
           setReminderChannel(null);
         }}
         theme={theme}
+        hasCredits={(automationSettings?.whatsappCredits || 0) > 0}
       />
 
       <ConfirmDialog
