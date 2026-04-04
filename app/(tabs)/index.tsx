@@ -359,8 +359,7 @@ function BannersSection({ theme }: { theme: any }) {
 
   const handleWhatsAppJoin = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const whatsappUrl = 'https://chat.whatsapp.com/EXAMPLE_GROUP_LINK';
-    // router.push(whatsappUrl as any); // Or use Linking.openURL
+    router.push('/community');
   };
 
   return (
@@ -370,7 +369,7 @@ function BannersSection({ theme }: { theme: any }) {
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            // router.push('/referral');
+            router.push('/referral');
           }}
           style={({ pressed }) => [
             styles.engagementBanner,
