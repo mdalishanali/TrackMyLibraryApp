@@ -23,7 +23,7 @@ import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
-import { useSendTemplate, useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useSendTemplate, useWhatsappTemplates, useAutomationSettings } from '@/hooks/use-whatsapp';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/providers/subscription-provider';
@@ -91,6 +91,7 @@ export default function StudentsScreen() {
   const createPayment = useCreatePayment();
   const feeReminder = useSendTemplate();
   const { data: templates } = useWhatsappTemplates();
+  const { data: automationSettings } = useAutomationSettings();
   const { user } = useAuth();
   const { isPro, presentPaywall } = useSubscription();
   const { triggerRating } = useQuickRating();
@@ -157,16 +158,24 @@ export default function StudentsScreen() {
     setIsTemplateSelectorOpen(true);
   }, []);
 
-  const handleSelectTemplate = async (tpl: any) => {
+  const handleSelectTemplate = async (tpl: any, method: 'api' | 'handset') => {
     setIsTemplateSelectorOpen(false);
     if (!reminderTarget) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const res = await feeReminder.mutateAsync({
         studentId: reminderTarget._id,
-        templateType: tpl.type
+        templateType: tpl.type,
+        method
       });
+      
+      const targetPhone = reminderTarget.number;
       setReminderTarget(null);
+
+      if (method === 'api' && res.success) {
+        showToast('Message sent automatically!', 'success');
+        return;
+      }
 
       if (res.phone && res.message) {
         if (reminderChannel === 'sms') {
@@ -176,8 +185,9 @@ export default function StudentsScreen() {
         }
       }
       setReminderChannel(null);
-    } catch (e) {
-      showToast('Failed to prepare reminder', 'error');
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Failed to prepare reminder';
+      showToast(msg, 'error');
     }
   };
 
@@ -492,6 +502,7 @@ export default function StudentsScreen() {
           setReminderChannel(null);
         }}
         theme={theme}
+        hasCredits={(automationSettings?.whatsappCredits || 0) > 0}
       />
     </SafeScreen>
   );

@@ -22,13 +22,14 @@ export const useSendPaymentReceipt = () => {
   const posthog = usePostHog();
 
   return useMutation({
-    mutationFn: async (paymentId: string) => {
-      const { data } = await api.post('/whatsapp/payment-confirmation', { paymentId });
+    mutationFn: async ({ paymentId, method = 'handset' }: { paymentId: string; method?: 'api' | 'handset' }) => {
+      const { data } = await api.post('/whatsapp/payment-confirmation', { paymentId, method });
       return data;
     },
-    onSuccess: (data, paymentId) => {
+    onSuccess: (data, variables) => {
       posthog?.capture('whatsapp_receipt_sent', {
-        payment_id: paymentId,
+        payment_id: variables.paymentId,
+        method: variables.method || 'handset',
       });
     },
   });
@@ -38,14 +39,15 @@ export const useSendTemplate = () => {
   const posthog = usePostHog();
 
   return useMutation({
-    mutationFn: async ({ studentId, templateType }: { studentId: string; templateType: string }) => {
-      const { data } = await api.post('/whatsapp/send-template', { studentId, templateType });
+    mutationFn: async ({ studentId, templateType, method = 'handset' }: { studentId: string; templateType: string; method?: 'api' | 'handset' }) => {
+      const { data } = await api.post('/whatsapp/send-template', { studentId, templateType, method });
       return data;
     },
     onSuccess: (data, variables) => {
       posthog?.capture('whatsapp_template_sent', {
         student_id: variables.studentId,
         template_type: variables.templateType,
+        method: variables.method || 'handset',
       });
     },
   });
@@ -74,3 +76,62 @@ export const useUpdateTemplates = () => {
   });
 };
 
+export type ReminderDaysBefore = {
+  threeDays: boolean;
+  sameDay: boolean;
+  overdue: boolean;
+};
+
+export type AutomationSettings = {
+  whatsappEnabled: boolean;
+  autoReminderEnabled: boolean;
+  welcomeMessageEnabled: boolean;
+  paymentReceiptEnabled: boolean;
+  reminderDaysBefore: ReminderDaysBefore;
+  whatsappCredits: number;
+  whatsappMessagesSent: number;
+};
+
+export const useAutomationSettings = () => {
+  return useQuery<AutomationSettings>({
+    queryKey: ['whatsapp-automation-settings'],
+    queryFn: async () => {
+      const { data } = await api.get('/whatsapp/automation-settings');
+      return data;
+    },
+  });
+};
+
+export const useUpdateAutomationSettings = () => {
+  const queryClient = useQueryClient();
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async (settings: Partial<AutomationSettings>) => {
+      const { data } = await api.patch('/whatsapp/automation-settings', settings, {
+        skipSuccessToast: true,
+      });
+      return data as AutomationSettings;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['whatsapp-automation-settings'], data);
+      posthog?.capture('whatsapp_automation_settings_updated');
+    },
+  });
+};
+
+export const useSendBulkReminders = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async (reminderType: 'all' | '3day' | 'today' | 'overdue' = 'all') => {
+      const { data } = await api.post('/whatsapp/bulk-reminder', { reminderType });
+      return data;
+    },
+    onSuccess: (data) => {
+      posthog?.capture('whatsapp_bulk_reminder_triggered', {
+        queued: data?.queued,
+      });
+    },
+  });
+};
