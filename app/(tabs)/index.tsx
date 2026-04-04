@@ -19,6 +19,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
+import { BannersSection } from '@/components/dashboard/banners-section';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { useCreateStudent } from '@/hooks/use-students';
@@ -604,6 +605,9 @@ export default function DashboardScreen() {
               ))}
             </View>
           </View>
+
+          {/* Engagement Banners (Referral & Community) */}
+          <BannersSection theme={theme} />
 
           {/* Recent Students Section */}
           <View style={styles.section}>

@@ -284,6 +284,20 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {/* Resources Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Resources</Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ActionRow
+              icon="globe"
+              label="Official Website"
+              description="TrackMyLibrary.in"
+              onPress={() => Linking.openURL('https://TrackMyLibrary.in')}
+              themeTint={theme.primary}
+            />
+          </View>
+
           {/* Automation Section */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Automation</Text>
