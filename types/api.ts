@@ -39,6 +39,7 @@ export type Student = {
     comment?: string;
     _id?: string;
   }[];
+  dueAmount?: number;
 };
 
 export type Payment = {
@@ -51,6 +52,7 @@ export type Payment = {
   paymentMode: 'cash' | 'upi';
   notes?: string;
   paymentDate: string;
+  dueAmount: number;
   createdAt?: string;
 };
 

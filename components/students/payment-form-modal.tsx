@@ -15,7 +15,7 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatCurrency } from '@/utils/format';
 
 const paymentSchema = z.object({
   student: z.string().min(1, 'Pick a student'),
@@ -25,6 +25,7 @@ const paymentSchema = z.object({
   paymentMode: z.enum(['cash', 'upi']),
   paymentDate: z.string().min(1),
   notes: z.string().optional(),
+  dueAmount: z.coerce.number().default(0),
 });
 
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
@@ -44,6 +45,8 @@ type Props = {
   studentOptions?: PaymentStudent[];
   title?: string;
   onSearchStudent?: (text: string) => void;
+  monthlyFee?: number;
+  previousDueAmount?: number;
 };
 
 export function PaymentFormModal({
@@ -59,6 +62,8 @@ export function PaymentFormModal({
   studentOptions,
   title = 'Record Payment',
   onSearchStudent,
+  monthlyFee,
+  previousDueAmount = 0,
 }: Props) {
   const {
     control,
@@ -82,6 +87,20 @@ export function PaymentFormModal({
       setDatePicker(null);
     }
   }, [visible, initialValues, reset]);
+
+  const paidAmount = watch('rupees');
+  useEffect(() => {
+    if (monthlyFee) {
+      if (paidAmount > 0 && paidAmount < monthlyFee) {
+        setValue('dueAmount', monthlyFee - paidAmount);
+      } else if (paidAmount >= monthlyFee) {
+        setValue('dueAmount', 0);
+      } else if (!paidAmount || paidAmount === 0) {
+        // If the amount is cleared (0), reset the due amount as well to avoid confusing values. 
+        setValue('dueAmount', 0);
+      }
+    }
+  }, [paidAmount, monthlyFee, setValue]);
 
   const openDatePicker = (field: keyof PaymentFormValues, value: string) => {
     const parsed = new Date(value);
@@ -117,6 +136,7 @@ export function PaymentFormModal({
       startDate: new Date().toISOString(),
       endDate: new Date().toISOString(),
       paymentDate: new Date().toISOString(),
+      dueAmount: 0,
     };
 
   const submitForm = handleSubmit(async (vals) => {
@@ -185,6 +205,20 @@ export function PaymentFormModal({
               )}
             </View>
 
+            {previousDueAmount > 0 && (
+              <Animated.View entering={FadeInDown.delay(100).duration(600)}>
+                <View style={[styles.dueReminder, { backgroundColor: theme.warning + '15', borderColor: theme.warning + '40' }]}>
+                  <Ionicons name="warning" size={18} color={theme.warning} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dueReminderTitle, { color: theme.warning }]}>Previous Balance Pending</Text>
+                    <Text style={[styles.dueReminderText, { color: theme.warning }]}>
+                      This member has an outstanding balance of <Text style={{ fontWeight: '900' }}>{formatCurrency(previousDueAmount)}</Text>.
+                    </Text>
+                  </View>
+                </View>
+              </Animated.View>
+            )}
+
             <Animated.View entering={FadeInDown.delay(200).duration(600)}>
               <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 {studentOptions?.length ? (
@@ -225,7 +259,7 @@ export function PaymentFormModal({
                 ) : null}
 
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: theme.text }]}>Amount (₹)</Text>
+                  <Text style={[styles.label, { color: theme.text }]}>Amount Paid (₹)</Text>
                   <Controller
                     control={control}
                     name="rupees"
@@ -248,6 +282,32 @@ export function PaymentFormModal({
                     )}
                   />
                   {errors.rupees?.message && <Text style={styles.errorText}>{String(errors.rupees.message)}</Text>}
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: theme.text }]}>Remaining Fees / Due (₹)</Text>
+                  <Controller
+                    control={control}
+                    name="dueAmount"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        value={value === 0 ? '0' : String(value)}
+                        onChangeText={onChange}
+                        placeholder="0.00"
+                        placeholderTextColor={theme.muted}
+                        keyboardType="numeric"
+                        style={[
+                          styles.input,
+                          {
+                            borderColor: errors.dueAmount ? theme.danger : theme.border,
+                            color: theme.danger, // Highlight due amount in red
+                            backgroundColor: theme.surfaceAlt,
+                          },
+                        ]}
+                      />
+                    )}
+                  />
+                  {errors.dueAmount?.message && <Text style={styles.errorText}>{String(errors.dueAmount.message)}</Text>}
                 </View>
 
                 <View style={styles.dateGrid}>
@@ -477,6 +537,26 @@ const styles = StyleSheet.create({
   studentPillText: {
     fontSize: 12,
     fontWeight: '800',
+  },
+  dueReminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: -8,
+    marginBottom: -8,
+  },
+  dueReminderTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  dueReminderText: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
   },
   formCard: {
     borderRadius: 24,

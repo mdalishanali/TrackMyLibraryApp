@@ -78,8 +78,9 @@ export default function PaymentsScreen() {
       startDate: isoDate,
       endDate: isoDate,
       paymentDate: isoDate,
-      paymentMode: 'cash',
+      paymentMode: 'upi',
       notes: '',
+      dueAmount: 0
     };
   };
   const [paymentDefaults, setPaymentDefaults] = useState<PaymentFormValues>(buildPaymentDefaults());
