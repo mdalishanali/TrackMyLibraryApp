@@ -45,6 +45,17 @@ export const useStudentsQuery = (params?: { name?: string; filter?: string; limi
     placeholderData: (previousData) => previousData,
   });
 
+export const useStudentQuery = (id?: string) =>
+  useQuery({
+    queryKey: ['students', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data } = await api.get(`/students/${id}`);
+      return (data.student || data.data || data) as Student;
+    },
+    enabled: !!id,
+  });
+
 export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string }) =>
   useInfiniteQuery<StudentsPage>({
     queryKey: queryKeys.students(params),

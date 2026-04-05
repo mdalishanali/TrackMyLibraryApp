@@ -1,5 +1,6 @@
 import { PropsWithChildren } from 'react';
-import { ActivityIndicator, GestureResponderEvent, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { radius, spacing, themeFor, typography } from '@/constants/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -15,6 +16,7 @@ type Props = PropsWithChildren<{
   fullWidth?: boolean;
   tone?: Tone;
   style?: any;
+  icon?: keyof typeof Ionicons.glyphMap;
 }>;
 
 export function AppButton({
@@ -26,6 +28,7 @@ export function AppButton({
   fullWidth,
   tone = 'primary',
   style,
+  icon,
 }: Props) {
   const colorScheme = useColorScheme();
   const theme = themeFor(colorScheme);
@@ -76,7 +79,14 @@ export function AppButton({
         },
         style,
       ]}>
-      {loading ? <ActivityIndicator color={textColor} /> : <Text style={[styles.text, { color: textColor }]}>{children}</Text>}
+      {loading ? (
+        <ActivityIndicator color={textColor} />
+      ) : (
+        <View style={styles.content}>
+          {icon && <Ionicons name={icon} size={18} color={textColor} style={{ marginRight: 8 }} />}
+          <Text style={[styles.text, { color: textColor }]}>{children}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -87,6 +97,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },

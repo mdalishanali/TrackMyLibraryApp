@@ -515,44 +515,16 @@ export default function StudentDetailScreen() {
                 <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setIsEditStudentOpen(true);
-                  }}
-                  style={({ pressed }) => [
-                    styles.editBtn,
-                    { backgroundColor: theme.surface, borderColor: theme.border },
-                    pressed && { opacity: 0.8 }
-                  ]}
-                >
-                  <Ionicons name="create-outline" size={20} color={theme.text} />
-                </Pressable>
-
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setIsChangeSeatOpen(true);
-                  }}
-                  style={({ pressed }) => [
-                    styles.editBtn,
-                    { backgroundColor: theme.surface, borderColor: theme.border },
-                    pressed && { opacity: 0.8 }
-                  ]}
-                >
-                  <Ionicons name="swap-horizontal-outline" size={20} color={theme.text} />
-                </Pressable>
-
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     openPayment();
                   }}
                   style={({ pressed }) => [
                     styles.payBtn,
-                    { backgroundColor: theme.primary },
+                    { backgroundColor: theme.primary, width: '100%' },
                     pressed && { opacity: 0.8 }
                   ]}
                 >
                   <Ionicons name="wallet-outline" size={20} color="#fff" />
-                  <Text style={styles.payBtnText}>Payment</Text>
+                  <Text style={styles.payBtnText}>Collect Payment</Text>
                 </Pressable>
               </View>
 
@@ -564,7 +536,7 @@ export default function StudentDetailScreen() {
                   }}
                   style={({ pressed }) => [
                     styles.primaryActionBtn,
-                    { backgroundColor: '#25D366' + '15', flex: 1, flexDirection: 'row', gap: 6 },
+                    { backgroundColor: '#25D366' + '15', flex: 1, height: 50 },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
@@ -579,27 +551,68 @@ export default function StudentDetailScreen() {
                   }}
                   style={({ pressed }) => [
                     styles.primaryActionBtn,
-                    { backgroundColor: theme.info + '15', flex: 1, flexDirection: 'row', gap: 6 },
+                    { backgroundColor: theme.info + '15', flex: 1, height: 50 },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
                   <Ionicons name="chatbubble-outline" size={18} color={theme.info} />
                   <Text style={[styles.payBtnText, { color: theme.info, fontSize: 13 }]}>SMS</Text>
                 </Pressable>
+              </View>
 
+              <View style={[styles.actionRow, { gap: spacing.md }]}>
                 <Pressable
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setConfirmStudentDelete(true);
+                    router.push(`/student-id/${id}`);
                   }}
                   style={({ pressed }) => [
                     styles.iconBtn,
-                    { backgroundColor: theme.danger + '10' },
+                    { backgroundColor: theme.primary + '10', flex: 1, flexDirection: 'row', gap: 8, height: 48, borderRadius: 12 },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
-                  <Ionicons name="trash-outline" size={24} color={theme.danger} />
+                  <Ionicons name="id-card-outline" size={20} color={theme.primary} />
+                  <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>ID Card</Text>
                 </Pressable>
+
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <Pressable
+                    onPress={() => setIsEditStudentOpen(true)}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, width: 48, height: 48, borderRadius: 12 },
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Ionicons name="create-outline" size={20} color={theme.text} />
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => setIsChangeSeatOpen(true)}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, width: 48, height: 48, borderRadius: 12 },
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Ionicons name="swap-horizontal-outline" size={20} color={theme.text} />
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setConfirmStudentDelete(true);
+                    }}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      { backgroundColor: theme.danger + '10', width: 48, height: 48, borderRadius: 12 },
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Ionicons name="trash-outline" size={22} color={theme.danger} />
+                  </Pressable>
+                </View>
               </View>
             </View>
           </LinearGradient>

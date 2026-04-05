@@ -52,6 +52,7 @@ type Actions = {
   onPay?: () => void;
   onRemind?: () => void;
   onSmsRemind?: () => void;
+  onIdCard?: () => void;
 };
 
 type Theme = ReturnType<typeof themeFor>;
@@ -383,6 +384,18 @@ export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }
           >
             <Ionicons name="wallet-outline" size={18} color="#fff" />
             <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay</Text>
+          </TouchableOpacity>
+        ) : null}
+        {actions.onIdCard ? (
+          <TouchableOpacity
+            onPress={() => {
+              posthog?.capture('student_id_card_clicked');
+              actions.onIdCard?.();
+            }}
+            style={[styles.actionBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+          >
+            <Ionicons name="id-card-outline" size={18} color={theme.text} />
+            <Text style={[styles.actionBtnText, { color: theme.text }]}>ID Card</Text>
           </TouchableOpacity>
         ) : null}
       </View>
