@@ -315,6 +315,13 @@ export function StatusBadges({ student, theme }: { student: Student; theme: Them
           <Text style={[styles.badgeTextBold, { color: theme.success }]}>PAID</Text>
         </View>
       )}
+
+      {typeof student.dueAmount === 'number' && student.dueAmount > 0 ? (
+        <View style={[styles.badge, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '30' }]}>
+          <Ionicons name="alert-circle" size={12} color={theme.danger} />
+          <Text style={[styles.badgeTextBold, { color: theme.danger }]}>DUE: {formatCurrency(student.dueAmount)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
