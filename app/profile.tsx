@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -134,6 +135,31 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleRemoveLogo = () => {
+    Alert.alert(
+      'Remove Logo',
+      'Are you sure you want to remove your library logo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsUploading(true);
+              await updateProfile.mutateAsync({ libraryLogo: "" });
+              showToast('Logo removed', 'success');
+            } catch (error) {
+              showToast('Failed to remove logo', 'error');
+            } finally {
+              setIsUploading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <SafeScreen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -254,13 +280,24 @@ export default function ProfileScreen() {
               <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.sectionHeader}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Business Details</Text>
-                    <Pressable 
-                        onPress={handlePickImage}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                    >
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: theme.primary }}>Change Logo</Text>
-                        <Ionicons name="image-outline" size={14} color={theme.primary} />
-                    </Pressable>
+                    <View style={{ flexDirection: 'row', gap: 16 }}>
+                      {user?.company?.libraryLogo && (
+                        <Pressable 
+                            onPress={handleRemoveLogo}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                        >
+                            <Text style={{ fontSize: 13, fontWeight: '800', color: theme.danger }}>Remove</Text>
+                            <Ionicons name="trash-outline" size={14} color={theme.danger} />
+                        </Pressable>
+                      )}
+                      <Pressable 
+                          onPress={handlePickImage}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                      >
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: theme.primary }}>Change Logo</Text>
+                          <Ionicons name="image-outline" size={14} color={theme.primary} />
+                      </Pressable>
+                    </View>
                 </View>
               </Animated.View>
 

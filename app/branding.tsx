@@ -220,19 +220,33 @@ export default function BrandingScreen() {
           <Animated.View entering={FadeInDown.delay(600).duration(800)}>
             <View style={[styles.previewSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                <Text style={[styles.sectionLabel, { color: theme.muted }]}>INVOICE HEADER PREVIEW</Text>
-               <View style={[styles.invoiceMockup, { backgroundColor: '#f9fafb' }]}>
-                  <View style={styles.mockupHeader}>
-                      {logo ? (
-                        <Image source={{ uri: logo }} style={styles.mockupLogo} contentFit="contain" />
-                      ) : (
-                        <View style={styles.mockupLogoPlaceholder} />
-                      )}
-                      <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.mockupTitle}>{company?.businessName || 'TRACK MY LIBRARY'}</Text>
-                        <Text style={styles.mockupSubtitle}>{company?.businessAddress || '123 Main Street'}</Text>
-                      </View>
-                  </View>
-                  <View style={styles.mockupDivider} />
+                <View style={[styles.invoiceMockup, { backgroundColor: '#f9fafb', overflow: 'hidden' }]}>
+                   {logo && (
+                     <Image 
+                      source={{ uri: logo }} 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '20%', 
+                        left: '10%', 
+                        width: '80%', 
+                        height: '60%', 
+                        opacity: 0.05 
+                      }} 
+                      contentFit="contain" 
+                     />
+                   )}
+                   <View style={styles.mockupHeader}>
+                       {logo ? (
+                         <Image source={{ uri: logo }} style={styles.mockupLogo} contentFit="contain" />
+                       ) : (
+                         <View style={styles.mockupLogoPlaceholder} />
+                       )}
+                       <View style={{ flex: 1, marginLeft: 12 }}>
+                         <Text style={styles.mockupTitle}>{company?.businessName || 'TRACK MY LIBRARY'}</Text>
+                         <Text style={styles.mockupSubtitle}>{company?.businessAddress || '123 Main Street'}</Text>
+                       </View>
+                   </View>
+                   <View style={styles.mockupDivider} />
                   <View style={styles.mockupRow} />
                   <View style={[styles.mockupRow, { width: '60%' }]} />
                </View>
