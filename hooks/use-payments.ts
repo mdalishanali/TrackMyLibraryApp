@@ -14,6 +14,7 @@ export type PaymentPayload = {
   paymentMode: 'cash' | 'upi';
   paymentDate: string;
   notes?: string;
+  dueAmount: number;
 };
 
 type PaymentsPage = {

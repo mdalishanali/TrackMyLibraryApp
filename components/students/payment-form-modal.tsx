@@ -25,6 +25,7 @@ const paymentSchema = z.object({
   paymentMode: z.enum(['cash', 'upi']),
   paymentDate: z.string().min(1),
   notes: z.string().optional(),
+  dueAmount: z.coerce.number().default(0),
 });
 
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
@@ -44,6 +45,7 @@ type Props = {
   studentOptions?: PaymentStudent[];
   title?: string;
   onSearchStudent?: (text: string) => void;
+  monthlyFee?: number;
 };
 
 export function PaymentFormModal({
@@ -59,6 +61,7 @@ export function PaymentFormModal({
   studentOptions,
   title = 'Record Payment',
   onSearchStudent,
+  monthlyFee,
 }: Props) {
   const {
     control,
@@ -82,6 +85,20 @@ export function PaymentFormModal({
       setDatePicker(null);
     }
   }, [visible, initialValues, reset]);
+
+  const paidAmount = watch('rupees');
+  useEffect(() => {
+    if (monthlyFee) {
+      if (paidAmount > 0 && paidAmount < monthlyFee) {
+        setValue('dueAmount', monthlyFee - paidAmount);
+      } else if (paidAmount >= monthlyFee) {
+        setValue('dueAmount', 0);
+      } else if (!paidAmount || paidAmount === 0) {
+        // If the amount is cleared (0), reset the due amount as well to avoid confusing values. 
+        setValue('dueAmount', 0);
+      }
+    }
+  }, [paidAmount, monthlyFee, setValue]);
 
   const openDatePicker = (field: keyof PaymentFormValues, value: string) => {
     const parsed = new Date(value);
@@ -117,6 +134,7 @@ export function PaymentFormModal({
       startDate: new Date().toISOString(),
       endDate: new Date().toISOString(),
       paymentDate: new Date().toISOString(),
+      dueAmount: 0,
     };
 
   const submitForm = handleSubmit(async (vals) => {
@@ -225,7 +243,7 @@ export function PaymentFormModal({
                 ) : null}
 
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: theme.text }]}>Amount (₹)</Text>
+                  <Text style={[styles.label, { color: theme.text }]}>Amount Paid (₹)</Text>
                   <Controller
                     control={control}
                     name="rupees"
@@ -248,6 +266,32 @@ export function PaymentFormModal({
                     )}
                   />
                   {errors.rupees?.message && <Text style={styles.errorText}>{String(errors.rupees.message)}</Text>}
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: theme.text }]}>Remaining Fees / Due (₹)</Text>
+                  <Controller
+                    control={control}
+                    name="dueAmount"
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        value={value === 0 ? '0' : String(value)}
+                        onChangeText={onChange}
+                        placeholder="0.00"
+                        placeholderTextColor={theme.muted}
+                        keyboardType="numeric"
+                        style={[
+                          styles.input,
+                          {
+                            borderColor: errors.dueAmount ? theme.danger : theme.border,
+                            color: theme.danger, // Highlight due amount in red
+                            backgroundColor: theme.surfaceAlt,
+                          },
+                        ]}
+                      />
+                    )}
+                  />
+                  {errors.dueAmount?.message && <Text style={styles.errorText}>{String(errors.dueAmount.message)}</Text>}
                 </View>
 
                 <View style={styles.dateGrid}>

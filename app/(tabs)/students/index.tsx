@@ -264,8 +264,9 @@ export default function StudentsScreen() {
       startDate: startDate,
       endDate: endDate,
       paymentDate: today,
-      paymentMode: 'cash' as const,
-      notes: ''
+      paymentMode: 'upi' as const,
+      notes: '',
+      dueAmount: 0
     };
   };
 

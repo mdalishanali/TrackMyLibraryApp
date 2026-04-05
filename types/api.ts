@@ -51,6 +51,7 @@ export type Payment = {
   paymentMode: 'cash' | 'upi';
   notes?: string;
   paymentDate: string;
+  dueAmount: number;
   createdAt?: string;
 };
 

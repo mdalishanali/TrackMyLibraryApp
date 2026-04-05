@@ -112,8 +112,9 @@ export default function StudentDetailScreen() {
       startDate: todayIso,
       endDate: todayIso,
       paymentDate: todayIso,
-      paymentMode: 'cash',
+      paymentMode: 'upi',
       notes: '',
+      dueAmount: 0,
     }),
     [id, todayIso],
   );
@@ -202,7 +203,8 @@ export default function StudentDetailScreen() {
       rupees: student.fees ?? 0,
       startDate,
       endDate,
-      paymentDate: todayIso
+      paymentDate: todayIso,
+      dueAmount: 0,
     });
     setEditingPaymentId(null);
     setIsPaymentOpen(true);
@@ -248,6 +250,7 @@ export default function StudentDetailScreen() {
       paymentDate: payment.paymentDate?.slice(0, 10) ?? todayIso,
       paymentMode: payment.paymentMode ?? 'cash',
       notes: payment.notes ?? '',
+      dueAmount: payment.dueAmount ?? 0,
     });
     setEditingPaymentId(payment._id);
     setIsPaymentOpen(true);
@@ -768,15 +771,25 @@ export default function StudentDetailScreen() {
                 key={payment._id}
                 style={[styles.paymentCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
               >
-                <View style={styles.paymentCardHeader}>
-                  <View style={styles.payMain}>
-                    <Text style={[styles.payAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
-                    <View style={[styles.payModePill, { backgroundColor: theme.primary + '10' }]}>
-                      <Ionicons name={payment.paymentMode === 'cash' ? 'cash' : 'phone-portrait'} size={10} color={theme.primary} />
-                      <Text style={[styles.payModeText, { color: theme.primary }]}>{payment.paymentMode?.toUpperCase() || 'CASH'}</Text>
+                  <View style={styles.paymentCardHeader}>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={[styles.payAmount, { color: theme.text }]}>{formatCurrency(payment.rupees)}</Text>
+                        <View style={[styles.payModePill, { backgroundColor: theme.primary + '10' }]}>
+                          <Ionicons name={payment.paymentMode === 'cash' ? 'cash' : 'phone-portrait'} size={10} color={theme.primary} />
+                          <Text style={[styles.payModeText, { color: theme.primary }]}>{payment.paymentMode?.toUpperCase() || 'CASH'}</Text>
+                        </View>
+                      </View>
+                      
+                      {payment.dueAmount > 0 && (
+                        <View style={[styles.payModePill, { backgroundColor: theme.danger + '10', alignSelf: 'flex-start', paddingVertical: 2 }]}>
+                          <Text style={[styles.payModeText, { color: theme.danger, fontWeight: '900', fontSize: 9 }]}>
+                            REMAINS: {formatCurrency(payment.dueAmount)}
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                  </View>
-                  <View style={styles.payActions}>
+                    <View style={styles.payActions}>
                     <Pressable
                       onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -865,6 +878,7 @@ export default function StudentDetailScreen() {
         isSubmitting={isPaymentSaving}
         onSubmit={submitPayment}
         studentName={student.name}
+        monthlyFee={student.fees}
         title={editingPaymentId ? "Edit Payment" : "Record Payment"}
       />
 
@@ -1297,7 +1311,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   payAmount: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
   },
   payModePill: {
