@@ -39,6 +39,7 @@ export type Student = {
     comment?: string;
     _id?: string;
   }[];
+  dueAmount?: number;
 };
 
 export type Payment = {

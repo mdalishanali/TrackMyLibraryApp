@@ -15,7 +15,7 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { AppCard } from '@/components/ui/app-card';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
-import { formatDate } from '@/utils/format';
+import { formatDate, formatCurrency } from '@/utils/format';
 
 const paymentSchema = z.object({
   student: z.string().min(1, 'Pick a student'),
@@ -46,6 +46,7 @@ type Props = {
   title?: string;
   onSearchStudent?: (text: string) => void;
   monthlyFee?: number;
+  previousDueAmount?: number;
 };
 
 export function PaymentFormModal({
@@ -62,6 +63,7 @@ export function PaymentFormModal({
   title = 'Record Payment',
   onSearchStudent,
   monthlyFee,
+  previousDueAmount = 0,
 }: Props) {
   const {
     control,
@@ -202,6 +204,20 @@ export function PaymentFormModal({
                 </View>
               )}
             </View>
+
+            {previousDueAmount > 0 && (
+              <Animated.View entering={FadeInDown.delay(100).duration(600)}>
+                <View style={[styles.dueReminder, { backgroundColor: theme.warning + '15', borderColor: theme.warning + '40' }]}>
+                  <Ionicons name="warning" size={18} color={theme.warning} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dueReminderTitle, { color: theme.warning }]}>Previous Balance Pending</Text>
+                    <Text style={[styles.dueReminderText, { color: theme.warning }]}>
+                      This member has an outstanding balance of <Text style={{ fontWeight: '900' }}>{formatCurrency(previousDueAmount)}</Text>.
+                    </Text>
+                  </View>
+                </View>
+              </Animated.View>
+            )}
 
             <Animated.View entering={FadeInDown.delay(200).duration(600)}>
               <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -521,6 +537,26 @@ const styles = StyleSheet.create({
   studentPillText: {
     fontSize: 12,
     fontWeight: '800',
+  },
+  dueReminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: -8,
+    marginBottom: -8,
+  },
+  dueReminderTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  dueReminderText: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
   },
   formCard: {
     borderRadius: 24,

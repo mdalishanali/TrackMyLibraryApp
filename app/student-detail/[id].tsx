@@ -879,6 +879,7 @@ export default function StudentDetailScreen() {
         onSubmit={submitPayment}
         studentName={student.name}
         monthlyFee={student.fees}
+        previousDueAmount={student.dueAmount}
         title={editingPaymentId ? "Edit Payment" : "Record Payment"}
       />
 
