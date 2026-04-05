@@ -478,6 +478,7 @@ export default function StudentsScreen() {
         isSubmitting={createPayment.isPending}
         onSubmit={savePayment}
         studentName={paymentStudent?.name}
+        previousDueAmount={paymentStudent?.dueAmount}
       />
 
       <ConfirmDialog
