@@ -263,12 +263,17 @@ export default function SeatsScreen() {
 
   const occupancyStats = useMemo(() => {
     const total = currentSeats.length;
-    const occupied = currentSeats.filter(seat => {
+    let occupied = 0;
+    let studentsCount = 0;
+
+    currentSeats.forEach(seat => {
       const filtered = getFilteredStudents(seat.students || []);
-      return filtered.length > 0;
-    }).length;
-    return { total, occupied, vacant: total - occupied };
-  }, [currentSeats, selectedShift, selectedPayment, searchQuery]);
+      if (filtered.length > 0) occupied++;
+      studentsCount += filtered.length;
+    });
+
+    return { total, occupied, vacant: total - occupied, students: studentsCount };
+  }, [currentSeats, selectedShift, selectedPayment, searchQuery, shifts]);
 
 
 
@@ -644,8 +649,12 @@ export default function SeatsScreen() {
                   <Text style={[styles.summaryLab, { color: theme.muted }]}>VACANT</Text>
                 </View>
                 <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.summaryVal, { color: theme.warning }]}>{occupancyStats.students}</Text>
+                  <Text style={[styles.summaryLab, { color: theme.muted }]}>STUDENTS</Text>
+                </View>
+                <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <Text style={[styles.summaryVal, { color: theme.text }]}>{occupancyStats.total}</Text>
-                  <Text style={[styles.summaryLab, { color: theme.muted }]}>TOTAL</Text>
+                  <Text style={[styles.summaryLab, { color: theme.muted }]}>SEATS</Text>
                 </View>
               </View>
             </Animated.View>
