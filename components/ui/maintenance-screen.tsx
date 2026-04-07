@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -78,11 +78,12 @@ export const MaintenanceScreen = ({ theme, onRetry, isRetrying, error }: Mainten
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                // Potential support link
+                const message = encodeURIComponent("Hey TrackMyLibrary! I'm facing connection issues. Is the server down?");
+                Linking.openURL(`whatsapp://send?phone=916391417248&text=${message}`);
               }}
               style={styles.secondaryButton}
             >
-              <Text style={[styles.secondaryText, { color: theme.muted }]}>CHECK SYSTEM STATUS</Text>
+              <Text style={[styles.secondaryText, { color: theme.muted }]}>CONTACT SUPPORT</Text>
             </Pressable>
           </Animated.View>
         </Animated.View>
