@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 
 import { AppBadge } from '@/components/ui/app-badge';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
+import { MaintenanceScreen } from '@/components/ui/maintenance-screen';
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { typography, spacing, radius, gradientFor } from '@/constants/design';
@@ -439,17 +440,29 @@ export default function DashboardScreen() {
     </SafeScreen>
   );
 
-  const hasNoSeats =
-    !seatsQuery.data ||
-    seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0;
+  const isError = dashboardQuery.isError || seatsQuery.isError;
+  const isReallyNewUser = !isLoading && !isError && (!seatsQuery.data || seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0);
 
   useEffect(() => {
-    if (hasNoSeats && !isLoading) {
+    if (isReallyNewUser) {
       router.replace('/onboarding/setup');
     }
-  }, [hasNoSeats, isLoading, router]);
+  }, [isReallyNewUser, router]);
 
-  if (isLoading || hasNoSeats) {
+  if (isError) {
+    return (
+      <MaintenanceScreen 
+        theme={theme} 
+        onRetry={() => {
+          dashboardQuery.refetch();
+          seatsQuery.refetch();
+        }}
+        isRetrying={dashboardQuery.isRefetching || seatsQuery.isRefetching}
+      />
+    );
+  }
+
+  if (isLoading || isReallyNewUser) {
     return renderSkeletonDashboard();
   }
 
