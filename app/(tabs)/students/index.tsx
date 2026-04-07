@@ -294,12 +294,21 @@ export default function StudentsScreen() {
 
   const queryCount = studentsQuery.data?.pages[0]?.pagination?.total || 0;
   const filteredCount = useMemo(() => {
-    const isFiltering = debouncedSearch || shiftId || quickFilter || days;
-    if (!isFiltering && (filter === 'recent' || filter === 'all' || filter === 'active')) {
-      return dashboardQuery.data?.totalStudents ?? queryCount;
+    // If we have search or filters active, use the count from the students query itself
+    if (debouncedSearch || shiftId || quickFilter || days) {
+      return studentsQuery.data?.pages[0]?.totalStudents ?? 0;
+    }
+
+    // Otherwise use the dashboard stats for the tab totals
+    if (dashboardQuery.data) {
+      if (filter === 'dues') return dashboardQuery.data.duesCount || 0;
+      if (filter === 'paid') return dashboardQuery.data.paidCount || 0;
+      if (filter === 'trial') return dashboardQuery.data.trialCount || 0;
+      if (filter === 'defaulter') return dashboardQuery.data.defaulterCount || 0;
+      return dashboardQuery.data.totalStudents || 0;
     }
     return queryCount;
-  }, [filter, dashboardQuery.data, queryCount, debouncedSearch, shiftId, quickFilter, days]);
+  }, [filter, dashboardQuery.data, queryCount, debouncedSearch, shiftId, quickFilter, days, studentsQuery.data]);
 
   const countLabel = useMemo(() => {
     const labels: Record<string, string> = {
@@ -350,6 +359,8 @@ export default function StudentsScreen() {
             theme={theme}
             quickFilter={quickFilter}
             onSelect={(val) => {
+              // Clear infinite query data by invalidating when filter changes
+              // (Tanstack query handles this automatically if keys change)
               setQuickFilter(val);
               setDays(undefined);
             }}
@@ -359,6 +370,7 @@ export default function StudentsScreen() {
             setCustomIn={setCustomIn}
             onClear={() => {
               setQuickFilter(undefined);
+              setDays(undefined);
               setCustomAgo('');
               setCustomIn('');
             }}

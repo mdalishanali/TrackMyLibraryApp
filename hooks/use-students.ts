@@ -28,6 +28,7 @@ export type StudentPayload = {
 
 type StudentsPage = {
   students: Student[];
+  totalStudents?: number;
   pagination?: {
     total: number;
     page: number;

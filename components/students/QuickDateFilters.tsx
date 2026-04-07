@@ -21,11 +21,7 @@ const QUICK_OPTIONS = [
   { label: 'Yesterday', value: 'yesterday' },
   { label: 'Today', value: 'today' },
   { label: 'Tomorrow', value: 'tomorrow' },
-  { label: 'In 2 Days', value: '2' },
   { label: 'In 3 Days', value: '3' },
-  { label: '2 Days Ago', value: '-2' },
-  { label: '3 Days Ago', value: '-3' },
-  { label: 'In 5 Days', value: '5' },
   { label: 'In 7 Days', value: '7' },
 ];
 
@@ -58,19 +54,19 @@ const QuickDateFilters = memo(({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.daysScroll}
       >
-        {/* PREVIOUS CUSTOM INPUT */}
+        {/* 1. PREVIOUS CUSTOM INPUT */}
         <View style={[
           styles.daysChip,
           {
-            backgroundColor: (quickFilter?.startsWith('-') && !['-2', '-3'].includes(quickFilter) && quickFilter !== 'yesterday') ? theme.primary : theme.surfaceAlt,
-            borderColor: (quickFilter?.startsWith('-') && !['-2', '-3'].includes(quickFilter) && quickFilter !== 'yesterday') ? theme.primary : theme.border,
+            backgroundColor: (quickFilter?.startsWith('-') && quickFilter !== 'yesterday') ? theme.primary : theme.surfaceAlt,
+            borderColor: (quickFilter?.startsWith('-') && quickFilter !== 'yesterday') ? theme.primary : theme.border,
             flexDirection: 'row',
             alignItems: 'center',
             paddingRight: 8,
             gap: 6
           }
         ]}>
-          <Text style={{ fontSize: 10, fontWeight: '800', color: (quickFilter?.startsWith('-') && !['-2', '-3'].includes(quickFilter) && quickFilter !== 'yesterday') ? '#fff' : theme.muted }}>Previous</Text>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: (quickFilter?.startsWith('-') && quickFilter !== 'yesterday') ? '#fff' : theme.muted }}>Previous</Text>
           <TextInput
             placeholder="Days"
             placeholderTextColor={theme.muted}
@@ -89,14 +85,14 @@ const QuickDateFilters = memo(({
             style={{
               fontSize: 12,
               fontWeight: '700',
-              color: (quickFilter?.startsWith('-') && !['-2', '-3'].includes(quickFilter) && quickFilter !== 'yesterday') ? '#fff' : theme.text,
+              color: (quickFilter?.startsWith('-') && quickFilter !== 'yesterday') ? '#fff' : theme.text,
               minWidth: 30,
             }}
           />
         </View>
 
-        {/* STATIC OPTIONS */}
-        {QUICK_OPTIONS.map(op => (
+        {/* 2. Yesterday & Today */}
+        {QUICK_OPTIONS.slice(0, 2).map(op => (
           <TouchableOpacity
             key={op.value}
             onPress={() => {
@@ -119,19 +115,19 @@ const QuickDateFilters = memo(({
           </TouchableOpacity>
         ))}
 
-        {/* FUTURE CUSTOM INPUT */}
+        {/* 3. FUTURE CUSTOM INPUT (Now after Today) */}
         <View style={[
           styles.daysChip,
           {
-            backgroundColor: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-')) ? theme.primary : theme.surfaceAlt,
-            borderColor: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-')) ? theme.primary : theme.border,
+            backgroundColor: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-') && quickFilter !== 'yesterday' && quickFilter !== 'tomorrow' && quickFilter !== 'today') ? theme.primary : theme.surfaceAlt,
+            borderColor: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-') && quickFilter !== 'yesterday' && quickFilter !== 'tomorrow' && quickFilter !== 'today') ? theme.primary : theme.border,
             flexDirection: 'row',
             alignItems: 'center',
             paddingRight: 8,
             gap: 6
           }
         ]}>
-          <Text style={{ fontSize: 10, fontWeight: '800', color: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-')) ? '#fff' : theme.muted }}>Future</Text>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-') && quickFilter !== 'yesterday' && quickFilter !== 'tomorrow' && quickFilter !== 'today') ? '#fff' : theme.muted }}>Future</Text>
           <TextInput
             placeholder="Days"
             placeholderTextColor={theme.muted}
@@ -150,11 +146,35 @@ const QuickDateFilters = memo(({
             style={{
               fontSize: 12,
               fontWeight: '700',
-              color: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-')) ? '#fff' : theme.text,
+              color: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-') && quickFilter !== 'yesterday' && quickFilter !== 'tomorrow' && quickFilter !== 'today') ? '#fff' : theme.text,
               minWidth: 30,
             }}
           />
         </View>
+
+        {/* 4. Rest of the static options (Tomorrow, In 3 Days, etc.) */}
+        {QUICK_OPTIONS.slice(2).map(op => (
+          <TouchableOpacity
+            key={op.value}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(quickFilter === op.value ? undefined : op.value);
+              setCustomAgo('');
+              setCustomIn('');
+            }}
+            style={[
+              styles.daysChip,
+              {
+                backgroundColor: quickFilter === op.value ? theme.primary : theme.surfaceAlt,
+                borderColor: quickFilter === op.value ? theme.primary : theme.border,
+                minWidth: 80,
+                alignItems: 'center',
+              }
+            ]}
+          >
+            <Text style={[styles.daysText, { color: quickFilter === op.value ? '#fff' : theme.text }]}>{op.label}</Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </Animated.View>
   );
