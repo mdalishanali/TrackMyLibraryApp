@@ -56,7 +56,7 @@ export const useStudentQuery = (id?: string) =>
     enabled: !!id,
   });
 
-export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string }) =>
+export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string; shiftId?: string }) =>
   useInfiniteQuery<StudentsPage>({
     queryKey: queryKeys.students(params),
     initialPageParam: 1,
