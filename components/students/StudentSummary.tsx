@@ -277,7 +277,7 @@ export function StatusBadges({ student, theme }: { student: Student; theme: Them
     if (isTrial && student.joiningDate) {
       const joined = new Date(student.joiningDate);
       joined.setHours(0, 0, 0, 0);
-      return Math.max(0, Math.floor((today.getTime() - joined.getTime()) / 86400000));
+      return Math.max(0, Math.floor((today.getTime() - joined.getTime()) / 86400000) + 1);
     }
     if (isDues && (student.lastPayment?.endDate)) {
       const end = new Date(student.lastPayment.endDate);

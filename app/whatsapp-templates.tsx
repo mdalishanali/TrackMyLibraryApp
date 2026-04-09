@@ -8,13 +8,17 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
-import { useWhatsappTemplates } from '@/hooks/use-whatsapp';
+import { useWhatsappTemplates, useUpdateTemplates } from '@/hooks/use-whatsapp';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { showToast } from '@/lib/toast';
 
 export default function WhatsappTemplatesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { data: templates, isLoading } = useWhatsappTemplates();
+  const updateTemplatesMutation = useUpdateTemplates();
+  const [pendingDelete, setPendingDelete] = React.useState<any>(null);
 
   const handleEdit = (type: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -30,6 +34,18 @@ export default function WhatsappTemplatesScreen() {
       pathname: '/whatsapp-template-edit',
       params: { type: 'new_' + Date.now() }
     });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    try {
+      const newTemplates = (templates || []).filter((t: any) => t.type !== pendingDelete.type);
+      await updateTemplatesMutation.mutateAsync(newTemplates);
+      showToast('Template deleted', 'success');
+      setPendingDelete(null);
+    } catch (error) {
+      showToast('Failed to delete template', 'error');
+    }
   };
 
   return (
@@ -85,7 +101,22 @@ export default function WhatsappTemplatesScreen() {
                     {tpl.body}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.muted + '50'} />
+                {!tpl.isSystem ? (
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setPendingDelete(tpl);
+                    }}
+                    style={({ pressed }) => [
+                      styles.deleteBtn,
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={theme.danger} />
+                  </Pressable>
+                ) : (
+                  <Ionicons name="chevron-forward" size={20} color={theme.muted + '50'} />
+                )}
               </Pressable>
             ))}
 
@@ -100,6 +131,17 @@ export default function WhatsappTemplatesScreen() {
           </View>
         )}
       </ScrollView>
+
+      <ConfirmDialog
+        visible={!!pendingDelete}
+        title="Delete Template?"
+        description={`Are you sure you want to delete "${pendingDelete?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+        destructive
+        loading={updateTemplatesMutation.isPending}
+      />
     </SafeScreen>
   );
 }
@@ -179,5 +221,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  deleteBtn: {
+    padding: 8,
+    marginRight: -8,
   },
 });

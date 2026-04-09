@@ -28,6 +28,7 @@ export type StudentPayload = {
 
 type StudentsPage = {
   students: Student[];
+  totalStudents?: number;
   pagination?: {
     total: number;
     page: number;
@@ -56,7 +57,7 @@ export const useStudentQuery = (id?: string) =>
     enabled: !!id,
   });
 
-export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string }) =>
+export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string; shiftId?: string }) =>
   useInfiniteQuery<StudentsPage>({
     queryKey: queryKeys.students(params),
     initialPageParam: 1,
@@ -161,6 +162,43 @@ export const useDeleteStudent = () => {
         student_id: id,
         type: 'inactive'
       });
+    },
+  });
+};
+
+export const useImportStudents = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async ({ fileUri, fileName, fileType }: { fileUri: string; fileName: string; fileType: string }) => {
+      // 1. Get presigned URL
+      const { data: { uploadUrl, fileUrl } } = await api.get(`/students/presigned-url`, {
+        params: {
+          fileName,
+          fileType
+        }
+      });
+
+      // 2. Upload to S3
+      // We use base fetch here because api client might add headers that S3 doesn't like for presigned URLs
+      const fileBlob = await fetch(fileUri).then(r => r.blob());
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: fileBlob,
+        headers: {
+          'Content-Type': fileType
+        }
+      });
+
+      // 3. Trigger import on backend
+      const { data } = await api.post('/students/import', { fileUrl });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+      posthog?.capture('students_bulk_imported');
     },
   });
 };

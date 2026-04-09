@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Linking, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,8 @@ import { useQuickRating } from '@/hooks/use-quick-rating';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
+import ShiftFilters from '@/components/students/ShiftFilters';
+import QuickDateFilters from '@/components/students/QuickDateFilters';
 import StudentList from '@/components/students/StudentList';
 
 import { PaymentFormModal } from '@/components/students/payment-form-modal';
@@ -60,6 +62,9 @@ export default function StudentsScreen() {
   const [filter, setFilter] = useState('recent');
   const [days, setDays] = useState<number | undefined>(undefined);
   const [quickFilter, setQuickFilter] = useState<string | undefined>(undefined);
+  const [customAgo, setCustomAgo] = useState('');
+  const [customIn, setCustomIn] = useState('');
+  const [shiftId, setShiftId] = useState<string | undefined>(undefined);
 
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
@@ -80,7 +85,8 @@ export default function StudentsScreen() {
     name: debouncedSearch,
     filter,
     days,
-    quickFilter
+    quickFilter,
+    shiftId
   });
 
   const dashboardQuery = useDashboardQuery();
@@ -254,8 +260,9 @@ export default function StudentsScreen() {
     const start = new Date(startStr);
     const startDate = start.toISOString().slice(0, 10);
 
-    // Add 1 month for end date
+    // Add 1 month for end date, but subtract 1 day (e.g. 10th to 9th)
     start.setMonth(start.getMonth() + 1);
+    start.setDate(start.getDate() - 1);
     const endDate = start.toISOString().slice(0, 10);
 
     return {
@@ -288,11 +295,21 @@ export default function StudentsScreen() {
 
   const queryCount = studentsQuery.data?.pages[0]?.pagination?.total || 0;
   const filteredCount = useMemo(() => {
-    if (filter === 'recent' || filter === 'all' || filter === 'active') {
-      return dashboardQuery.data?.totalStudents ?? queryCount;
+    // If we have search or filters active, use the count from the students query itself
+    if (debouncedSearch || shiftId || quickFilter || days) {
+      return studentsQuery.data?.pages[0]?.pagination?.total ?? 0;
+    }
+
+    // Otherwise use the dashboard stats for the tab totals
+    if (dashboardQuery.data) {
+      if (filter === 'dues') return dashboardQuery.data.duesCount || 0;
+      if (filter === 'paid') return dashboardQuery.data.paidCount || 0;
+      if (filter === 'trial') return dashboardQuery.data.trialCount || 0;
+      if (filter === 'defaulter') return dashboardQuery.data.defaulterCount || 0;
+      return dashboardQuery.data.totalStudents || 0;
     }
     return queryCount;
-  }, [filter, dashboardQuery.data, queryCount]);
+  }, [filter, dashboardQuery.data, queryCount, debouncedSearch, shiftId, quickFilter, days, studentsQuery.data]);
 
   const countLabel = useMemo(() => {
     const labels: Record<string, string> = {
@@ -323,94 +340,46 @@ export default function StudentsScreen() {
         <View style={styles.px_xl}>
           <StudentSearchBar search={search} setSearch={setSearch} theme={theme} />
         </View>
+        <ShiftFilters 
+          shifts={shifts} 
+          selectedId={shiftId} 
+          onSelect={setShiftId} 
+          theme={theme} 
+        />
         <View style={styles.filterRow}>
-          <StudentFilters selected={filter} setSelected={(v) => { setFilter(v); setDays(undefined); setQuickFilter(undefined); }} theme={theme} />
+          <StudentFilters selected={filter} setSelected={(v) => { 
+            setFilter(v); 
+            setDays(undefined); 
+            setQuickFilter(undefined); 
+            setCustomAgo('');
+            setCustomIn('');
+          }} theme={theme} />
         </View>
         {(filter === 'dues') && (
-          <View style={{ gap: spacing.md, marginTop: 4 }}>
-            <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
-              <View style={[styles.px_xl, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="sparkles" size={12} color={theme.primary} />
-                  <Text style={[styles.daysLabel, { color: theme.muted }]}>QUICK DATE:</Text>
-                </View>
-                {quickFilter && (
-                  <TouchableOpacity onPress={() => setQuickFilter(undefined)}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#ff4444' }}>CLEAR</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.daysScroll}
-              >
-                {['yesterday', 'today', 'tomorrow'].map(f => (
-                  <TouchableOpacity
-                    key={f}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setQuickFilter(quickFilter === f ? undefined : f);
-                      setDays(undefined);
-                    }}
-                    style={[
-                      styles.daysChip,
-                      {
-                        backgroundColor: quickFilter === f ? theme.primary : theme.surfaceAlt,
-                        borderColor: quickFilter === f ? theme.primary : theme.border,
-                        minWidth: 80,
-                        alignItems: 'center'
-                      }
-                    ]}
-                  >
-                    <Text style={[styles.daysText, { color: quickFilter === f ? '#fff' : theme.text, textTransform: 'capitalize' }]}>{f}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </Animated.View>
-
-            {!quickFilter && (
-              <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
-                <View style={[styles.px_xl, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name="timer" size={12} color="#f59e0b" />
-                    <Text style={[styles.daysLabel, { color: theme.muted }]}>OVERDUE BY:</Text>
-                  </View>
-                  {days && (
-                    <TouchableOpacity onPress={() => setDays(undefined)}>
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#ff4444' }}>CLEAR</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.daysScroll}
-                >
-                  {[3, 7, 15, 30, 45, 60].map(d => (
-                    <TouchableOpacity
-                      key={d}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setDays(days === d ? undefined : d);
-                        setQuickFilter(undefined);
-                      }}
-                      style={[
-                        styles.daysChip,
-                        { backgroundColor: days === d ? theme.primary : theme.surfaceAlt, borderColor: days === d ? theme.primary : theme.border }
-                      ]}
-                    >
-                      <Text style={[styles.daysText, { color: days === d ? '#fff' : theme.text }]}>{d}+ Days</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </Animated.View>
-            )}
-          </View>
+          <QuickDateFilters 
+            theme={theme}
+            quickFilter={quickFilter}
+            onSelect={(val) => {
+              // Clear infinite query data by invalidating when filter changes
+              // (Tanstack query handles this automatically if keys change)
+              setQuickFilter(val);
+              setDays(undefined);
+            }}
+            customAgo={customAgo}
+            setCustomAgo={setCustomAgo}
+            customIn={customIn}
+            setCustomIn={setCustomIn}
+            onClear={() => {
+              setQuickFilter(undefined);
+              setDays(undefined);
+              setCustomAgo('');
+              setCustomIn('');
+            }}
+          />
         )}
       </View>
     </Animated.View>
-  ), [theme, search, filter, filteredCount, countLabel]);
+  ), [theme, search, filter, filteredCount, countLabel, quickFilter, days, customAgo, customIn, shiftId, shifts]);
 
   return (
     <SafeScreen edges={['top']}>
@@ -584,28 +553,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.5,
   },
-  daysFilterContainer: {
-    gap: 12,
-    marginTop: 4,
-  },
   daysLabel: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-  },
-  daysScroll: {
-    gap: 8,
-    paddingHorizontal: spacing.xl,
-    paddingRight: 40,
-  },
-  daysChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  daysText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  }
 });

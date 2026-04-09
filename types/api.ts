@@ -64,6 +64,10 @@ export type DashboardResponse = {
   activeStudentsCount: number;
   totalStudents: number;
   studentsEnrolledThisMonth: number;
+  duesCount?: number;
+  paidCount?: number;
+  trialCount?: number;
+  defaulterCount?: number;
 };
 
 export type Shift = {
