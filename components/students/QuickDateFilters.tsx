@@ -36,7 +36,7 @@ const QuickDateFilters = memo(({
   onClear 
 }: QuickDateFiltersProps) => {
   return (
-    <Animated.View entering={FadeInDown} style={styles.daysFilterContainer}>
+    <Animated.View entering={FadeInDown} style={[styles.daysFilterContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
       <View style={[styles.px_xl, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Ionicons name="sparkles" size={12} color={theme.primary} />
@@ -62,8 +62,8 @@ const QuickDateFilters = memo(({
             borderColor: (quickFilter?.startsWith('-') && quickFilter !== 'yesterday') ? theme.primary : theme.border,
             flexDirection: 'row',
             alignItems: 'center',
-            paddingRight: 8,
-            gap: 6
+            paddingHorizontal: 12,
+            gap: 4
           }
         ]}>
           <Text style={{ fontSize: 10, fontWeight: '800', color: (quickFilter?.startsWith('-') && quickFilter !== 'yesterday') ? '#fff' : theme.muted }}>Previous</Text>
@@ -123,8 +123,8 @@ const QuickDateFilters = memo(({
             borderColor: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-') && quickFilter !== 'yesterday' && quickFilter !== 'tomorrow' && quickFilter !== 'today') ? theme.primary : theme.border,
             flexDirection: 'row',
             alignItems: 'center',
-            paddingRight: 8,
-            gap: 6
+            paddingHorizontal: 12,
+            gap: 4
           }
         ]}>
           <Text style={{ fontSize: 10, fontWeight: '800', color: (!QUICK_OPTIONS.some(o => o.value === quickFilter) && quickFilter && !quickFilter.startsWith('-') && quickFilter !== 'yesterday' && quickFilter !== 'tomorrow' && quickFilter !== 'today') ? '#fff' : theme.muted }}>Future</Text>
@@ -186,9 +186,7 @@ const styles = StyleSheet.create({
   px_xl: { paddingHorizontal: spacing.xl },
   daysFilterContainer: {
     paddingVertical: spacing.md,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f1f1',
   },
   daysLabel: {
     fontSize: 10,

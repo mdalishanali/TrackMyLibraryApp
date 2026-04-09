@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
 import { useWhatsappTemplates, useUpdateTemplates } from '@/hooks/use-whatsapp';
 import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function WhatsappTemplateEditScreen() {
   const theme = useTheme();
@@ -24,6 +25,7 @@ export default function WhatsappTemplateEditScreen() {
   const [templateType, setTemplateType] = useState(type);
   const [isSystem, setIsSystem] = useState(false);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const availableTags = [
     { id: '{student_name}', label: 'Name' },
@@ -98,21 +100,25 @@ export default function WhatsappTemplateEditScreen() {
     }
   };
 
-  const handleDelete = async () => {
-    if (isSystem) {
-      showToast('System templates cannot be deleted', 'error');
-      return;
-    }
-
+  const confirmDelete = async () => {
     try {
+      setShowDeleteConfirm(false);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      const newTemplates = templates.filter((t: any) => t.type !== templateType);
+      const newTemplates = (templates || []).filter((t: any) => t.type !== templateType);
       await updateTemplatesMutation.mutateAsync(newTemplates);
       showToast('Template removed', 'success');
       router.back();
     } catch (error) {
       showToast('Failed to delete template', 'error');
     }
+  };
+
+  const handleOpenDelete = () => {
+    if (isSystem) {
+      showToast('System templates cannot be deleted', 'error');
+      return;
+    }
+    setShowDeleteConfirm(true);
   };
 
   if (isLoading) {
@@ -237,7 +243,7 @@ export default function WhatsappTemplateEditScreen() {
                 <AppButton
                   variant="outline"
                   tone="danger"
-                  onPress={handleDelete}
+                  onPress={handleOpenDelete}
                   fullWidth
                 >
                   Delete Template
@@ -247,6 +253,17 @@ export default function WhatsappTemplateEditScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmDialog
+        visible={showDeleteConfirm}
+        title="Delete Template?"
+        description={`Are you sure you want to delete "${title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        destructive
+        loading={updateTemplatesMutation.isPending}
+      />
     </SafeScreen>
   );
 }

@@ -25,6 +25,7 @@ import { getErrorMessage } from '@/hooks/use-auth-mutations';
 import { showToast } from '@/lib/toast';
 import { usePostHog } from 'posthog-react-native';
 import { useScreenView } from '@/hooks/use-screen-view';
+import { BulkImportModal } from '@/components/students/bulk-import-modal';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
   const posthog = usePostHog();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   
   // Track screen view
   useScreenView('Settings');
@@ -278,6 +280,17 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
+              icon="cloud-upload"
+              label="Bulk Student Import"
+              description="Import multiple students via CSV"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowBulkImport(true);
+              }}
+              themeTint={theme.primary}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
               icon="log-out"
               label="Sign Out"
               description="Log out from this device"
@@ -440,6 +453,10 @@ export default function SettingsScreen() {
         }}
         destructive
         loading={deleteAccount.isPending}
+      />
+      <BulkImportModal
+        visible={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
       />
     </SafeScreen>
   );

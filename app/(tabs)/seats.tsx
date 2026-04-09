@@ -290,7 +290,7 @@ export default function SeatsScreen() {
       if (student.paymentStatus === 'Trial') {
         const joined = new Date(student.joiningDate || today);
         joined.setHours(0, 0, 0, 0);
-        student.daysOverdue = Math.max(0, Math.floor((today.getTime() - joined.getTime()) / 86400000));
+        student.daysOverdue = Math.max(0, Math.floor((today.getTime() - joined.getTime()) / 86400000) + 1);
       } else if (student.paymentStatus === 'Unpaid' && (student.lastPayment?.endDate || student.endDate)) {
         const end = new Date(student.lastPayment?.endDate || student.endDate);
         end.setHours(0, 0, 0, 0);
@@ -746,7 +746,7 @@ export default function SeatsScreen() {
                 <Text style={[styles.filterLabel, { color: theme.muted }]}>SHIFT</Text>
                 <TouchableOpacity
                   onPress={() => setSelectedShift(null)}
-                  style={[styles.filterChip, !selectedShift && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  style={[styles.filterChip, { backgroundColor: theme.surfaceAlt }, !selectedShift && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                 >
                   <Text style={[styles.filterChipText, { color: !selectedShift ? '#fff' : theme.text }]}>ALL</Text>
                 </TouchableOpacity>
@@ -754,7 +754,7 @@ export default function SeatsScreen() {
                   <TouchableOpacity
                     key={shift._id}
                     onPress={() => setSelectedShift(shift.name === selectedShift ? null : shift.name)}
-                    style={[styles.filterChip, selectedShift === shift.name && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
+                    style={[styles.filterChip, { backgroundColor: theme.surfaceAlt }, selectedShift === shift.name && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
                   >
                     <Text style={[styles.filterChipText, { color: selectedShift === shift.name ? theme.primary : theme.text }]}>{shift.name.toUpperCase()}</Text>
                   </TouchableOpacity>
@@ -768,19 +768,19 @@ export default function SeatsScreen() {
                 <Text style={[styles.filterLabel, { color: theme.muted }]}>STATUS</Text>
                 <TouchableOpacity
                   onPress={() => setSelectedStatus(null)}
-                  style={[styles.filterChip, !selectedStatus && { backgroundColor: theme.text, borderColor: theme.text }]}
+                  style={[styles.filterChip, !selectedStatus && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                 >
                   <Text style={[styles.filterChipText, { color: !selectedStatus ? '#fff' : theme.text }]}>ALL</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setSelectedStatus(selectedStatus === 'vacant' ? null : 'vacant')}
-                  style={[styles.filterChip, selectedStatus === 'vacant' && { backgroundColor: theme.success + '15', borderColor: theme.success }]}
+                  style={[styles.filterChip, { backgroundColor: theme.surfaceAlt }, selectedStatus === 'vacant' && { backgroundColor: theme.success + '15', borderColor: theme.success }]}
                 >
                   <Text style={[styles.filterChipText, { color: selectedStatus === 'vacant' ? theme.success : theme.text }]}>VACANT</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setSelectedStatus(selectedStatus === 'occupied' ? null : 'occupied')}
-                  style={[styles.filterChip, selectedStatus === 'occupied' && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
+                  style={[styles.filterChip, { backgroundColor: theme.surfaceAlt }, selectedStatus === 'occupied' && { backgroundColor: theme.primary + '15', borderColor: theme.primary }]}
                 >
                   <Text style={[styles.filterChipText, { color: selectedStatus === 'occupied' ? theme.primary : theme.text }]}>OCCUPIED</Text>
                 </TouchableOpacity>
@@ -793,7 +793,7 @@ export default function SeatsScreen() {
                 <Text style={[styles.filterLabel, { color: theme.muted }]}>DUES</Text>
                 <TouchableOpacity
                   onPress={() => setSelectedPayment(null)}
-                  style={[styles.filterChip, !selectedPayment && { backgroundColor: theme.text, borderColor: theme.text }]}
+                  style={[styles.filterChip, !selectedPayment && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                 >
                   <Text style={[styles.filterChipText, { color: !selectedPayment ? '#fff' : theme.text }]}>ALL</Text>
                 </TouchableOpacity>
@@ -801,7 +801,7 @@ export default function SeatsScreen() {
                   <TouchableOpacity
                     key={pf.value}
                     onPress={() => setSelectedPayment(pf.value === selectedPayment ? null : pf.value)}
-                    style={[styles.filterChip, selectedPayment === pf.value && { backgroundColor: pf.color + '15', borderColor: pf.color }]}
+                    style={[styles.filterChip, { backgroundColor: theme.surfaceAlt }, selectedPayment === pf.value && { backgroundColor: pf.color + '15', borderColor: pf.color }]}
                   >
                     <Text style={[styles.filterChipText, { color: selectedPayment === pf.value ? pf.color : theme.text }]}>{pf.label.toUpperCase()}</Text>
                   </TouchableOpacity>
@@ -2060,7 +2060,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
     borderColor: 'transparent',
-    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   filterLoadingOverlay: {
     position: 'absolute',

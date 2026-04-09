@@ -296,7 +296,7 @@ export default function StudentsScreen() {
   const filteredCount = useMemo(() => {
     // If we have search or filters active, use the count from the students query itself
     if (debouncedSearch || shiftId || quickFilter || days) {
-      return studentsQuery.data?.pages[0]?.totalStudents ?? 0;
+      return studentsQuery.data?.pages[0]?.pagination?.total ?? 0;
     }
 
     // Otherwise use the dashboard stats for the tab totals
