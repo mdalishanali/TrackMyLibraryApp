@@ -260,8 +260,9 @@ export default function StudentsScreen() {
     const start = new Date(startStr);
     const startDate = start.toISOString().slice(0, 10);
 
-    // Add 1 month for end date
+    // Add 1 month for end date, but subtract 1 day (e.g. 10th to 9th)
     start.setMonth(start.getMonth() + 1);
+    start.setDate(start.getDate() - 1);
     const endDate = start.toISOString().slice(0, 10);
 
     return {

@@ -121,6 +121,7 @@ export function PaymentFormModal({
     if (datePicker.field === 'startDate') {
       const nextMonth = new Date(chosen);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
+      nextMonth.setDate(nextMonth.getDate() - 1); // Subtract 1 day
       nextMonth.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
       setValue('endDate', nextMonth.toISOString());
     }
