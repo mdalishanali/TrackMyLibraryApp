@@ -946,6 +946,14 @@ export default function SeatsScreen() {
                             </View>
 
                             <View style={styles.seatCardTopRight}>
+                              {occupant?.paymentStatus === 'Paid' && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <Ionicons name="checkmark-circle" size={11} color={theme.success} />
+                                  <Text style={{ fontSize: 9, fontWeight: '700', color: theme.success, marginLeft: 2 }}>
+                                    PAID
+                                  </Text>
+                                </View>
+                              )}
                               {occupant?.paymentStatus === 'Trial' && (
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <Ionicons name="flask" size={11} color={theme.info} />

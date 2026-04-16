@@ -27,7 +27,7 @@ import { SafeScreen } from '@/components/layout/safe-screen';
 import { AppButton } from '@/components/ui/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { spacing, radius, typography } from '@/constants/design';
-import { useAnalyticsQuery } from '@/hooks/use-analytics';
+import { useAnalyticsQuery, RevenueBreakdown, RevenueMonth } from '@/hooks/use-analytics';
 import { useExpensesQuery, useCreateExpense, useDeleteExpense, useUpdateExpense, Expense } from '@/hooks/use-expenses'; // Import expenses hooks
 import { ExpenseFormModal } from '@/components/expenses/expense-form-modal';
 import { showToast } from '@/lib/toast';
@@ -137,8 +137,8 @@ export default function AnalyticsScreen() {
     // Top Collector
     let topName = null;
     let maxVal = 0;
-    data.revenueBreakdownByUser?.forEach((admin: any) => {
-      const total = admin.total || admin.value || 0;
+    data.revenueBreakdownByUser?.forEach((admin: RevenueBreakdown) => {
+      const total = admin.total || 0;
       if (total > maxVal) {
         maxVal = total;
         topName = admin.name;
@@ -148,16 +148,27 @@ export default function AnalyticsScreen() {
     return { monthTrend: mTrend, annualTrend: 0, topCollectorName: topName };
   }, [data?.monthWise, data?.revenueBreakdownByUser, selectedMonth]);
 
-  const totalExpenses = expensesQuery.data?.totalAmount || 0;
-  const netProfit = (data?.currentMonthRevenue || 0) - totalExpenses;
+  const totalExpenses = data?.currentMonthExpenses || 0;
+  const netProfit = data?.monthlyNetProfit || 0;
+  const annualExpenses = data?.annualExpenses || 0;
+  const annualNetProfit = data?.annualNetProfit || 0;
+  const revenueGrowth = data?.revenueGrowthPercent || 0;
 
   const stats = [
+    {
+      label: 'Today Revenue',
+      value: data?.todayRevenue || 0,
+      icon: 'today-outline',
+      color: '#06B6D4',
+      trend: 0,
+      subValue: `Cash: ${formatCurrency(data?.todayCashRevenue || 0)} • UPI: ${formatCurrency(data?.todayUpiRevenue || 0)}`,
+    },
     {
       label: 'Monthly Revenue',
       value: data?.currentMonthRevenue || 0,
       icon: 'calendar-outline',
       color: '#4C6EF5',
-      trend: monthTrend,
+      trend: revenueGrowth,
       subValue: `${data?.paidCount || 0} Students Paid`,
     },
     {
@@ -169,32 +180,52 @@ export default function AnalyticsScreen() {
       subValue: 'Total Spending',
     },
     {
-      label: 'Total Dues',
-      value: data?.totalDues || 0,
-      icon: 'timer-outline',
-      color: '#F59E0B',
-      trend: 0,
-      subValue: `${data?.duesCount || 0} Students Pending`,
-    },
-    {
       label: 'Net Profit',
       value: netProfit,
       icon: 'wallet-outline',
       color: netProfit >= 0 ? '#22C55E' : '#EF4444',
       trend: 0,
+      subValue: netProfit >= 0 ? 'Monthly Gain' : 'Monthly Netfall',
+    },
+    {
+      label: 'Total Dues',
+      value: data?.totalDues || 0,
+      icon: 'timer-outline',
+      color: '#F59E0B',
+      trend: 0,
+      subValue: `${data?.duesCount || 0} Pending`,
     },
     {
       label: 'Annual Revenue',
       value: data?.annualRevenue || 0,
       icon: 'stats-chart-outline',
       color: '#EAB308',
-      trend: annualTrend,
+      trend: 0,
+      subValue: 'Gross Income',
+    },
+    {
+      label: 'Annual Expenses',
+      value: annualExpenses,
+      icon: 'receipt-outline',
+      color: '#F06595',
+      trend: 0,
+      subValue: 'Annual Spending',
+    },
+    {
+      label: 'Annual Net Profit',
+      value: annualNetProfit,
+      icon: 'cash-outline',
+      color: annualNetProfit >= 0 ? '#0CA678' : '#EF4444',
+      trend: 0,
+      subValue: annualNetProfit >= 0 ? 'Yearly Gain' : 'Yearly Netfall',
     }
   ];
 
-  const maxRevenue = useMemo(() => {
+  const maxVal = useMemo(() => {
     if (!data?.monthWise) return 0;
-    return Math.max(...data.monthWise.map(m => m.revenue), 1000);
+    const revs = data.monthWise.map(m => m.revenue);
+    const exps = data.monthWise.map(m => m.expense || 0);
+    return Math.max(...revs, ...exps, 1000);
   }, [data?.monthWise]);
 
   if (isLoading && !data) {
@@ -398,8 +429,8 @@ export default function AnalyticsScreen() {
         <View style={[styles.chartCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.chartHeader}>
             <View>
-              <Text style={[styles.chartTitle, { color: theme.text }]}>Monthly Revenue</Text>
-              <Text style={[styles.chartSubtitle, { color: theme.muted }]}>Trend for {selectedYear}</Text>
+              <Text style={[styles.chartTitle, { color: theme.text }]}>Financial Trend</Text>
+              <Text style={[styles.chartSubtitle, { color: theme.muted }]}>Revenue & Expenses for {selectedYear}</Text>
             </View>
             <Pressable
               onPress={() => refetch()}
@@ -435,10 +466,13 @@ export default function AnalyticsScreen() {
               <View style={styles.chartContainer}>
                 {data?.monthWise.map((item, idx) => {
                   const maxBarHeight = 120;
-                  const height = (item.revenue / maxRevenue) * maxBarHeight;
+                  const revHeight = (item.revenue / maxVal) * maxBarHeight;
+                  const expHeight = ((item.expense || 0) / maxVal) * maxBarHeight;
                   const monthVal = (idx + 1).toString();
                   const isSelected = selectedMonth === monthVal;
+                  
                   const displayRevenue = item.revenue >= 1000 ? `₹${(item.revenue / 1000).toFixed(1)}k` : item.revenue > 0 ? `₹${item.revenue}` : '';
+                  const displayExpense = (item.expense || 0) >= 1000 ? `₹${((item.expense || 0) / 1000).toFixed(1)}k` : (item.expense || 0) > 0 ? `₹${item.expense}` : '';
 
                   return (
                     <Pressable
@@ -447,35 +481,81 @@ export default function AnalyticsScreen() {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         setSelectedMonth(monthVal);
                       }}
-                      style={styles.chartColumn}
+                      style={[styles.chartColumn, { width: 50 }]}
                     >
-                      <View style={styles.barWrapper}>
-                        {item.revenue > 0 && (
-                          <View style={[styles.barValueContainer, { backgroundColor: isSelected ? theme.primary : theme.surfaceAlt, borderColor: isSelected ? theme.primary : theme.border }]}>
-                            <Text
-                              numberOfLines={1}
-                              style={[styles.barValueText, { color: isSelected ? '#fff' : theme.text }]}
+                      <View style={[styles.barWrapper, { flexDirection: 'row', alignItems: 'flex-end', gap: 4 }]}>
+                        {/* Revenue Bar */}
+                        <View style={{ flex: 1, alignItems: 'center', position: 'relative' }}>
+                          {item.revenue > 0 && (
+                            <Text 
+                                style={{ 
+                                    position: 'absolute', 
+                                    bottom: revHeight + 2, 
+                                    fontSize: 8, 
+                                    fontWeight: '900', 
+                                    color: isSelected ? theme.primary : theme.muted,
+                                    width: 40,
+                                    textAlign: 'center',
+                                    zIndex: 10
+                                }}
                             >
                               {displayRevenue}
                             </Text>
-                          </View>
-                        )}
-                        <Animated.View
-                          layout={Layout.springify()}
-                          style={[
-                            styles.bar,
-                            { 
-                              height: Math.max(height, 6),
-                              backgroundColor: isSelected ? theme.primary : theme.primary + '25',
-                              borderRadius: 8,
-                            }
-                          ]}
-                        >
-                          <LinearGradient
-                            colors={['rgba(255,255,255,0.3)', 'transparent']}
-                            style={StyleSheet.absoluteFill}
-                          />
-                        </Animated.View>
+                          )}
+                          <Animated.View
+                            layout={Layout.springify()}
+                            style={[
+                              styles.bar,
+                              { 
+                                height: Math.max(revHeight, 2),
+                                width: 16,
+                                backgroundColor: isSelected ? theme.primary : theme.primary + '25',
+                                borderRadius: 4,
+                              }
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={['rgba(255,255,255,0.3)', 'transparent']}
+                              style={StyleSheet.absoluteFill}
+                            />
+                          </Animated.View>
+                        </View>
+                        {/* Expense Bar */}
+                        <View style={{ flex: 1, alignItems: 'center', position: 'relative' }}>
+                          {(item.expense || 0) > 0 && (
+                            <Text 
+                                style={{ 
+                                    position: 'absolute', 
+                                    bottom: expHeight + 2, 
+                                    fontSize: 8, 
+                                    fontWeight: '900', 
+                                    color: isSelected ? '#EF4444' : theme.muted,
+                                    width: 40,
+                                    textAlign: 'center',
+                                    zIndex: 10
+                                }}
+                            >
+                              {displayExpense}
+                            </Text>
+                          )}
+                          <Animated.View
+                            layout={Layout.springify()}
+                            style={[
+                              styles.bar,
+                              { 
+                                height: Math.max(expHeight, 2),
+                                width: 16,
+                                backgroundColor: isSelected ? '#EF4444' : '#EF444425',
+                                borderRadius: 4,
+                              }
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={['rgba(255,255,255,0.3)', 'transparent']}
+                              style={StyleSheet.absoluteFill}
+                            />
+                          </Animated.View>
+                        </View>
                       </View>
                       <Text style={[styles.barLabel, { color: isSelected ? theme.text : theme.muted, fontWeight: isSelected ? '900' : '700' }]}>
                         {item.monthName}
@@ -585,7 +665,7 @@ export default function AnalyticsScreen() {
                 })()}
 
                 {/* Individual Breakdown List */}
-                    {data.revenueBreakdownByUser.map((admin: any, idx: number) => {
+                    {data.revenueBreakdownByUser.map((admin: RevenueBreakdown, idx: number) => {
                   const totalAmount = admin.total || admin.value || 0;
                   const cashAmount = admin.cash || (admin.paymentMode === 'cash' ? admin.value : 0) || 0;
                   const upiAmount = admin.upi || (admin.paymentMode === 'upi' ? admin.value : 0) || 0;
@@ -638,73 +718,141 @@ export default function AnalyticsScreen() {
             </Animated.View>
           </>
         ) : (
-          // Expenses List View
-          <Animated.View
-            layout={Layout}
-            style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}
-          >
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Expenses</Text>
-                <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>
-                  Recorded expenses for this month
-                </Text>
-              </View>
-              <AppButton
-                  onPress={() => {
-                    setSelectedExpense(null);
-                    setIsExpenseModalOpen(true);
-                  }}
-                variant="outline"
-                style={{ height: 36, paddingVertical: 0 }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.text }}>+ Add</Text>
-              </AppButton>
-            </View>
-
-            <View style={styles.breakdownList}>
-              {(!expensesQuery.data?.expenses || expensesQuery.data.expenses.length === 0) ? (
-                <View style={styles.emptyContainer}>
-                  <Ionicons name="receipt-outline" size={48} color={theme.muted + '40'} />
-                  <Text style={[styles.emptyText, { color: theme.muted }]}>No expenses recorded</Text>
+          // Expenses View (Breakdown + List)
+          <View style={{ gap: spacing.lg }}>
+            {/* Category Breakdown */}
+            <Animated.View
+              layout={Layout}
+              style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Category Breakdown</Text>
+                  <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>
+                    Major spending areas this month
+                  </Text>
                 </View>
-              ) : (
-                <>
-                      {expensesQuery.data.expenses.map((expense: any, idx: number) => (
-                    <View key={expense._id} style={[styles.breakdownItem, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: theme.border + '50', paddingTop: 16 }]}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                        <View style={[styles.avatar, { backgroundColor: '#EF444420' }]}>
-                          <Ionicons name="pricetag" size={16} color="#EF4444" />
+                <View style={[styles.badge, { backgroundColor: '#EF444410' }]}>
+                  <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 10 }}>Analysis</Text>
+                </View>
+              </View>
+
+              <View style={styles.breakdownList}>
+                {(!data?.expenseBreakdownByCategory || data.expenseBreakdownByCategory.length === 0) ? (
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="pie-chart-outline" size={48} color={theme.muted + '40'} />
+                    <Text style={[styles.emptyText, { color: theme.muted }]}>No categories recorded</Text>
+                  </View>
+                ) : (
+                  <>
+                    {data.expenseBreakdownByCategory.map((item: { category: string; total: number }, idx: number) => {
+                      const getCategoryIcon = (cat: string) => {
+                        switch (cat) {
+                          case 'Rent': return 'business';
+                          case 'Electricity': return 'flash';
+                          case 'Internet': return 'wifi';
+                          case 'Salary': return 'people';
+                          case 'Maintenance': return 'construct';
+                          case 'Cleaning': return 'water';
+                          case 'Software': return 'desktop';
+                          case 'Marketing': return 'megaphone';
+                          default: return 'pricetag';
+                        }
+                      };
+
+                      const percentage = (item.total / totalExpenses) * 100;
+
+                      return (
+                        <View key={item.category} style={[styles.breakdownItem, idx > 0 && { borderTopWidth: 1, borderTopColor: theme.border + '50' }]}>
+                          <View style={styles.adminHeader}>
+                            <View style={[styles.avatar, { backgroundColor: '#EF444415' }]}>
+                              <Ionicons name={getCategoryIcon(item.category) as any} size={16} color="#EF4444" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.adminName, { color: theme.text }]}>{item.category}</Text>
+                              <Text style={[styles.adminSub, { color: theme.muted }]}>{percentage.toFixed(0)}% of total expenses</Text>
+                            </View>
+                            <Text style={[styles.adminTotal, { color: '#EF4444' }]}>{formatCurrency(item.total)}</Text>
+                          </View>
+                          <View style={[styles.splitBar, { backgroundColor: theme.border + '30' }]}>
+                            <View style={{ width: `${percentage}%`, backgroundColor: '#EF4444', borderRadius: 10 }} />
+                          </View>
                         </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.adminName, { color: theme.text }]}>{expense.title}</Text>
-                          <Text style={[styles.adminSub, { color: theme.muted }]}>{formatDate(expense.date)} • {expense.category}</Text>
-                        </View>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                        <Text style={[styles.adminTotal, { color: '#EF4444' }]}>{formatCurrency(expense.amount)}</Text>
-                        <View style={{ flexDirection: 'row', gap: 16 }}>
-                          <Pressable hitSlop={10} onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setSelectedExpense(expense as unknown as Expense);
-                            setIsExpenseModalOpen(true);
-                          }}>
-                            <Ionicons name="create-outline" size={14} color={theme.primary} />
-                          </Pressable>
-                          <Pressable hitSlop={10} onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                            deleteExpense.mutate(expense._id);
-                          }}>
-                            <Ionicons name="trash-outline" size={14} color={theme.muted} />
-                          </Pressable>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </>
-              )}
+                      );
+                    })}
+                  </>
+                )}
               </View>
             </Animated.View>
+
+            {/* Individual Expenses List */}
+            <Animated.View
+              layout={Layout}
+              style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            >
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Individual Entries</Text>
+                  <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>
+                    Detailed log of all transactions
+                  </Text>
+                </View>
+                <AppButton
+                    onPress={() => {
+                      setSelectedExpense(null);
+                      setIsExpenseModalOpen(true);
+                    }}
+                  variant="outline"
+                  style={{ height: 36, paddingVertical: 0 }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: theme.text }}>+ Add New</Text>
+                </AppButton>
+              </View>
+
+              <View style={styles.breakdownList}>
+                {(!expensesQuery.data?.expenses || expensesQuery.data.expenses.length === 0) ? (
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="receipt-outline" size={48} color={theme.muted + '40'} />
+                    <Text style={[styles.emptyText, { color: theme.muted }]}>No expenses recorded</Text>
+                  </View>
+                ) : (
+                  <>
+                        {expensesQuery.data.expenses.map((expense: any, idx: number) => (
+                      <View key={expense._id} style={[styles.breakdownItem, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: theme.border + '50', paddingTop: 16 }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                          <View style={[styles.avatar, { backgroundColor: '#EF444410' }]}>
+                            <Ionicons name="pricetag" size={14} color="#EF4444" />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.adminName, { color: theme.text, fontSize: 13 }]}>{expense.title}</Text>
+                            <Text style={[styles.adminSub, { color: theme.muted, fontSize: 11 }]}>{formatDate(expense.date)} • {expense.category}</Text>
+                          </View>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                          <Text style={[styles.adminTotal, { color: '#EF4444', fontSize: 14 }]}>{formatCurrency(expense.amount)}</Text>
+                          <View style={{ flexDirection: 'row', gap: 16 }}>
+                            <Pressable hitSlop={10} onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setSelectedExpense(expense as unknown as Expense);
+                              setIsExpenseModalOpen(true);
+                            }}>
+                              <Ionicons name="create-outline" size={14} color={theme.primary} />
+                            </Pressable>
+                            <Pressable hitSlop={10} onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                              deleteExpense.mutate(expense._id);
+                            }}>
+                              <Ionicons name="trash-outline" size={14} color={theme.muted} />
+                            </Pressable>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </>
+                )}
+              </View>
+            </Animated.View>
+          </View>
         )}
 
 
@@ -920,7 +1068,7 @@ const styles = StyleSheet.create({
   chartContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: 180,
+    height: 240,
     gap: 12,
     paddingBottom: 24,
   },
@@ -929,7 +1077,7 @@ const styles = StyleSheet.create({
     width: 44,
   },
   barWrapper: {
-    height: 170,
+    height: 180,
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 8,
@@ -1081,17 +1229,18 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   chartWrapper: {
-    height: 200,
-    paddingTop: 20,
+    height: 240,
+    paddingTop: 0,
     justifyContent: 'flex-end',
   },
   gridLines: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 0,
+    top: 50,
     bottom: 25,
     justifyContent: 'space-between',
+    zIndex: -1,
   },
   gridLine: {
     position: 'absolute',

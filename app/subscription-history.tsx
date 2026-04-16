@@ -74,11 +74,6 @@ export default function SubscriptionHistoryScreen() {
               <Text style={[styles.planName, { color: theme.text }]}>
                 {item.planName.charAt(0).toUpperCase() + item.planName.slice(1)} Plan
               </Text>
-              {item.planPrice ? (
-                <Text style={[styles.priceText, { color: theme.primary }]}>
-                  ${item.planPrice.toFixed(2)}
-                </Text>
-              ) : null}
             </View>
 
             <View style={[styles.typeBadge, { backgroundColor: theme.surfaceAlt }]}>
