@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Pressable, Linking, Dimensions, Platform, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,8 @@ import * as Haptics from 'expo-haptics';
 import { SectionHeader } from '@/components/ui/section-header';
 import { spacing } from '@/constants/design';
 import { formatCurrency } from '@/utils/format';
+
+const { width } = Dimensions.get('window');
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -109,62 +111,299 @@ function HeroBanner({ theme }: { theme: any }) {
 
   return (
     <Animated.View entering={FadeInDown.duration(800)} style={styles.bannerContainer}>
-      <LinearGradient
-        colors={[theme.primary, '#4338ca']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.banner}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push('/analytics');
+        }}
+        style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }]}
       >
-        <View style={styles.bannerContent}>
-          <View style={styles.bannerTextBox}>
-            <View style={styles.bannerBadge}>
-              <Text style={styles.bannerLabel}>PREMIUM INSIGHTS</Text>
+        <LinearGradient
+          colors={[theme.primary, '#4338ca', '#312e81']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.banner}
+        >
+          <View style={styles.bannerContent}>
+            <View style={styles.bannerTextBox}>
+              <View style={[styles.bannerBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+                <Ionicons name="sparkles" size={10} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={styles.bannerLabel}>PREMIUM INSIGHTS</Text>
+              </View>
+              <Text style={styles.bannerTitle}>Grow Your Revenue</Text>
+              <Text style={styles.bannerDesc}>
+                Real-time analytics to help you optimize seats and scale faster.
+              </Text>
             </View>
-            <Text style={styles.bannerTitle}>Grow Your Revenue</Text>
-            <Text style={styles.bannerDesc}>See how your library's attendance is trending today.</Text>
+            <View style={styles.bannerActionArea}>
+              <View style={styles.bannerCircleBtn}>
+                <Ionicons name="arrow-forward" size={20} color={theme.primary} />
+              </View>
+            </View>
           </View>
-          <Pressable
-            onPress={() => router.push('/analytics')}
-            style={({ pressed }) => [styles.bannerCircleBtn, pressed && { opacity: 0.8 }]}
-          >
-            <Ionicons name="arrow-forward" size={20} color={theme.primary} />
-          </Pressable>
-        </View>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
-      </LinearGradient>
+          
+          {/* Subtle Premium Decoration */}
+          <View style={styles.bannerMeshGradient}>
+            <LinearGradient
+              colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </View>
+        </LinearGradient>
+      </Pressable>
     </Animated.View>
   );
 }
 
 // ─── Stats & Alerts Sub-Components ───────────────────────────
 
-function StudentCountBadge({ count, theme }: { count: number; theme: any }) {
-  const router = useRouter();
-
+function MetricCard({ 
+  label, 
+  value, 
+  icon, 
+  color, 
+  theme, 
+  delay,
+  onPress 
+}: { 
+  label: string; 
+  value: string | number; 
+  icon: keyof typeof Ionicons.glyphMap; 
+  color: string; 
+  theme: any; 
+  delay: number;
+  onPress?: () => void;
+}) {
   return (
-    <Animated.View entering={FadeInDown.delay(200).duration(700)}>
+    <Animated.View entering={FadeInDown.delay(delay).duration(700)} style={styles.metricCardWrapper}>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push('/students');
+          onPress?.();
         }}
         style={({ pressed }) => [
-          styles.studentBadge,
+          styles.metricCard,
           { backgroundColor: theme.surface, borderColor: theme.border },
           pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
         ]}
       >
-        <View style={[styles.studentBadgeIcon, { backgroundColor: '#10b981' + '15' }]}>
-          <Ionicons name="people" size={20} color="#10b981" />
+        <View style={[styles.metricIcon, { backgroundColor: color + '15' }]}>
+          <Ionicons name={icon} size={20} color={color} />
         </View>
-        <View style={styles.studentBadgeText}>
-          <Text style={[styles.studentBadgeValue, { color: theme.text }]}>{count}</Text>
-          <Text style={[styles.studentBadgeLabel, { color: theme.muted }]}>Active Students</Text>
+        <View style={styles.metricText}>
+          <Text style={[styles.metricValue, { color: theme.text }]} numberOfLines={1}>
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </Text>
+          <Text style={[styles.metricLabel, { color: theme.muted }]} numberOfLines={1}>{label}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={theme.muted} />
       </Pressable>
     </Animated.View>
+  );
+}
+
+// ─── HELPER COMPONENTS ──────────────────────────────────────────
+
+/**
+ * OccupancyCard - Displays a visual progress bar of library capacity.
+ * Usage: shows filled vs total seats with a premium progress bar.
+ */
+function OccupancyCard({ 
+  activeStudents, 
+  totalCapacity, 
+  theme 
+}: { 
+  activeStudents: number; 
+  totalCapacity: number; 
+  theme: any;
+}) {
+  if (totalCapacity === 0) return null;
+  // Calculate filled percentage, capped at 100% to prevent bar overflow
+  const percentage = Math.min(Math.round((activeStudents / totalCapacity) * 100), 100);
+  // Determine remaining available seats (ensure non-negative)
+  const available = Math.max(totalCapacity - activeStudents, 0);
+
+  return (
+    <Animated.View entering={FadeInDown.delay(500).duration(800)} style={styles.occupancyContainer}>
+      <View style={[styles.occupancyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {/* Card Header: Title and Occupancy Stats */}
+        <View style={styles.occupancyHeader}>
+          <View style={[styles.occupancyIconBox, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="business" size={20} color={theme.primary} />
+          </View>
+          <View style={styles.occupancyHeaderText}>
+            <Text style={[styles.occupancyTitle, { color: theme.text }]}>Library Occupancy</Text>
+            <Text style={[styles.occupancySubtitle, { color: theme.muted }]}>{percentage}% of seats filled</Text>
+          </View>
+          {/* Visual Badge showing precise count */}
+          <View style={styles.occupancyBadge}>
+            <Text style={[styles.occupancyBadgeText, { color: theme.primary }]}>{activeStudents}/{totalCapacity}</Text>
+          </View>
+        </View>
+
+        {/* Premium Progress Bar section */}
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBarBg, { backgroundColor: theme.surfaceAlt }]}>
+            {/* Animated or dynamic width bar based on occupancy percentage */}
+            <View style={[styles.progressBarFill, { backgroundColor: theme.primary, width: `${percentage}%` }]} />
+          </View>
+        </View>
+
+        {/* Detailed Metrics Footer: Occupied vs Available */}
+        <View style={styles.occupancyFooter}>
+          <View style={styles.footerItem}>
+            <View style={[styles.footerDot, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.footerText, { color: theme.muted }]}>{activeStudents} Occupied</Text>
+          </View>
+          <View style={styles.footerItem}>
+            <View style={[styles.footerDot, { backgroundColor: theme.border }]} />
+            <Text style={[styles.footerText, { color: theme.muted }]}>{available} Available</Text>
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function EngagementCarousel({ theme }: { theme: any }) {
+  const router = useRouter();
+
+  const handleWhatsAppJoin = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/community');
+  };
+
+  const handleReferralClick = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/referral');
+  };
+
+  const carouselItems = [
+    {
+      title: 'Refer & Earn ₹149',
+      desc: 'Get bonus on every successful referral',
+      icon: 'gift',
+      colors: ['#6366F1', '#8B5CF6'],
+      onPress: handleReferralClick,
+    },
+    {
+      title: 'Join Community',
+      desc: 'Connect with 500+ library owners',
+      icon: 'logo-whatsapp',
+      colors: ['#25D366', '#128C7E'],
+      onPress: handleWhatsAppJoin,
+    },
+    {
+      title: 'Cloud Backup',
+      desc: 'Your data is synced & safe',
+      icon: 'cloud-done',
+      colors: ['#0ea5e9', '#2563eb'],
+      onPress: () => {},
+    },
+  ];
+
+  return (
+    <View style={styles.carouselSection}>
+      <SectionHeader>Recommended for You</SectionHeader>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={width - 52}
+        decelerationRate="fast"
+        contentContainerStyle={styles.carouselScroll}
+      >
+        {carouselItems.map((item, idx) => (
+          <Animated.View key={item.title} entering={FadeInDown.delay(600 + idx * 100).duration(800)}>
+            <Pressable
+              onPress={item.onPress}
+              style={({ pressed }) => [
+                styles.carouselCard,
+                pressed && { transform: [{ scale: 0.98 }] }
+              ]}
+            >
+              <LinearGradient
+                colors={item.colors as any}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.carouselGradient}
+              >
+                <View style={styles.carouselContent}>
+                  <View style={styles.carouselIconBox}>
+                    <Ionicons name={item.icon as any} size={24} color="#fff" />
+                  </View>
+                  <View style={styles.carouselTextContent}>
+                    <Text style={styles.carouselTitle}>{item.title}</Text>
+                    <Text style={styles.carouselDesc}>{item.desc}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function MetricsSection({ 
+  theme, 
+  activeStudents, 
+  totalStudents, 
+  todayRevenue, 
+  monthlyRevenue 
+}: { 
+  theme: any; 
+  activeStudents: number; 
+  totalStudents: number; 
+  todayRevenue: number; 
+  monthlyRevenue: number;
+}) {
+  const router = useRouter();
+
+  return (
+    <View style={styles.metricsSection}>
+      <SectionHeader>Library Overview</SectionHeader>
+      <View style={styles.metricsGrid}>
+        <MetricCard
+          label="Active"
+          value={activeStudents}
+          icon="people"
+          color="#10b981"
+          theme={theme}
+          delay={100}
+          onPress={() => router.push('/students')}
+        />
+        <MetricCard
+          label="Today"
+          value={formatCurrency(todayRevenue)}
+          icon="today"
+          color="#8b5cf6"
+          theme={theme}
+          delay={200}
+          onPress={() => router.push('/payments')}
+        />
+        <MetricCard
+          label="Monthly"
+          value={formatCurrency(monthlyRevenue)}
+          icon="wallet"
+          color="#f59e0b"
+          theme={theme}
+          delay={300}
+          onPress={() => router.push('/payments')}
+        />
+        <MetricCard
+          label="Total"
+          value={totalStudents}
+          icon="stats-chart"
+          color="#3b82f6"
+          theme={theme}
+          delay={400}
+          onPress={() => router.push('/students')}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -206,6 +445,118 @@ function DuesAlert({ duesCount, totalDues, theme }: { duesCount: number; totalDu
   );
 }
 
+/**
+ * ShareCard - Triggers native sharing functionality to invite other library owners.
+ */
+function ShareCard({ theme }: { theme: any }) {
+  const onShare = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await Share.share({
+        message: 'Check out TrackMyLibrary! 📚 The best app to manage your library. \n\nGet it here:\nAndroid: https://play.google.com/store/apps/details?id=com.trackmylibrary\niOS: https://apps.apple.com/app/library-manager-trackmylibrary/id6737525389',
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const isDark = theme.isDark;
+  const cardColors = isDark ? ['#1E1B2E', '#161424'] : ['#EEF2FF', '#E0E7FF'];
+  const titleColor = isDark ? '#A5B4FC' : '#3730A3';
+  const subtitleColor = isDark ? '#818CF8' : '#4338CA';
+  const borderColor = isDark ? '#312E81' : '#C7D2FE';
+
+  return (
+    <Animated.View entering={FadeInDown.delay(800).duration(800)}>
+      <Pressable onPress={onShare} style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }] }]}>
+        <LinearGradient
+          colors={cardColors as [string, string]}
+          style={[styles.shareCard, { borderColor }]}
+        >
+          <View style={[styles.shareIconBox, isDark && { backgroundColor: '#1F2937' }]}>
+            <Ionicons name="share-social" size={24} color={isDark ? '#A5B4FC' : '#4F46E5'} />
+          </View>
+          <View style={styles.shareTextContent}>
+            <Text style={[styles.shareTitle, { color: titleColor }]}>Invite a Friend!</Text>
+            <Text style={[styles.shareSubtitle, { color: subtitleColor }]}>Help other library owners simplify their work.</Text>
+          </View>
+          <View style={styles.shareArrow}>
+            <Ionicons name="paper-plane" size={18} color={subtitleColor} />
+          </View>
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+/**
+ * RatingCard - Platform-aware component that directs users to 
+ * the appropriate store (App Store for iOS, Play Store for Android).
+ */
+function RatingCard({ theme }: { theme: any }) {
+  const isDark = theme.isDark;
+  const isIOS = Platform.OS === 'ios';
+  const storeName = isIOS ? 'App Store' : 'Play Store';
+  const storeUrl = isIOS 
+    ? 'https://apps.apple.com/app/library-manager-trackmylibrary/id6737525389'
+    : 'https://play.google.com/store/apps/details?id=com.trackmylibrary';
+
+  const cardColors = isDark ? ['#2D1B10', '#1F120A'] : ['#FFF7ED', '#FFEDD5'];
+  const titleColor = isDark ? '#FDBA74' : '#9A3412';
+  const subtitleColor = isDark ? '#FB923C' : '#C2410C';
+  const borderColor = isDark ? '#431407' : '#FED7AA';
+
+  return (
+    <Animated.View entering={FadeInDown.delay(700).duration(800)}>
+      <LinearGradient
+        colors={cardColors as [string, string]}
+        style={[styles.ratingCard, { borderColor }]}
+      >
+        <View style={styles.ratingContent}>
+          <View style={styles.ratingStars}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Ionicons key={s} name="star" size={18} color="#F59E0B" style={{ marginRight: 2 }} />
+            ))}
+          </View>
+          <View style={styles.ratingTextBox}>
+            <Text style={[styles.ratingTitle, { color: titleColor }]}>Enjoying the App?</Text>
+            <Text style={[styles.ratingSubtitle, { color: subtitleColor }]}>Your 5-star rating helps us grow!</Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Linking.openURL(storeUrl);
+            }}
+            style={({ pressed }) => [
+              styles.ratingBtn,
+              isDark && { backgroundColor: '#431407' },
+              pressed && { transform: [{ scale: 0.98 }] }
+            ]}
+          >
+            <Text style={styles.ratingBtnText}>Rate on {storeName}</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </Pressable>
+        </View>
+        <View style={[styles.ratingDecorCircle, isDark && { backgroundColor: 'rgba(245, 158, 11, 0.05)' }]} />
+      </LinearGradient>
+    </Animated.View>
+  );
+}
+
+/**
+ * MadeInIndiaFooter - Professional branding at the bottom of the dashboard.
+ */
+function MadeInIndiaFooter({ theme }: { theme: any }) {
+  return (
+    <View style={styles.footerContainer}>
+      <Text style={[styles.footerMainText, { color: theme.muted }]}>
+        Made with <Ionicons name="heart" size={14} color="#ef4444" /> in India
+      </Text>
+      <Text style={[styles.footerVersionText, { color: theme.muted + '80' }]}>Version 4.0.1 (Premium)</Text>
+    </View>
+  );
+}
+
 function TrustBanner({ theme }: { theme: any }) {
   return (
     <Animated.View entering={FadeInDown.delay(700).duration(700)} style={styles.trustSection}>
@@ -237,27 +588,54 @@ function TrustBanner({ theme }: { theme: any }) {
             <Ionicons name="star" size={16} color="#f59e0b" />
             <Text style={[styles.trustStatText, { color: theme.text }]}>4.8 Rating</Text>
           </View>
-          <View style={[styles.trustDivider, { backgroundColor: theme.border }]} />
-          <View style={styles.trustStat}>
-            <Ionicons name="heart" size={16} color="#ef4444" />
-            <Text style={[styles.trustStatText, { color: theme.text }]}>Made in India</Text>
-          </View>
         </View>
 
         {/* Platform Badges */}
         <View style={styles.trustPlatforms}>
-          <View style={[styles.platformBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Linking.openURL('https://apps.apple.com/app/library-manager-trackmylibrary/id6737525389');
+            }}
+            style={({ pressed }) => [
+              styles.platformBadge,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && { transform: [{ scale: 0.96 }], opacity: 0.8 }
+            ]}
+          >
             <Ionicons name="logo-apple" size={14} color={theme.text} />
             <Text style={[styles.platformText, { color: theme.muted }]}>iOS</Text>
-          </View>
-          <View style={[styles.platformBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Linking.openURL('https://play.google.com/store/apps/details?id=com.trackmylibrary');
+            }}
+            style={({ pressed }) => [
+              styles.platformBadge,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && { transform: [{ scale: 0.96 }], opacity: 0.8 }
+            ]}
+          >
             <Ionicons name="logo-android" size={14} color="#3DDC84" />
             <Text style={[styles.platformText, { color: theme.muted }]}>Android</Text>
-          </View>
-          <View style={[styles.platformBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Linking.openURL('https://trackmylibrary.com');
+            }}
+            style={({ pressed }) => [
+              styles.platformBadge,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && { transform: [{ scale: 0.96 }], opacity: 0.8 }
+            ]}
+          >
             <Ionicons name="globe" size={14} color="#3b82f6" />
             <Text style={[styles.platformText, { color: theme.muted }]}>Web</Text>
-          </View>
+          </Pressable>
         </View>
       </LinearGradient>
     </Animated.View>
@@ -267,7 +645,7 @@ function TrustBanner({ theme }: { theme: any }) {
 function SupportBanner({ theme }: { theme: any }) {
   const handleWhatsApp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with...')}`);
+    Linking.openURL(`https://wa.me/917348335273?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with...')}`);
   };
 
   const handleEmail = () => {
@@ -333,12 +711,16 @@ function TipOfTheDay({ theme }: { theme: any }) {
 
   return (
     <Animated.View entering={FadeInDown.delay(450).duration(700)}>
-      <View style={[styles.tipCard, { backgroundColor: theme.primary + '08', borderColor: theme.primary + '20' }]}>
-        <View style={[styles.tipIcon, { backgroundColor: theme.primary + '15' }]}>
-          <Ionicons name={todayTip.icon} size={18} color={theme.primary} />
+      <View style={[styles.tipCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.tipIcon, { backgroundColor: theme.primary + '12' }]}>
+          <Ionicons name="bulb-outline" size={20} color={theme.primary} />
         </View>
         <View style={styles.tipContent}>
-          <Text style={[styles.tipLabel, { color: theme.primary }]}>💡 Tip of the Day</Text>
+          <View style={styles.tipHeader}>
+            <Text style={[styles.tipLabel, { color: theme.primary }]}>PRO TIP</Text>
+            <View style={[styles.tipDot, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.tipLabel, { color: theme.muted }]}>Today</Text>
+          </View>
           <Text style={[styles.tipText, { color: theme.text }]}>{todayTip.tip}</Text>
         </View>
       </View>
@@ -346,18 +728,33 @@ function TipOfTheDay({ theme }: { theme: any }) {
   );
 }
 
-// ─── Main Component ──────────────────────────────────────────
+// ─── DASHBOARD CORE ──────────────────────────────────────────
 
 interface ClassicDashboardProps {
   theme: any;
   onAddStudent: () => void;
   onAddExpense: () => void;
   activeStudents?: number;
+  totalStudents?: number;
+  todayRevenue?: number;
+  monthlyRevenue?: number;
+  totalCapacity?: number;
   duesCount?: number;
   duesStudents?: { dueAmount?: number }[];
 }
 
-export function ClassicDashboard({ theme, onAddStudent, onAddExpense, activeStudents = 0, duesCount = 0, duesStudents = [] }: ClassicDashboardProps) {
+export function ClassicDashboard({ 
+  theme, 
+  onAddStudent, 
+  onAddExpense, 
+  activeStudents = 0, 
+  totalStudents = 0,
+  todayRevenue = 0,
+  monthlyRevenue = 0,
+  totalCapacity = 0,
+  duesCount = 0, 
+  duesStudents = [] 
+}: ClassicDashboardProps) {
   const router = useRouter();
 
   const totalDues = duesStudents.reduce((sum, s) => sum + (s.dueAmount || 0), 0);
@@ -365,7 +762,7 @@ export function ClassicDashboard({ theme, onAddStudent, onAddExpense, activeStud
   const quickActions: GradientAction[] = [
     { title: 'Add Student', subtitle: 'New admission', icon: 'person-add', gradient: ['#10b981', '#059669'], onPress: onAddStudent },
     { title: 'Log Expense', subtitle: 'Track costs', icon: 'receipt', gradient: ['#f59e0b', '#d97706'], onPress: onAddExpense },
-    { title: 'Record Payment', subtitle: 'Collect fees', icon: 'wallet', gradient: ['#8b5cf6', '#7c3aed'], onPress: () => router.push('/payments') },
+    // { title: 'Record Payment', subtitle: 'Collect fees', icon: 'wallet', gradient: ['#8b5cf6', '#7c3aed'], onPress: () => router.push('/payments') },
     { title: 'View Reports', subtitle: 'Deep insights', icon: 'bar-chart', gradient: ['#3b82f6', '#2563eb'], onPress: () => router.push('/analytics') },
   ];
 
@@ -392,8 +789,23 @@ export function ClassicDashboard({ theme, onAddStudent, onAddExpense, activeStud
       {/* Hero Banner */}
       <HeroBanner theme={theme} />
 
-      {/* Student Count */}
-      <StudentCountBadge count={activeStudents} theme={theme} />
+      {/* Metrics Section */}
+      <MetricsSection 
+        theme={theme}
+        activeStudents={activeStudents}
+        totalStudents={totalStudents}
+        todayRevenue={todayRevenue}
+        monthlyRevenue={monthlyRevenue}
+      />
+
+      {/* Library Health Insight - Temporarily Hidden */}
+      {/* 
+      <OccupancyCard 
+        activeStudents={activeStudents}
+        totalCapacity={totalCapacity}
+        theme={theme}
+      /> 
+      */}
 
       {/* Primary Actions - Horizontal Scrollable Cards */}
       <View style={styles.primarySection}>
@@ -409,10 +821,13 @@ export function ClassicDashboard({ theme, onAddStudent, onAddExpense, activeStud
         </ScrollView>
       </View>
 
+      {/* Engagement Banners Carousel */}
+      <EngagementCarousel theme={theme} />
+
       {/* Pending Dues Alert */}
       <DuesAlert duesCount={duesCount} totalDues={totalDues} theme={theme} />
 
-      {/* Manage Grid */}
+      {/* Action Grid (3×N) */}
       <ActionGrid title="Manage" actions={manageActions} theme={theme} delay={400} />
 
       {/* Tip of the Day */}
@@ -426,6 +841,13 @@ export function ClassicDashboard({ theme, onAddStudent, onAddExpense, activeStud
 
       {/* Support Banner */}
       <SupportBanner theme={theme} />
+
+      {/* Sharing & Feedback */}
+      <ShareCard theme={theme} />
+      <RatingCard theme={theme} />
+
+      {/* Footer */}
+      <MadeInIndiaFooter theme={theme} />
     </>
   );
 }
@@ -435,13 +857,18 @@ export function ClassicDashboard({ theme, onAddStudent, onAddExpense, activeStud
 const styles = StyleSheet.create({
   // Banner
   bannerContainer: {
-    marginBottom: -8,
+    marginBottom: spacing.md,
   },
   banner: {
-    borderRadius: 30,
+    borderRadius: 28,
     padding: 24,
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
   },
   bannerContent: {
     flexDirection: 'row',
@@ -451,27 +878,30 @@ const styles = StyleSheet.create({
   },
   bannerTextBox: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   bannerBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   bannerLabel: {
     color: '#fff',
     fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   bannerTitle: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   bannerDesc: {
     color: 'rgba(255,255,255,0.85)',
@@ -480,35 +910,24 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 2,
   },
+  bannerActionArea: {
+    marginLeft: 16,
+  },
   bannerCircleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
   },
-  decorCircle1: {
-    position: 'absolute',
-    top: -20,
-    right: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  decorCircle2: {
-    position: 'absolute',
-    bottom: -40,
-    left: 20,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  bannerMeshGradient: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
 
   // Primary Actions (horizontal cards)
@@ -600,35 +1019,53 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Student Count Badge
-  studentBadge: {
+  // Metrics Section
+  metricsSection: {
+    marginTop: 0,
+    gap: spacing.md,
+  },
+  metricsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    flexWrap: 'wrap',
     gap: 12,
   },
-  studentBadgeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+  metricCardWrapper: {
+    width: '48.2%',
+  },
+  metricCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 1,
+  },
+  metricIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  studentBadgeText: {
+  metricText: {
     flex: 1,
-    gap: 1,
+    gap: 2,
   },
-  studentBadgeValue: {
-    fontSize: 22,
+  metricValue: {
+    fontSize: 19,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
-  studentBadgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+  metricLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
 
   // Dues Alert
@@ -684,16 +1121,156 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  // Occupancy Card
+  occupancyContainer: {
+    marginTop: spacing.sm,
+  },
+  occupancyCard: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 1,
+  },
+  occupancyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  occupancyIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  occupancyHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  occupancyTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  occupancySubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  occupancyBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
+  occupancyBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  progressContainer: {
+    gap: 8,
+  },
+  progressBarBg: {
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  occupancyFooter: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  footerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  footerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  footerText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // Engagement Carousel
+  carouselSection: {
+    marginTop: 0,
+    marginLeft: -spacing.xl,
+    marginRight: -spacing.xl,
+  },
+  carouselScroll: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 4,
+    gap: 16,
+  },
+  carouselCard: {
+    width: width - 52,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  carouselGradient: {
+    padding: 18,
+    paddingVertical: 22,
+  },
+  carouselContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  carouselIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  carouselTextContent: {
+    flex: 1,
+    gap: 2,
+  },
+  carouselTitle: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+  },
+  carouselDesc: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
   // Trust Banner
   trustSection: {
-    marginTop: 4,
+    marginTop: spacing.sm,
   },
   trustCard: {
-    borderRadius: 28,
+    borderRadius: 24,
     borderWidth: 1.5,
-    padding: 20,
+    padding: 24,
     gap: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   trustHeader: {
     flexDirection: 'row',
@@ -701,9 +1278,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   trustLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -712,28 +1289,35 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   trustBrand: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
   trustTagline: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
   },
   trustStats: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 12,
+    marginTop: 4,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   trustStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   trustStatText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
   },
   trustDivider: {
     width: 1,
@@ -742,20 +1326,21 @@ const styles = StyleSheet.create({
   trustPlatforms: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
+    marginTop: 4,
   },
   platformBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    gap: 5,
+    gap: 6,
   },
   platformText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   // Support Banner
@@ -827,30 +1412,164 @@ const styles = StyleSheet.create({
   tipCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 20,
+    padding: 18,
+    borderRadius: 24,
     borderWidth: 1.5,
-    gap: 12,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
   },
   tipIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tipContent: {
     flex: 1,
-    gap: 3,
+    gap: 4,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   tipLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.2,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  tipDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    opacity: 0.3,
   },
   tipText: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+    letterSpacing: -0.2,
+  },
+  // Rating Card
+  ratingCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  ratingContent: {
+    zIndex: 2,
+    alignItems: 'center',
+    gap: 12,
+  },
+  ratingStars: {
+    flexDirection: 'row',
+  },
+  ratingTextBox: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+  },
+  ratingSubtitle: {
     fontSize: 13,
     fontWeight: '600',
-    lineHeight: 18,
+    textAlign: 'center',
+  },
+  ratingBtn: {
+    backgroundColor: '#9A3412',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 4,
+    shadowColor: '#9A3412',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  ratingBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  ratingDecorCircle: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+  },
+
+  // Footer
+  footerContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 6,
+  },
+  footerMainText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  footerVersionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  // Share Card
+  shareCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  shareIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  shareTextContent: {
+    flex: 1,
+    gap: 2,
+  },
+  shareTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  shareSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  shareArrow: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

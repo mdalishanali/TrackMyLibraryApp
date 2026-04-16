@@ -58,6 +58,14 @@ const Ripple = ({ delay, theme }: { delay: number; theme: any }) => {
   );
 };
 
+/**
+ * MaintenanceScreen - Displays a premium "System Offline" interface.
+ * Triggered when the app cannot reach the server or database.
+ * features:
+ * - Animated ripples and floating icons for a dynamic feel.
+ * - Auto-retry connection mechanism.
+ * - Direct WhatsApp support link.
+ */
 export const MaintenanceScreen = ({ theme, onRetry, isRetrying, error }: MaintenanceScreenProps) => {
   const floatAnim = useSharedValue(0);
 
@@ -147,8 +155,10 @@ export const MaintenanceScreen = ({ theme, onRetry, isRetrying, error }: Mainten
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                // Encode support message to let the team know the user is experiencing downtime
                 const msg = encodeURIComponent("Hey TrackMyLibrary! I'm facing connection issues. Is the server down?");
-                Linking.openURL(`whatsapp://send?phone=916391417248&text=${msg}`);
+                // Redirect user to WhatsApp support using the primary contact number
+                Linking.openURL(`whatsapp://send?phone=917348335273&text=${msg}`);
               }}
               style={({ pressed }) => [
                 styles.supportButton,

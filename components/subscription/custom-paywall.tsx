@@ -333,7 +333,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
               <TouchableOpacity
                 onPress={() => {
                   posthog?.capture('support_contacted', { method: 'whatsapp', source: 'paywall' });
-                  Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with my account/subscription.')}`);
+                  Linking.openURL(`https://wa.me/917348335273?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with my account/subscription.')}`);
                 }}
                 style={[styles.contactBtn, { backgroundColor: '#25D366' }]}
               >

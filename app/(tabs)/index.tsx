@@ -642,6 +642,10 @@ export default function DashboardScreen() {
               onAddStudent={() => setIsStudentFormOpen(true)}
               onAddExpense={() => setIsExpenseFormOpen(true)}
               activeStudents={dashboardQuery.data?.activeStudentsCount}
+              totalStudents={dashboardQuery.data?.totalStudents}
+              todayRevenue={dashboardQuery.data?.todayRevenue}
+              monthlyRevenue={Number(dashboardQuery.data?.earnings || 0)}
+              totalCapacity={seats.length}
               duesCount={dashboardQuery.data?.duesCount}
               duesStudents={dashboardQuery.data?.duesStudents}
             />
