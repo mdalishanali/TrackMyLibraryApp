@@ -1,0 +1,7 @@
+[auth]
+token=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
+
+[defaults]
+url=https://sentry.io
+org=alishan-5p
+project=trackmylibrary

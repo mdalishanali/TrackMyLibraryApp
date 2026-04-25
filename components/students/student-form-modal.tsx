@@ -1,0 +1,1127 @@
+import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { Image } from 'expo-image';
+import { pickOrCaptureImage, uploadImageToCloud } from '@/utils/image';
+import { ImagePickerSheet } from '../ui/image-picker-sheet';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Dropdown } from 'react-native-element-dropdown';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
+import { router } from 'expo-router';
+
+import { useShiftsQuery } from '@/hooks/use-shifts';
+import { SafeScreen } from '@/components/layout/safe-screen';
+import { AppButton } from '@/components/ui/app-button';
+import { AppCard } from '@/components/ui/app-card';
+import { AppBadge } from '@/components/ui/app-badge';
+import { radius, spacing, themeFor, typography } from '@/constants/design';
+import { PREPARATION_OPTIONS } from '@/constants/preparation-options';
+import { formatDate } from '@/utils/format';
+
+const studentSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    number: z.string().min(8, 'Enter a valid phone'),
+    joiningDate: z.string().min(1, 'Joining date is required'),
+    fatherName: z.string().optional(),
+    address: z.string().optional(),
+    aadhaarNumber: z.string().optional(),
+    preparationFor: z.string().optional(),
+    seat: z.string().optional(),
+    shift: z.array(z.string()).default([]),
+    allocations: z.array(z.string()).optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+    fees: z.string().min(1, 'Fees is required'),
+    notes: z.string().optional(),
+    gender: z.string().min(1, 'Gender is required'),
+    profilePicture: z.string().optional(),
+});
+
+export type StudentFormValues = z.infer<typeof studentSchema>;
+
+type SeatOption = {
+    _id: string;
+    seatNumber: string;
+    floor?: number | string;
+};
+
+type Props = {
+    visible: boolean;
+    onClose: () => void;
+    onSubmit: (values: StudentFormValues, onProgress?: (p: number) => void) => void | Promise<void>;
+    initialValues: StudentFormValues;
+    seats: SeatOption[];
+    theme: ReturnType<typeof themeFor>;
+    isSubmitting: boolean;
+    title?: string;
+};
+
+const genderOptions = [
+    { label: 'Male', value: 'Male' },
+    { label: 'Female', value: 'Female' },
+    { label: 'Other', value: 'Other' },
+];
+
+
+export function StudentFormModal({
+    visible,
+    onClose,
+    onSubmit,
+    initialValues,
+    seats,
+    theme,
+    isSubmitting,
+    title = 'Add Student',
+}: Props) {
+    const insets = useSafeAreaInsets();
+    const {
+        control,
+        handleSubmit,
+        reset,
+        trigger,
+        watch,
+        setValue,
+        formState: { errors },
+    } = useForm<StudentFormValues>({
+        resolver: zodResolver(studentSchema),
+        defaultValues: initialValues,
+        mode: 'onChange',
+    });
+
+    const [currentStep, setCurrentStep] = useState(0);
+    const scrollRef = useRef<ScrollView>(null);
+    const values = watch();
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [timePickerType, setTimePickerType] = useState<'startTime' | 'endTime' | null>(null);
+    const [isImageProcessing, setIsImageProcessing] = useState(false);
+    const [pickerSheetVisible, setPickerSheetVisible] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+    const [backgroundProgress, setBackgroundProgress] = useState(0);
+
+    const { data: shifts = [] } = useShiftsQuery();
+
+    const shiftOptions = useMemo(() => {
+        return shifts.map(s => ({ label: s.name, value: s._id, id: s._id, price: s.price, start: s.startTime, end: s.endTime }));
+    }, [shifts]);
+
+    // Update fees and times when shift changes
+    useEffect(() => {
+        if (!values.shift || !Array.isArray(values.shift)) return;
+
+        const selectedShifts = shiftOptions.filter(s => values.shift?.includes(s.value));
+        if (selectedShifts.length > 0) {
+            // Auto update fees by summing up shift prices
+            const totalPrice = selectedShifts.reduce((acc, s) => acc + (s.price || 0), 0);
+            setValue('fees', String(totalPrice));
+
+            // Determine min start and max end for current UI display
+            const sortedStarts = [...selectedShifts].sort((a, b) => a.start.localeCompare(b.start));
+            const sortedEnds = [...selectedShifts].sort((a, b) => b.end.localeCompare(a.end));
+
+            if (sortedStarts[0]) setValue('startTime', sortedStarts[0].start);
+            if (sortedEnds[0]) setValue('endTime', sortedEnds[0].end);
+
+            // Map to allocations (using _id if available, but for now value is name or _id depending on opt)
+            // Actually, opt.value is s.name in current impl. Let's make it s._id.
+            setValue('allocations', selectedShifts.map(s => s.id));
+        }
+    }, [values.shift, shiftOptions, setValue]);
+
+    const uniqueFloors = useMemo(() => {
+        const floors = Array.from(new Set(seats.map(s => s.floor).filter(f => f !== undefined && f !== null && String(f) !== '0')));
+        return (floors as number[]).sort((a, b) => Number(a) - Number(b));
+    }, [seats]);
+
+    const [selectedFloor, setSelectedFloor] = useState<number | string>(uniqueFloors[0] || 1);
+
+    const handleImagePick = async (source: 'gallery' | 'camera') => {
+        setIsImageProcessing(true);
+        setPickerSheetVisible(false);
+        try {
+            const result = await pickOrCaptureImage(source);
+            if (result) {
+                setIsUploading(true);
+                setBackgroundProgress(0.1);
+                try {
+                    const cloudUrl = await uploadImageToCloud(result.uri, (p) => {
+                        setBackgroundProgress(p);
+                    });
+                    setValue('profilePicture', cloudUrl);
+                } catch (err) {
+                    Alert.alert('Upload Failed', 'Could not upload image to server.');
+                } finally {
+                    setIsUploading(false);
+                    setBackgroundProgress(0);
+                }
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to process image');
+        } finally {
+            setIsImageProcessing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (visible) {
+            reset({
+                ...initialValues,
+                shift: Array.isArray(initialValues.shift)
+                    ? initialValues.shift
+                    : (initialValues.shift ? [initialValues.shift] : (shifts[0] ? [shifts[0]._id] : [])),
+                gender: initialValues.gender || 'Male',
+                fees: initialValues.fees || String(shifts[0]?.price || '500'),
+            });
+
+            // Set initial selected floor based on student's seat
+            if (initialValues.seat) {
+                const currentSeat = seats.find(s => s._id === initialValues.seat);
+                if (currentSeat?.floor && String(currentSeat.floor) !== '0') {
+                    setSelectedFloor(currentSeat.floor);
+                }
+            }
+        } else {
+            setCurrentStep(0);
+        }
+    }, [visible, initialValues, reset, seats]);
+
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }, [currentStep]);
+
+    const steps = useMemo(() => [
+        { key: 'basic', title: 'Basic Info', fields: ['name', 'number', 'joiningDate', 'fatherName', 'address', 'gender', 'preparationFor', 'aadhaarNumber', 'notes'] as (keyof StudentFormValues)[] },
+        { key: 'schedule', title: 'Schedule & Fees', fields: ['startTime', 'endTime', 'seat', 'shift', 'fees'] as (keyof StudentFormValues)[] },
+        { key: 'review', title: 'Review', fields: [] as (keyof StudentFormValues)[] },
+    ], []);
+
+    const progress = ((currentStep + 1) / steps.length) * 100;
+
+    const seatData = useMemo(() => {
+        const filtered = seats.filter(s => String(s.floor) === String(selectedFloor) && String(s.seatNumber) !== '0');
+
+        return [
+            { label: 'Unallocated', value: '' },
+            ...filtered.map((s) => ({
+                label: `Seat ${s.seatNumber}`,
+                value: s._id,
+            })),
+        ];
+    }, [seats, selectedFloor]);
+
+    const handleClose = () => {
+        onClose();
+        setCurrentStep(0);
+    };
+
+    const validateStep = async (index: number) => {
+        const fields = steps[index]?.fields ?? [];
+        if (!fields.length) return true;
+        return trigger(fields as any);
+    };
+
+    const handleNext = async () => {
+        const ok = await validateStep(currentStep);
+        if (!ok) return;
+        setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+    };
+
+    const handlePrev = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
+
+    const handleFinalSubmit = async () => {
+        // Wait for handleSubmit to finish the whole process
+        await handleSubmit(
+            async (vals) => {
+                try {
+                    setUploadProgress(1);
+                    await onSubmit(vals, (p) => setUploadProgress(p));
+                    // Only reset if we are NOT about to unmount (parent will handle state)
+                    // But if parent keeps it, we reset. 
+                    // To be safe and prevent "jump back" if closed, we can skip reset here
+                    // as reset(initialValues) might be triggering a re-render to step 0 before close.
+                } catch (error: any) {
+                    // Alert is handled in onSubmit usually, but we have one here too just in case
+                    if (!error?.handled) {
+                        Alert.alert('Save Failed', error.message || 'Something went wrong while saving student details.');
+                    }
+                } finally {
+                    setUploadProgress(0);
+                }
+            },
+            (errs) => {
+                // Jump to the first erroneous field's step
+                const fieldNames = Object.keys(errs);
+                if (fieldNames.length > 0) {
+                    const firstErrorField = fieldNames[0] as keyof StudentFormValues;
+                    const stepIndex = steps.findIndex(s => s.fields.includes(firstErrorField));
+                    if (stepIndex !== -1 && stepIndex !== currentStep) {
+                        setCurrentStep(stepIndex);
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    }
+                }
+            }
+        )();
+    };
+
+    return (
+        <Modal animationType="slide" visible={visible} onRequestClose={handleClose} transparent>
+            <View style={{ flex: 1, backgroundColor: theme.background }}>
+                <LinearGradient
+                    colors={[theme.primary + '15', 'transparent']}
+                    style={StyleSheet.absoluteFill}
+                />
+
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={{ flex: 1 }}
+                >
+                    <View style={{ flex: 1 }}>
+                        <View style={[
+                            styles.modalTopBar,
+                            {
+                                paddingHorizontal: spacing.lg,
+                                paddingTop: insets.top + spacing.xs,
+                                paddingBottom: spacing.sm,
+                            }
+                        ]}>
+                            <TouchableOpacity onPress={handleClose} style={[styles.closeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                <Ionicons name="close" size={20} color={theme.text} />
+                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
+                            <View style={{ width: 44 }} />
+                        </View>
+
+                        <View style={styles.stepperContainer}>
+                            <View style={styles.stepHeaders}>
+                                {steps.map((step, idx) => {
+                                    const active = idx === currentStep;
+                                    const completed = idx < currentStep;
+                                    return (
+                                        <View key={step.key} style={styles.stepHeaderItem}>
+                                            <View style={[
+                                                styles.stepCircle,
+                                                {
+                                                    backgroundColor: active || completed ? theme.primary : theme.surface,
+                                                    borderColor: active ? theme.primary : theme.border
+                                                }
+                                            ]}>
+                                                {completed ? (
+                                                    <Ionicons name="checkmark" size={16} color="#fff" />
+                                                ) : (
+                                                    <Text style={[styles.stepNumber, { color: active ? '#fff' : theme.muted }]}>{idx + 1}</Text>
+                                                )}
+                                            </View>
+                                            <Text style={[styles.stepLabel, { color: active ? theme.text : theme.muted }]}>
+                                                {step.title}
+                                            </Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                            <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+                                <Animated.View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
+                            </View>
+                        </View>
+
+                        <ScrollView
+                            ref={scrollRef}
+                            style={styles.modalScroll}
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <Animated.View
+                                key={currentStep}
+                                entering={SlideInRight.duration(400)}
+                                exiting={SlideOutLeft.duration(400)}
+                            >
+                                {currentStep === 0 && (
+                                    <View style={styles.stepContent}>
+                                        <TouchableOpacity
+                                            onPress={() => setPickerSheetVisible(true)}
+                                            style={[styles.imagePicker, { borderColor: theme.primary, backgroundColor: theme.surface }]}
+                                        >
+                                            {values.profilePicture ? (
+                                                <Image source={{ uri: values.profilePicture }} style={styles.previewImage} contentFit="cover" />
+                                            ) : (
+                                                <View style={styles.placeholderContainer}>
+                                                    <Ionicons name="camera-outline" size={32} color={theme.primary} />
+                                                    <Text style={[styles.placeholderText, { color: theme.primary }]}>Add Photo</Text>
+                                                </View>
+                                            )}
+                                            {(isImageProcessing || isUploading) && (
+                                                <View style={styles.imageOverlay}>
+                                                    <ActivityIndicator color="#fff" />
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+
+                                        <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <FormField label="Full Name" name="name" control={control} errors={errors} theme={theme} placeholder="Enter member's full name" required />
+                                            <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" required />
+
+                                            <View style={styles.formGroup}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Joining Date</Text>
+                                                    <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    onPress={() => setDatePickerOpen(true)}
+                                                    style={[styles.input, { borderColor: errors.joiningDate ? theme.danger : theme.border, backgroundColor: theme.surfaceAlt }]}
+                                                >
+                                                    <Text style={{ color: values.joiningDate ? theme.text : theme.muted, fontSize: 16, fontWeight: '600' }}>
+                                                        {values.joiningDate ? formatDate(values.joiningDate) : 'Select date'}
+                                                    </Text>
+                                                    <Ionicons name="calendar-outline" size={18} color={theme.muted} />
+                                                </TouchableOpacity>
+                                                {errors.joiningDate?.message && <Text style={styles.errorText}>{String(errors.joiningDate.message)}</Text>}
+                                            </View>
+
+                                            <FormField label="Father Name (Optional)" name="fatherName" control={control} errors={errors} theme={theme} placeholder="Enter father's name" />
+                                            <FormField label="Address (Optional)" name="address" control={control} errors={errors} theme={theme} placeholder="Enter full address" multiline />
+
+                                            <View style={styles.formGroup}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
+                                                    <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>
+                                                </View>
+                                                <View style={styles.statusGrid}>
+                                                    {['Male', 'Female'].map((gender) => {
+                                                        const active = values.gender === gender;
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={gender}
+                                                                onPress={() => setValue('gender', gender)}
+                                                                style={[
+                                                                    styles.statusBtn,
+                                                                    {
+                                                                        backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                                                                        borderColor: active ? theme.primary : theme.border
+                                                                    }
+                                                                ]}
+                                                            >
+                                                                <Ionicons
+                                                                    name={gender === 'Male' ? 'male' : 'female'}
+                                                                    size={18}
+                                                                    color={active ? '#fff' : theme.text}
+                                                                    style={{ marginRight: 8 }}
+                                                                />
+                                                                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{gender}</Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+                                                </View>
+                                            </View>
+                                        </AppCard>
+
+                                        <Text style={[styles.label, { fontSize: 16, color: theme.text, marginLeft: 4 }]}>Additional Details (Optional)</Text>
+                                        <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Preparation For (Optional)</Text>
+                                                <View style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, height: 'auto', minHeight: 50, paddingVertical: 0 }]}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Ionicons name="school-outline" size={18} color={theme.muted} style={{ marginRight: 8 }} />
+                                                        <TextInput
+                                                            style={{ flex: 1, fontSize: 14, color: theme.text, paddingVertical: 14 }}
+                                                            placeholder="Type or select exam..."
+                                                            placeholderTextColor={theme.muted}
+                                                            value={values.preparationFor || ''}
+                                                            onChangeText={(text) => setValue('preparationFor', text)}
+                                                        />
+                                                        {values.preparationFor ? (
+                                                            <TouchableOpacity onPress={() => setValue('preparationFor', '')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                                                <Ionicons name="close-circle" size={18} color={theme.muted} />
+                                                            </TouchableOpacity>
+                                                        ) : null}
+                                                    </View>
+                                                </View>
+                                                {values.preparationFor && values.preparationFor.length > 0 && (() => {
+                                                    const filtered = PREPARATION_OPTIONS.filter(
+                                                        (o) => o.value && o.value.toLowerCase().includes((values.preparationFor || '').toLowerCase()) && o.value !== values.preparationFor
+                                                    );
+                                                    if (filtered.length === 0) return null;
+                                                    return (
+                                                        <ScrollView
+                                                            horizontal={false}
+                                                            nestedScrollEnabled
+                                                            style={{ maxHeight: 120, marginTop: 4, borderRadius: 10, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface }}
+                                                            keyboardShouldPersistTaps="handled"
+                                                        >
+                                                            {filtered.slice(0, 6).map((opt) => (
+                                                                <TouchableOpacity
+                                                                    key={opt.value}
+                                                                    onPress={() => setValue('preparationFor', opt.value)}
+                                                                    style={{ paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: theme.border + '50' }}
+                                                                >
+                                                                    <Text style={{ color: theme.text, fontSize: 14 }}>{opt.label}</Text>
+                                                                </TouchableOpacity>
+                                                            ))}
+                                                        </ScrollView>
+                                                    );
+                                                })()}
+                                            </View>
+                                            <FormField label="Aadhaar Number (Optional)" name="aadhaarNumber" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="12-digit UID" />
+                                            <FormField label="Notes (Optional)" name="notes" control={control} errors={errors} theme={theme} placeholder="Add any special instructions..." multiline />
+                                        </AppCard>
+                                    </View>
+                                )}
+
+                                {currentStep === 1 && (
+                                    <View style={styles.stepContent}>
+                                        <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+
+                                            <View style={styles.formGroup}>
+                                                <Text style={[styles.label, { color: theme.text }]}>Select Section</Text>
+                                                <ScrollView
+                                                    horizontal
+                                                    showsHorizontalScrollIndicator={false}
+                                                    contentContainerStyle={styles.floorTabContainer}
+                                                >
+                                                    {uniqueFloors.map((floor) => (
+                                                        <TouchableOpacity
+                                                            key={floor}
+                                                            onPress={() => setSelectedFloor(floor)}
+                                                            style={[
+                                                                styles.floorTab,
+                                                                {
+                                                                    backgroundColor: String(selectedFloor) === String(floor) ? theme.primary : theme.surfaceAlt,
+                                                                    borderColor: String(selectedFloor) === String(floor) ? theme.primary : theme.border
+                                                                }
+                                                            ]}
+                                                        >
+                                                            <Text style={[
+                                                                styles.floorTabText,
+                                                                { color: String(selectedFloor) === String(floor) ? '#fff' : theme.text }
+                                                            ]}>
+                                                                {isNaN(Number(floor)) ? floor : `Section ${floor}`}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </ScrollView>
+
+                                                <Text style={[styles.label, { color: theme.text, marginTop: 8 }]}>Seat Allocation</Text>
+                                                <Dropdown
+                                                    data={seatData}
+                                                    labelField="label"
+                                                    valueField="value"
+                                                    value={values.seat}
+                                                    search
+                                                    searchPlaceholder="Search seat..."
+                                                    onChange={(item) => setValue('seat', item.value)}
+                                                    style={[styles.dropdown, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+                                                    placeholderStyle={{ color: theme.muted }}
+                                                    selectedTextStyle={{ color: theme.text }}
+                                                    itemTextStyle={{ color: theme.text }}
+                                                    inputSearchStyle={{ color: theme.text }}
+                                                    containerStyle={{ backgroundColor: theme.surface }}
+                                                    activeColor={theme.primary + '10'}
+                                                />
+                                            </View>
+
+
+                                            <View style={styles.formGroup}>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+                                                    <Text style={[styles.label, { color: theme.muted, marginBottom: 0 }]}>Shift Selection</Text>
+                                                    <TouchableOpacity 
+                                                        onPress={() => { onClose(); router.push('/(tabs)/settings'); }}
+                                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                                    >
+                                                        <Text style={{ color: theme.primary, fontWeight: '800', fontSize: 13, textDecorationLine: 'underline' }}>Manage Shifts</Text>
+                                                        <Ionicons name="open-outline" size={14} color={theme.primary} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <ScrollView
+                                                    horizontal
+                                                    showsHorizontalScrollIndicator={false}
+                                                    contentContainerStyle={[styles.shiftScrollContent, shiftOptions.length === 0 && { flex: 1, justifyContent: 'center' }]}
+                                                >
+                                                    {shiftOptions.length === 0 ? (
+                                                        <View style={{ padding: 12, alignItems: 'center', width: '100%' }}>
+                                                            <Text style={{ color: theme.muted, fontSize: 12, fontStyle: 'italic' }}>No shifts found. Please add a shift in settings.</Text>
+                                                        </View>
+                                                    ) : shiftOptions.map((opt) => {
+                                                        const currentShifts = values.shift || [];
+                                                        const active = currentShifts.includes(opt.value);
+
+                                                        const handleShiftToggle = () => {
+                                                            let next = [...currentShifts];
+                                                            if (active) {
+                                                                next = next.filter(id => id !== opt.value);
+                                                            } else {
+                                                                // Logical constraint: can't pick 24 Hour with others
+                                                                const is24Hour = opt.label.toLowerCase().includes('24 hour');
+                                                                if (is24Hour) {
+                                                                    next = [opt.value];
+                                                                } else {
+                                                                    // If selecting something else, remove 24 Hours if it was present
+                                                                    const otherShiftsMinus24 = currentShifts.filter(id => {
+                                                                        const shiftOpt = shiftOptions.find(o => o.value === id);
+                                                                        return !shiftOpt?.label.toLowerCase().includes('24 hour');
+                                                                    });
+                                                                    next = [...otherShiftsMinus24, opt.value];
+                                                                }
+                                                            }
+                                                            setValue('shift', next);
+                                                        };
+
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={opt.value}
+                                                                onPress={handleShiftToggle}
+                                                                activeOpacity={0.8}
+                                                                style={[
+                                                                    styles.shiftCard,
+                                                                    {
+                                                                        backgroundColor: active ? theme.primary : theme.surfaceAlt,
+                                                                        borderColor: active ? theme.primary : theme.border,
+                                                                    }
+                                                                ]}
+                                                            >
+                                                                <View style={styles.shiftCardHeader}>
+                                                                    <Text style={[styles.shiftCardTitle, { color: active ? '#fff' : theme.text }]}>
+                                                                        {opt.label}
+                                                                    </Text>
+                                                                    {active && <Ionicons name="checkmark-circle" size={16} color="#fff" />}
+                                                                </View>
+
+                                                                <View style={[styles.shiftCardFooter, { borderTopColor: active ? 'rgba(255,255,255,0.2)' : theme.border + '50' }]}>
+                                                                    <Text style={[styles.shiftCardTime, { color: active ? 'rgba(255,255,255,0.8)' : theme.muted }]}>
+                                                                        {toDisplayTime(opt.start)} - {toDisplayTime(opt.end)}
+                                                                    </Text>
+                                                                    <Text style={[styles.shiftCardPrice, { color: active ? '#fff' : theme.primary }]}>
+                                                                        ₹{opt.price}
+                                                                    </Text>
+                                                                </View>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+                                                </ScrollView>
+                                            </View>
+
+                                            <FormField label="Monthly Fees (₹)" name="fees" control={control} errors={errors} theme={theme} keyboardType="numeric" placeholder="e.g. 500" required />
+                                        </AppCard>
+                                    </View>
+                                )}
+
+                                {currentStep === 2 && (
+                                    <View style={styles.stepContent}>
+                                        <AppCard style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                                            <View style={styles.reviewAvatarContainer}>
+                                                <View style={[styles.reviewAvatar, { backgroundColor: theme.surfaceAlt, borderColor: theme.primary }]}>
+                                                    <Image
+                                                        source={{ uri: values.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(values.name || 'S')}&background=0D8ABC&color=fff&size=200` }}
+                                                        style={styles.reviewImg}
+                                                        contentFit="cover"
+                                                    />
+                                                </View>
+                                                <Text style={[styles.reviewName, { color: theme.text }]}>{values.name}</Text>
+                                                <Text style={[styles.reviewPhone, { color: theme.muted }]}>{values.number}</Text>
+                                            </View>
+
+                                            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+                                            <View style={styles.reviewGrid}>
+                                                <ReviewItem label="JOINED" value={formatDate(values.joiningDate)} theme={theme} />
+                                                <ReviewItem label="GENDER" value={values.gender} theme={theme} />
+                                                {values.preparationFor && <ReviewItem label="PREPARING FOR" value={values.preparationFor} theme={theme} />}
+                                                <ReviewItem label="SHIFTS" value={shiftOptions.filter(o => values.shift?.includes(o.value)).map(o => o.label).join(', ') || 'N/A'} theme={theme} />
+                                                <ReviewItem label="FEES" value={values.fees ? `₹${values.fees}` : '0'} theme={theme} />
+                                                {values.fatherName && <ReviewItem label="FATHER" value={values.fatherName} theme={theme} />}
+                                                {values.address && <ReviewItem label="ADDRESS" value={values.address} theme={theme} />}
+                                            </View>
+
+                                            {values.seat && (
+                                                <View style={[styles.reviewSeat, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '20' }]}>
+                                                    <Ionicons name="bookmark" size={16} color={theme.primary} />
+                                                    <Text style={[styles.reviewSeatText, { color: theme.primary }]}>
+                                                        Allocated Seat: {seats.find(s => s._id === values.seat)?.seatNumber || '—'}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </AppCard>
+                                    </View>
+                                )}
+                            </Animated.View>
+                        </ScrollView>
+
+                        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md), backgroundColor: theme.background }]}>
+                            {currentStep > 0 && (
+                                <TouchableOpacity onPress={handlePrev} style={[styles.backBtn, { borderColor: theme.border }]}>
+                                    <Ionicons name="arrow-back" size={20} color={theme.text} />
+                                    <Text style={[styles.backBtnText, { color: theme.text }]}>Back</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                onPress={currentStep === 2 ? handleFinalSubmit : handleNext}
+                                style={[styles.nextBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <>
+                                        <Text style={styles.nextBtnText}>{currentStep === 2 ? 'Finish & Save' : 'Continue'}</Text>
+                                        <Ionicons name={currentStep === 2 ? 'checkmark-done' : 'arrow-forward'} size={20} color="#fff" />
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+
+                <ImagePickerSheet visible={pickerSheetVisible} onClose={() => setPickerSheetVisible(false)} onSelect={handleImagePick} theme={theme} />
+
+                {datePickerOpen && (
+                    <Modal transparent visible animationType="fade">
+                        <View style={styles.overlay}>
+                            <TouchableOpacity style={{ flex: 1 }} onPress={() => setDatePickerOpen(false)} />
+                            <View style={[styles.pickerBox, { backgroundColor: theme.surface }]}>
+                                <DateTimePicker
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    value={parseDate(values.joiningDate)}
+                                    textColor={theme.text}
+                                    themeVariant={theme.text === '#e5e7eb' ? 'dark' : 'light'}
+                                    onChange={(e, d) => {
+                                        if (d) {
+                                            const now = new Date();
+                                            d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+                                            setValue('joiningDate', d.toISOString());
+                                        }
+                                        if (Platform.OS === 'android') setDatePickerOpen(false);
+                                    }}
+                                />
+                                <AppButton onPress={() => setDatePickerOpen(false)}>Done</AppButton>
+                            </View>
+                        </View>
+                    </Modal>
+                )}
+
+                {timePickerType && (
+                    <Modal transparent visible animationType="fade">
+                        <View style={styles.overlay}>
+                            <TouchableOpacity style={{ flex: 1 }} onPress={() => setTimePickerType(null)} />
+                            <View style={[styles.pickerBox, { backgroundColor: theme.surface }]}>
+                                <DateTimePicker
+                                    mode="time"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    value={parseTime(values[timePickerType])}
+                                    textColor={theme.text}
+                                    themeVariant={theme.text === '#e5e7eb' ? 'dark' : 'light'}
+                                    onChange={(e, d) => {
+                                        if (d) {
+                                            const h = String(d.getHours()).padStart(2, '0');
+                                            const m = String(d.getMinutes()).padStart(2, '0');
+                                            setValue(timePickerType, `${h}:${m}`);
+                                        }
+                                        if (Platform.OS === 'android') setTimePickerType(null);
+                                    }}
+                                />
+                                <AppButton onPress={() => setTimePickerType(null)}>Done</AppButton>
+                            </View>
+                        </View>
+                    </Modal>
+                )}
+            </View>
+        </Modal>
+    );
+}
+
+function FormField({ label, name, control, errors, theme, keyboardType = 'default', placeholder, multiline, required }: any) {
+    const hasError = Boolean(errors[name]);
+    return (
+        <View style={styles.formGroup}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+                {required && <Text style={{ color: theme.danger, marginLeft: 2, fontSize: 16 }}>*</Text>}
+            </View>
+            <Controller
+                control={control}
+                name={name}
+                render={({ field: { onChange, value } }) => (
+                    <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder={placeholder}
+                        placeholderTextColor={theme.muted}
+                        keyboardType={keyboardType}
+                        multiline={multiline}
+                        style={[
+                            styles.input,
+                            { 
+                                borderColor: hasError ? theme.danger : theme.border,
+                                backgroundColor: theme.surfaceAlt,
+                                color: theme.text,
+                                height: multiline ? 100 : 52,
+                                paddingTop: multiline ? 12 : 0
+                            }
+                        ]}
+                    />
+                )}
+            />
+            {hasError && <Text style={styles.errorText}>{String(errors[name].message)}</Text>}
+        </View>
+    );
+}
+
+function ReviewItem({ label, value, theme }: any) {
+    return (
+        <View style={styles.reviewItem}>
+            <Text style={[styles.reviewLabel, { color: theme.muted }]}>{label}</Text>
+            <Text style={[styles.reviewValue, { color: theme.text }]}>{value || '—'}</Text>
+        </View>
+    );
+}
+
+const parseTime = (t?: string) => {
+    const [h, m] = (t || '09:00').split(':');
+    const d = new Date();
+    d.setHours(Number(h), Number(m), 0, 0);
+    return d;
+};
+
+const toDisplayTime = (t?: string) => {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hour = Number(h);
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    const h12 = ((hour + 11) % 12) + 1;
+    const hStr = String(h12).padStart(2, '0');
+    return `${hStr}:${m} ${suffix}`;
+};
+
+const parseDate = (v?: string) => {
+    const d = v ? new Date(v) : new Date();
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+};
+
+const styles = StyleSheet.create({
+    modalTopBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: spacing.md,
+    },
+    closeBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    stepperContainer: {
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.lg,
+        gap: 16,
+    },
+    stepHeaders: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    stepHeaderItem: {
+        flex: 1,
+        alignItems: 'center',
+        gap: 6,
+    },
+    stepCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    stepNumber: {
+        fontSize: 14,
+        fontWeight: '800',
+    },
+    stepLabel: {
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.2,
+    },
+    progressTrack: {
+        height: 4,
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        borderRadius: 2,
+    },
+    modalScroll: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: spacing.lg,
+        paddingBottom: 40,
+    },
+    stepContent: {
+        gap: 24,
+    },
+    imagePicker: {
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        alignSelf: 'center',
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+    },
+    placeholderContainer: {
+        alignItems: 'center',
+        gap: 4,
+    },
+    placeholderText: {
+        fontSize: 12,
+        fontWeight: '800',
+    },
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    formCard: {
+        borderRadius: 28,
+        padding: spacing.xl,
+        gap: 20,
+    },
+    formGroup: {
+        gap: 8,
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '800',
+        letterSpacing: 0.3,
+        marginLeft: 4,
+    },
+    input: {
+        height: 52,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        paddingHorizontal: 16,
+        fontSize: 15,
+        fontWeight: '600',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    floorTabContainer: {
+        gap: 12,
+        paddingVertical: 4,
+    },
+    floorTab: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 90,
+    },
+    floorTabText: {
+        fontSize: 14,
+        fontWeight: '800',
+    },
+    dropdown: {
+        height: 52,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        paddingHorizontal: 16,
+    },
+    errorText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#ef4444',
+        marginLeft: 8,
+    },
+    statusGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    statusBtn: {
+        flex: 1,
+        height: 52,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+    },
+    row: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    shiftScrollContent: {
+        gap: 12,
+        paddingVertical: 10,
+        paddingRight: 20,
+    },
+    shiftCard: {
+        borderRadius: 20,
+        borderWidth: 1.5,
+        padding: 16,
+        paddingVertical: 18,
+        gap: 12,
+        width: 170,
+    },
+    shiftCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    shiftCardTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: -0.3,
+    },
+    shiftCardFooter: {
+        marginTop: 2,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        flexDirection: 'column',
+        gap: 4,
+    },
+    shiftCardTime: {
+        fontSize: 10,
+        fontWeight: '800',
+        opacity: 0.8,
+    },
+    shiftCardPrice: {
+        fontSize: 12,
+        fontWeight: '900',
+    },
+    reviewCard: {
+        borderRadius: 32,
+        padding: spacing.xl,
+        gap: 24,
+    },
+    reviewAvatarContainer: {
+        alignItems: 'center',
+        gap: 8,
+    },
+    reviewAvatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 3,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    reviewImg: {
+        width: '100%',
+        height: '100%',
+    },
+    reviewName: {
+        fontSize: 24,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    reviewPhone: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    divider: {
+        height: 1,
+        width: '100%',
+        opacity: 0.5,
+    },
+    reviewGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 20,
+    },
+    reviewItem: {
+        width: '45%',
+        gap: 4,
+    },
+    reviewLabel: {
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+    reviewValue: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    reviewSeat: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+    },
+    reviewSeatText: {
+        fontSize: 15,
+        fontWeight: '800',
+    },
+    footer: {
+        flexDirection: 'row',
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        gap: 12,
+    },
+    backBtn: {
+        flex: 1,
+        height: 56,
+        borderRadius: 18,
+        borderWidth: 1.5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    backBtnText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    nextBtn: {
+        flex: 2,
+        height: 56,
+        borderRadius: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    nextBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '800',
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    pickerBox: {
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        padding: spacing.xl,
+        gap: 16,
+    },
+});

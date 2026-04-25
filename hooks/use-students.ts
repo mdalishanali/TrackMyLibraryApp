@@ -1,0 +1,204 @@
+import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-react-native';
+
+import { api } from '@/lib/api-client';
+import { queryClient } from '@/lib/query-client';
+import { queryKeys } from '@/lib/query-keys';
+import { Student } from '@/types/api';
+import { uploadImageToCloud } from '@/utils/image';
+
+export type StudentPayload = {
+  name: string;
+  number: string;
+  joiningDate: string;
+  seat?: string;
+  shift?: string;
+  time: { start: string; end: string }[];
+  fees?: number;
+  notes?: string;
+  status?: string;
+  gender?: string;
+  profilePicture?: string;
+  allocations?: string[];
+  fatherName?: string;
+  address?: string;
+  aadhaarNumber?: string;
+  preparationFor?: string;
+};
+
+type StudentsPage = {
+  students: Student[];
+  totalStudents?: number;
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+};
+
+export const useStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; quickFilter?: string }) =>
+  useQuery({
+    queryKey: queryKeys.students(params),
+    queryFn: async () => {
+      const { data } = await api.get('/students', { params });
+      return data.students as Student[];
+    },
+    placeholderData: (previousData) => previousData,
+  });
+
+export const useStudentQuery = (id?: string) =>
+  useQuery({
+    queryKey: ['students', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data } = await api.get(`/students/${id}`);
+      return (data.student || data.data || data) as Student;
+    },
+    enabled: !!id,
+  });
+
+export const useInfiniteStudentsQuery = (params?: { name?: string; filter?: string; limit?: number; days?: number; quickFilter?: string; shiftId?: string }) =>
+  useInfiniteQuery<StudentsPage>({
+    queryKey: queryKeys.students(params),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const current = lastPage.pagination?.page ?? 1;
+      const limit = lastPage.pagination?.limit ?? params?.limit ?? 10;
+      const total = lastPage.pagination?.total ?? 0;
+      const nextPage = current + 1;
+      return (current - 1) * limit + lastPage.students.length < total ? nextPage : undefined;
+    },
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get('/students', {
+        params: { ...params, page: pageParam, limit: params?.limit ?? 10 },
+      });
+      return data as StudentsPage;
+    },
+  });
+
+export const useCreateStudent = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async ({ payload, onProgress }: { payload: StudentPayload; onProgress?: (p: number) => void }) => {
+      let finalProfilePicture = payload.profilePicture;
+
+      // If we have a local URI, we need to upload it first
+      if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
+        finalProfilePicture = await uploadImageToCloud(payload.profilePicture, onProgress);
+      }
+
+      const { data } = await api.post('/students', { ...payload, profilePicture: finalProfilePicture }, { successToastMessage: 'Student created' });
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('student_created', {
+        student_name: variables.payload.name,
+        has_seat: !!variables.payload.seat,
+        shift: variables.payload.shift || 'none',
+        fees: variables.payload.fees || 0,
+        has_profile_picture: !!variables.payload.profilePicture,
+      });
+    },
+  });
+};
+
+export const useUpdateStudent = (id?: string) => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async ({ payload, id: overrideId, onProgress }: { payload: Partial<StudentPayload>; id?: string; onProgress?: (p: number) => void }) => {
+      const targetId = overrideId || id;
+      if (!targetId) {
+        throw new Error('Missing student id');
+      }
+
+      let finalProfilePicture = payload.profilePicture;
+
+      // If we have a local URI, we need to upload it first
+      if (payload.profilePicture && (payload.profilePicture.startsWith('file://') || payload.profilePicture.startsWith('content://'))) {
+        finalProfilePicture = await uploadImageToCloud(payload.profilePicture, onProgress);
+      }
+
+      const { data } = await api.put(`/students/${targetId}`, { ...payload, profilePicture: finalProfilePicture });
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      const targetId = variables.id || id;
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      if (targetId) {
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.students(), targetId] });
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+
+      posthog?.capture('student_updated', {
+        student_id: targetId || 'unknown',
+        fields_updated: Object.keys(variables.payload),
+      });
+    },
+  });
+};
+
+export const useDeleteStudent = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/students/${id}`);
+      return data;
+    },
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+      queryClient.removeQueries({ queryKey: [...queryKeys.students(), id] });
+
+      posthog?.capture('student_deactivated', {
+        student_id: id,
+        type: 'inactive'
+      });
+    },
+  });
+};
+
+export const useImportStudents = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async ({ fileUri, fileName, fileType }: { fileUri: string; fileName: string; fileType: string }) => {
+      // 1. Get presigned URL
+      const { data: { uploadUrl, fileUrl } } = await api.get(`/students/presigned-url`, {
+        params: {
+          fileName,
+          fileType
+        }
+      });
+
+      // 2. Upload to S3
+      // We use base fetch here because api client might add headers that S3 doesn't like for presigned URLs
+      const fileBlob = await fetch(fileUri).then(r => r.blob());
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: fileBlob,
+        headers: {
+          'Content-Type': fileType
+        }
+      });
+
+      // 3. Trigger import on backend
+      const { data } = await api.post('/students/import', { fileUrl });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.seats });
+      posthog?.capture('students_bulk_imported');
+    },
+  });
+};
