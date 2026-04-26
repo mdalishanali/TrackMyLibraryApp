@@ -31,7 +31,7 @@ export default function ReferralScreen() {
 
   const handleWhatsAppDM = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const phoneNumber = '916391417248';
+    const phoneNumber = '917348335273';
     const message = encodeURIComponent('Hi! I referred someone to Track My Library. What are the next steps?');
     Linking.openURL(`whatsapp://send?phone=${phoneNumber}&text=${message}`);
   };
@@ -129,7 +129,7 @@ export default function ReferralScreen() {
             </Pressable>
 
             <Text style={[styles.phoneNote, { color: theme.muted }]}>
-              WhatsApp us at +91 6391417248
+              WhatsApp us at +91 7348335273
             </Text>
           </Animated.View>
         </ScrollView>

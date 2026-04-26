@@ -164,7 +164,7 @@ export default function WhatsappSettingsScreen() {
                 const msg = encodeURIComponent(
                   `Hi, I\'m using TrackMyLibrary and I want to buy WhatsApp credits for my account. Please help me.`
                 );
-                Linking.openURL(`https://wa.me/916391417248?text=${msg}`);
+                Linking.openURL(`https://wa.me/917348335273?text=${msg}`);
               }}
               style={({ pressed }) => [
                 styles.buyCreditsBtn,

@@ -295,21 +295,10 @@ export default function StudentsScreen() {
 
   const queryCount = studentsQuery.data?.pages[0]?.pagination?.total || 0;
   const filteredCount = useMemo(() => {
-    // If we have search or filters active, use the count from the students query itself
-    if (debouncedSearch || shiftId || quickFilter || days) {
-      return studentsQuery.data?.pages[0]?.pagination?.total ?? 0;
-    }
-
-    // Otherwise use the dashboard stats for the tab totals
-    if (dashboardQuery.data) {
-      if (filter === 'dues') return dashboardQuery.data.duesCount || 0;
-      if (filter === 'paid') return dashboardQuery.data.paidCount || 0;
-      if (filter === 'trial') return dashboardQuery.data.trialCount || 0;
-      if (filter === 'defaulter') return dashboardQuery.data.defaulterCount || 0;
-      return dashboardQuery.data.totalStudents || 0;
-    }
+    // Rely on the student list query for counts as requested by user
+    // This ensures consistency between the list results and the badge
     return queryCount;
-  }, [filter, dashboardQuery.data, queryCount, debouncedSearch, shiftId, quickFilter, days, studentsQuery.data]);
+  }, [queryCount]);
 
   const countLabel = useMemo(() => {
     const labels: Record<string, string> = {

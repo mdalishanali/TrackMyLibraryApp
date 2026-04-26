@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useSubscription } from '@/providers/subscription-provider';
 import { BannersSection } from '@/components/dashboard/banners-section';
+import { ClassicDashboard } from '@/components/dashboard/classic-dashboard';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
 import { useCreateStudent } from '@/hooks/use-students';
@@ -29,6 +30,9 @@ import { transformFormToPayload } from '@/utils/student-transform';
 import { showToast } from '@/lib/toast';
 import { useScreenView } from '@/hooks/use-screen-view';
 import { Skeleton, SkeletonCard, SkeletonMetricCard, SkeletonList } from '@/components/ui/skeleton';
+import { useDashboardStore } from '@/store/dashboard-store';
+import { ExpenseFormModal, ExpenseFormValues } from '@/components/expenses/expense-form-modal';
+import { useCreateExpense } from '@/hooks/use-expenses';
 
 const { width, height } = Dimensions.get('window');
 const BLURHASH = 'L9E:C[^+^j0000.8?v~q00?v%MoL';
@@ -122,15 +126,27 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
             </View>
           </View>
           <View style={[styles.statusBadge, {
-            backgroundColor: theme.success + '15'
+            backgroundColor: student.paymentStatus === 'Paid' 
+              ? theme.success + '15' 
+              : student.paymentStatus === 'Trial' 
+                ? theme.info + '15' 
+                : theme.danger + '15'
           }]}>
             <View style={[styles.statusDot, {
-              backgroundColor: theme.success
+              backgroundColor: student.paymentStatus === 'Paid' 
+                ? theme.success 
+                : student.paymentStatus === 'Trial' 
+                  ? theme.info 
+                  : theme.danger
             }]} />
             <Text style={[styles.statusBadgeText, {
-              color: theme.success
+              color: student.paymentStatus === 'Paid' 
+                ? theme.success 
+                : student.paymentStatus === 'Trial' 
+                  ? theme.info 
+                  : theme.danger
             }]}>
-              Active
+              {student.paymentStatus === 'Paid' ? 'PAID' : student.paymentStatus === 'Trial' ? 'TRIAL' : 'DUE'}
             </Text>
           </View>
         </View>
@@ -355,6 +371,42 @@ function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () 
   );
 }
 
+// Dashboard Mode Toggle
+function DashboardModeToggle({ theme }: { theme: any }) {
+  const { layoutMode, setLayoutMode } = useDashboardStore();
+
+  const modes = [
+    { key: 'classic' as const, label: 'Classic', icon: 'apps' as keyof typeof Ionicons.glyphMap },
+    { key: 'modern' as const, label: 'Modern', icon: 'sparkles' as keyof typeof Ionicons.glyphMap },
+  ];
+
+  return (
+    <View style={[styles.toggleContainer, { borderColor: theme.border }]}>
+      {modes.map((mode) => {
+        const isActive = layoutMode === mode.key;
+        return (
+          <Pressable
+            key={mode.key}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setLayoutMode(mode.key);
+            }}
+            style={[
+              styles.toggleBtn,
+              isActive && { backgroundColor: theme.primary },
+            ]}
+          >
+            <Ionicons name={mode.icon} size={13} color={isActive ? '#fff' : theme.muted} />
+            <Text style={[styles.toggleText, { color: isActive ? '#fff' : theme.muted }]}>{mode.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+
+
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -367,10 +419,14 @@ export default function DashboardScreen() {
   useScreenView('Dashboard');
 
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
+  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+
+  const { layoutMode } = useDashboardStore();
 
   const dashboardQuery = useDashboardQuery();
   const seatsQuery = useSeatsQuery();
   const createStudent = useCreateStudent();
+  const createExpense = useCreateExpense();
   const { data: shiftsData } = useShiftsQuery();
 
   const isLoading = dashboardQuery.isLoading || seatsQuery.isLoading;
@@ -393,6 +449,17 @@ export default function DashboardScreen() {
     } catch (error: any) {
       console.error(error);
       showToast('Failed to save student', 'error');
+    }
+  };
+
+  const saveExpense = async (data: ExpenseFormValues) => {
+    try {
+      await createExpense.mutateAsync(data);
+      setIsExpenseFormOpen(false);
+      showToast('Expense Added', 'success');
+    } catch (error: any) {
+      console.error(error);
+      showToast('Failed to save expense', 'error');
     }
   };
 
@@ -482,14 +549,14 @@ export default function DashboardScreen() {
       icon: 'stats-chart-outline',
     },
     {
-      label: 'New This Month',
-      value: dashboardQuery.data?.studentsEnrolledThisMonth ?? 0,
+      label: 'Today Revenue',
+      value: formatCurrency(dashboardQuery.data?.todayRevenue ?? 0),
       colors: gradientFor(colorScheme, 'metricPurple'),
-      icon: 'trending-up-outline',
+      icon: 'today-outline',
     },
     {
-      label: 'Monthly Earnings',
-      value: formatCurrency(dashboardQuery.data?.earnings ?? 0),
+      label: 'Monthly Revenue',
+      value: formatCurrency(Number(dashboardQuery.data?.earnings || 0)),
       colors: gradientFor(colorScheme, 'metricAmber'),
       icon: 'wallet-outline',
     },
@@ -522,29 +589,13 @@ export default function DashboardScreen() {
               <View style={styles.greetingRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.greetingText, { color: theme.muted }]}>{getGreeting()}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
-                      {user?.name?.split(' ')[0] || 'User'}
-                    </Text>
+                  <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+                    {user?.name?.split(' ')[0] || 'User'}
                     <TrialTimer theme={theme} />
-                  </View>
+                  </Text>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      setIsStudentFormOpen(true);
-                    }}
-                    style={({ pressed }) => [
-                      styles.headerActionBtn,
-                      { borderColor: theme.border, backgroundColor: theme.surface },
-                      pressed && { transform: [{ scale: 0.95 }], opacity: 0.8 },
-                    ]}
-                  >
-                    <Ionicons name="add" size={26} color={theme.primary} />
-                  </Pressable>
-
                   <Pressable
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -576,114 +627,137 @@ export default function DashboardScreen() {
                   </Pressable>
                 </View>
               </View>
+
+              <View style={{ marginTop: 14 }}>
+                 <DashboardModeToggle theme={theme} />
+              </View>
             </Animated.View>
           </View>
 
-          {/* Day 1 Goal Widget OR Subscription Banner */}
-          {activeStudents === 0 ? (
-            <Day1GoalWidget theme={theme} onAddStudent={() => setIsStudentFormOpen(true)} />
-          ) : (
-            <SubscriptionBanner theme={theme} />
-          )}
 
-          {/* Quick Metrics Carousel/Grid */}
-          <View style={styles.metricsSection}>
-            <SectionHeader>Overview</SectionHeader>
-            <View style={styles.metricsGrid}>
-              {metrics.map((item, index) => (
-                <Animated.View
-                  key={item.label} 
-                  entering={FadeInDown.delay(index * 100 + 400).duration(800)}
-                  style={styles.metricCardWrapper}
-                >
+          {/* Layout-Specific Content */}
+          {layoutMode === 'classic' ? (
+            <ClassicDashboard 
+              theme={theme} 
+              onAddStudent={() => setIsStudentFormOpen(true)}
+              onAddExpense={() => setIsExpenseFormOpen(true)}
+              activeStudents={dashboardQuery.data?.activeStudentsCount}
+              totalStudents={dashboardQuery.data?.totalStudents}
+              todayRevenue={dashboardQuery.data?.todayRevenue}
+              monthlyRevenue={Number(dashboardQuery.data?.earnings || 0)}
+              totalCapacity={seats.length}
+              duesCount={dashboardQuery.data?.duesCount}
+              duesStudents={dashboardQuery.data?.duesStudents}
+            />
+          ) : (
+            <>
+              {/* Day 1 Goal Widget OR Subscription Banner */}
+              {activeStudents === 0 ? (
+                <Day1GoalWidget theme={theme} onAddStudent={() => setIsStudentFormOpen(true)} />
+              ) : (
+                <SubscriptionBanner theme={theme} />
+              )}
+
+              {/* Quick Metrics Carousel/Grid */}
+              <View style={styles.metricsSection}>
+                <SectionHeader>Overview</SectionHeader>
+                <View style={styles.metricsGrid}>
+                  {metrics.map((item, index) => (
+                    <Animated.View
+                      key={item.label} 
+                      entering={FadeInDown.delay(index * 100 + 400).duration(800)}
+                      style={styles.metricCardWrapper}
+                    >
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          if (index === 0 || index === 1 || index === 2) router.push('/students');
+                          if (index === 3) router.push('/payments');
+                        }}
+                        style={({ pressed }) => [
+                          styles.metricCardInner,
+                          pressed && styles.cardPressed
+                        ]}>
+                        <LinearGradient
+                          colors={item.colors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.metricCard}>
+                          <View style={styles.metricIconContainer}>
+                            <Ionicons name={item.icon as any} size={24} color="#fff" />
+                          </View>
+                          <View>
+                            <Text style={styles.metricValue}>{item.value}</Text>
+                            <Text style={styles.metricLabel}>{item.label}</Text>
+                          </View>
+                          <View style={styles.metricCardDecor}>
+                            <Ionicons name={item.icon as any} size={80} color="rgba(255,255,255,0.1)" />
+                          </View>
+                        </LinearGradient>
+                      </Pressable>
+                    </Animated.View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Engagement Banners (Referral & Community) */}
+              <BannersSection theme={theme} />
+
+              {/* Recent Students Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <SectionHeader>Recent Students</SectionHeader>
                   <Pressable
                     onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      if (index === 0 || index === 1 || index === 2) router.push('/students');
-                      if (index === 3) router.push('/payments');
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/students');
                     }}
-                    style={({ pressed }) => [
-                      styles.metricCardInner,
-                      pressed && styles.cardPressed
-                    ]}>
-                    <LinearGradient
-                      colors={item.colors}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.metricCard}>
-                      <View style={styles.metricIconContainer}>
-                        <Ionicons name={item.icon as any} size={24} color="#fff" />
-                      </View>
-                      <View>
-                        <Text style={styles.metricValue}>{item.value}</Text>
-                        <Text style={styles.metricLabel}>{item.label}</Text>
-                      </View>
-                      <View style={styles.metricCardDecor}>
-                        <Ionicons name={item.icon as any} size={80} color="rgba(255,255,255,0.1)" />
-                      </View>
-                    </LinearGradient>
+                  >
+                    <Text style={[styles.viewAll, { color: theme.primary }]}>View All</Text>
                   </Pressable>
-                </Animated.View>
-              ))}
-            </View>
-          </View>
-
-          {/* Engagement Banners (Referral & Community) */}
-          <BannersSection theme={theme} />
-
-          {/* Recent Students Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <SectionHeader>Recent Students</SectionHeader>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/students');
-                }}
-              >
-                <Text style={[styles.viewAll, { color: theme.primary }]}>View All</Text>
-              </Pressable>
-            </View>
-            <View style={styles.cardList}>
-              {dashboardQuery.data?.recentStudents?.length ? (
-                dashboardQuery.data.recentStudents.slice(0, 3).map((student, idx) => (
-                  <StudentCard key={student._id} student={student} theme={theme} index={idx} />
-                ))
-              ) : (
-                <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Ionicons name="people-outline" size={48} color={theme.muted + '40'} />
-                  <Text style={[styles.emptyText, { color: theme.muted }]}>No recent students</Text>
                 </View>
-              )}
-            </View>
-          </View>
-
-          {/* Latest Payments Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <SectionHeader>Latest Payments</SectionHeader>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/payments');
-                }}
-              >
-                <Text style={[styles.viewAll, { color: theme.primary }]}>History</Text>
-              </Pressable>
-            </View>
-            <View style={styles.cardList}>
-              {dashboardQuery.data?.latestPayments?.length ? (
-                dashboardQuery.data.latestPayments.slice(0, 3).map((payment, idx) => (
-                  <PaymentCard key={payment._id} payment={payment} theme={theme} index={idx} />
-                ))
-              ) : (
-                <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Ionicons name="card-outline" size={48} color={theme.muted + '40'} />
-                  <Text style={[styles.emptyText, { color: theme.muted }]}>No payments yet</Text>
+                <View style={styles.cardList}>
+                  {dashboardQuery.data?.recentStudents?.length ? (
+                    dashboardQuery.data.recentStudents.slice(0, 3).map((student, idx) => (
+                      <StudentCard key={student._id} student={student} theme={theme} index={idx} />
+                    ))
+                  ) : (
+                    <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                      <Ionicons name="people-outline" size={48} color={theme.muted + '40'} />
+                      <Text style={[styles.emptyText, { color: theme.muted }]}>No recent students</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-          </View>
+              </View>
+
+              {/* Latest Payments Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <SectionHeader>Latest Payments</SectionHeader>
+                  <Pressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/payments');
+                    }}
+                  >
+                    <Text style={[styles.viewAll, { color: theme.primary }]}>History</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.cardList}>
+                  {dashboardQuery.data?.latestPayments?.length ? (
+                    dashboardQuery.data.latestPayments.slice(0, 3).map((payment, idx) => (
+                      <PaymentCard key={payment._id} payment={payment} theme={theme} index={idx} />
+                    ))
+                  ) : (
+                    <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                      <Ionicons name="card-outline" size={48} color={theme.muted + '40'} />
+                      <Text style={[styles.emptyText, { color: theme.muted }]}>No payments yet</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
         </ScrollView>
 
         <StudentFormModal
@@ -704,27 +778,37 @@ export default function DashboardScreen() {
           } as any}
         />
 
-        <Animated.View
-          entering={FadeInDown.delay(1000).duration(800)}
-          style={[styles.fabContainer, { bottom: 24 + insets.bottom }]}
-        >
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setIsStudentFormOpen(true);
-            }}
-            style={({ pressed }) => [
-              styles.fabButton,
-              { backgroundColor: theme.primary },
-              pressed && { transform: [{ scale: 0.95 }] }
-            ]}
+        <ExpenseFormModal
+          visible={isExpenseFormOpen}
+          onClose={() => setIsExpenseFormOpen(false)}
+          onSubmit={saveExpense}
+          theme={theme}
+          isSubmitting={createExpense.isPending}
+        />
+
+        {layoutMode !== 'classic' && (
+          <Animated.View
+            entering={FadeInDown.delay(1000).duration(800)}
+            style={[styles.fabContainer, { bottom: 24 + insets.bottom }]}
           >
-            <View style={styles.fabIcon}>
-              <Ionicons name="add" size={32} color="#fff" />
-            </View>
-            <Text style={styles.fabText}>New Member</Text>
-          </Pressable>
-        </Animated.View>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setIsStudentFormOpen(true);
+              }}
+              style={({ pressed }) => [
+                styles.fabButton,
+                { backgroundColor: theme.primary },
+                pressed && { transform: [{ scale: 0.95 }] }
+              ]}
+            >
+              <View style={styles.fabIcon}>
+                <Ionicons name="add" size={32} color="#fff" />
+              </View>
+              <Text style={styles.fabText}>New Member</Text>
+            </Pressable>
+          </Animated.View>
+        )}
       </View>
     </SafeScreen>
   );
@@ -1340,6 +1424,29 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '800',
+  },
+
+  // Toggle Styles
+  toggleContainer: {
+    flexDirection: 'row',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 3,
+    alignSelf: 'flex-start',
+    gap: 2,
+  },
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 6,
+  },
+  toggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
 });
 

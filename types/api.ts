@@ -61,6 +61,9 @@ export type DashboardResponse = {
   duesStudents: Student[];
   latestPayments: Payment[];
   earnings: number;
+  todayRevenue?: number;
+  todayCashRevenue?: number;
+  todayUpiRevenue?: number;
   activeStudentsCount: number;
   totalStudents: number;
   studentsEnrolledThisMonth: number;
@@ -68,6 +71,8 @@ export type DashboardResponse = {
   paidCount?: number;
   trialCount?: number;
   defaulterCount?: number;
+  remainingCount?: number;
+  inactiveCount?: number;
 };
 
 export type Shift = {

@@ -366,8 +366,8 @@ export default function SettingsScreen() {
             <ActionRow
               icon="logo-whatsapp"
               label="Contact on WhatsApp"
-              description="+91 63914 17248"
-              onPress={() => Linking.openURL(`https://wa.me/916391417248?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with...')}`)}
+              description="+91 73483 35273"
+              onPress={() => Linking.openURL(`https://wa.me/917348335273?text=${encodeURIComponent('Hello TrackMyLibrary Support, I need help with...')}`)}
               themeTint="#25D366"
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />

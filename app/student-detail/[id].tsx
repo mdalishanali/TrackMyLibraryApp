@@ -433,14 +433,7 @@ export default function StudentDetailScreen() {
 
                 {/* Status Badges (Trial/Dues) */}
                 <View style={{ marginTop: 8 }}>
-                  <StatusBadges student={{
-                    ...student,
-                    daysOverdue: student.lastPayment?.endDate
-                      ? Math.max(0, Math.ceil((new Date().getTime() - new Date(student.lastPayment.endDate).getTime()) / (1000 * 60 * 60 * 24)))
-                      : student.joiningDate
-                        ? Math.max(0, Math.ceil((new Date().getTime() - new Date(student.joiningDate).getTime()) / (1000 * 60 * 60 * 24)))
-                        : 0
-                  } as any} theme={theme} />
+                  <StatusBadges student={student as any} theme={theme} />
                 </View>
               </View>
             </View>
