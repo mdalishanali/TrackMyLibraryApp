@@ -1,10 +1,10 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable, Linking, Dimensions, Platform, Share } from 'react-native';
-import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Dimensions, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SectionHeader } from '@/components/ui/section-header';
 import { spacing } from '@/constants/design';
@@ -106,7 +106,7 @@ function ActionGrid({ title, actions, theme, delay }: { title: string; actions: 
   );
 }
 
-function HeroBanner({ theme }: { theme: any }) {
+function HeroBanner({ theme, activeStudents, todayRevenue }: { theme: any; activeStudents: number; todayRevenue: number }) {
   const router = useRouter();
 
   return (
@@ -127,12 +127,12 @@ function HeroBanner({ theme }: { theme: any }) {
           <View style={styles.bannerContent}>
             <View style={styles.bannerTextBox}>
               <View style={[styles.bannerBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                <Ionicons name="sparkles" size={10} color="#fff" style={{ marginRight: 4 }} />
-                <Text style={styles.bannerLabel}>PREMIUM INSIGHTS</Text>
+                <Ionicons name="pulse" size={10} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={styles.bannerLabel}>LIVE STATUS</Text>
               </View>
-              <Text style={styles.bannerTitle}>Grow Your Revenue</Text>
+              <Text style={styles.bannerTitle}>Library Today</Text>
               <Text style={styles.bannerDesc}>
-                Real-time analytics to help you optimize seats and scale faster.
+                {activeStudents} active • ₹{todayRevenue.toLocaleString()} earned today
               </Text>
             </View>
             <View style={styles.bannerActionArea}>
@@ -193,75 +193,12 @@ function MetricCard({
           <Ionicons name={icon} size={20} color={color} />
         </View>
         <View style={styles.metricText}>
-          <Text style={[styles.metricValue, { color: theme.text }]} numberOfLines={1}>
+          <Text style={[styles.metricValue, { color: theme.text }]} numberOfLines={2}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </Text>
-          <Text style={[styles.metricLabel, { color: theme.muted }]} numberOfLines={1}>{label}</Text>
+          <Text style={[styles.metricLabel, { color: theme.muted }]}>{label}</Text>
         </View>
       </Pressable>
-    </Animated.View>
-  );
-}
-
-// ─── HELPER COMPONENTS ──────────────────────────────────────────
-
-/**
- * OccupancyCard - Displays a visual progress bar of library capacity.
- * Usage: shows filled vs total seats with a premium progress bar.
- */
-function OccupancyCard({ 
-  activeStudents, 
-  totalCapacity, 
-  theme 
-}: { 
-  activeStudents: number; 
-  totalCapacity: number; 
-  theme: any;
-}) {
-  if (totalCapacity === 0) return null;
-  // Calculate filled percentage, capped at 100% to prevent bar overflow
-  const percentage = Math.min(Math.round((activeStudents / totalCapacity) * 100), 100);
-  // Determine remaining available seats (ensure non-negative)
-  const available = Math.max(totalCapacity - activeStudents, 0);
-
-  return (
-    <Animated.View entering={FadeInDown.delay(500).duration(800)} style={styles.occupancyContainer}>
-      <View style={[styles.occupancyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        {/* Card Header: Title and Occupancy Stats */}
-        <View style={styles.occupancyHeader}>
-          <View style={[styles.occupancyIconBox, { backgroundColor: theme.primary + '15' }]}>
-            <Ionicons name="business" size={20} color={theme.primary} />
-          </View>
-          <View style={styles.occupancyHeaderText}>
-            <Text style={[styles.occupancyTitle, { color: theme.text }]}>Library Occupancy</Text>
-            <Text style={[styles.occupancySubtitle, { color: theme.muted }]}>{percentage}% of seats filled</Text>
-          </View>
-          {/* Visual Badge showing precise count */}
-          <View style={styles.occupancyBadge}>
-            <Text style={[styles.occupancyBadgeText, { color: theme.primary }]}>{activeStudents}/{totalCapacity}</Text>
-          </View>
-        </View>
-
-        {/* Premium Progress Bar section */}
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBarBg, { backgroundColor: theme.surfaceAlt }]}>
-            {/* Animated or dynamic width bar based on occupancy percentage */}
-            <View style={[styles.progressBarFill, { backgroundColor: theme.primary, width: `${percentage}%` }]} />
-          </View>
-        </View>
-
-        {/* Detailed Metrics Footer: Occupied vs Available */}
-        <View style={styles.occupancyFooter}>
-          <View style={styles.footerItem}>
-            <View style={[styles.footerDot, { backgroundColor: theme.primary }]} />
-            <Text style={[styles.footerText, { color: theme.muted }]}>{activeStudents} Occupied</Text>
-          </View>
-          <View style={styles.footerItem}>
-            <View style={[styles.footerDot, { backgroundColor: theme.border }]} />
-            <Text style={[styles.footerText, { color: theme.muted }]}>{available} Available</Text>
-          </View>
-        </View>
-      </View>
     </Animated.View>
   );
 }
@@ -573,7 +510,7 @@ function TrustBanner({ theme }: { theme: any }) {
           </View>
           <View style={styles.trustBrandText}>
             <Text style={[styles.trustBrand, { color: theme.text }]}>TrackMyLibrary</Text>
-            <Text style={[styles.trustTagline, { color: theme.muted }]}>India's #1 Library Management App</Text>
+            <Text style={[styles.trustTagline, { color: theme.muted }]}>India&apos;s #1 Library Management App</Text>
           </View>
         </View>
 
@@ -756,7 +693,6 @@ export function ClassicDashboard({
   duesStudents = [] 
 }: ClassicDashboardProps) {
   const router = useRouter();
-
   const totalDues = duesStudents.reduce((sum, s) => sum + (s.dueAmount || 0), 0);
 
   const quickActions: GradientAction[] = [
@@ -781,13 +717,12 @@ export function ClassicDashboard({
     { title: 'Branding', icon: 'color-wand', color: '#e11d48', onPress: () => router.push('/branding') },
     { title: 'Refer & Earn', icon: 'gift', color: '#6366f1', onPress: () => router.push('/referral') },
     { title: 'Community', icon: 'chatbubbles', color: '#0ea5e9', onPress: () => router.push('/community') },
-    { title: 'Settings', icon: 'settings', color: '#64748b', onPress: () => router.push('/settings') },
   ];
 
   return (
     <>
       {/* Hero Banner */}
-      <HeroBanner theme={theme} />
+      <HeroBanner theme={theme} activeStudents={activeStudents} todayRevenue={todayRevenue} />
 
       {/* Metrics Section */}
       <MetricsSection 
@@ -1055,11 +990,13 @@ const styles = StyleSheet.create({
   metricText: {
     flex: 1,
     gap: 2,
+    justifyContent: 'center',
   },
   metricValue: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '900',
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
+    lineHeight: 22,
   },
   metricLabel: {
     fontSize: 11,
