@@ -3,6 +3,8 @@ import { AxiosError } from 'axios';
 import { usePostHog } from 'posthog-react-native';
 
 import { api } from '@/lib/api-client';
+import { getIndianPhoneLookupVariants } from '@/lib/indian-phone';
+import { showToast } from '@/lib/toast';
 import { AuthUser } from '@/store/auth';
 import { useAuth } from './use-auth';
 
@@ -42,8 +44,34 @@ export const useLoginMutation = () => {
 
   return useMutation<AuthResponse, AxiosError<ApiError>, LoginPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post('/auth/login', payload, { successToastMessage: 'Logged in' });
-      return data;
+      const trimmedIdentifier = payload.identifier.trim();
+      const isPhoneLogin = !trimmedIdentifier.includes('@');
+      const identifiers = isPhoneLogin
+        ? getIndianPhoneLookupVariants(trimmedIdentifier)
+        : [trimmedIdentifier.toLowerCase()];
+
+      let lastError: AxiosError<ApiError> | null = null;
+
+      for (const identifier of identifiers) {
+        try {
+          const { data } = await api.post(
+            '/auth/login',
+            { ...payload, identifier },
+            { skipSuccessToast: true }
+          );
+          showToast('Logged in', 'success');
+          return data;
+        } catch (error) {
+          const axiosError = error as AxiosError<ApiError>;
+          lastError = axiosError;
+
+          if (!axiosError.response || axiosError.response.status !== 400) {
+            throw axiosError;
+          }
+        }
+      }
+
+      throw lastError ?? new AxiosError('Login failed');
     },
     onSuccess: ({ user, token }) => {
       setAuth({ user, token });

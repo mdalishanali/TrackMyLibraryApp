@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { isValidIndianPhoneNumber } from '@/lib/indian-phone';
+
 export const loginSchema = z.object({
   identifier: z.string().min(1, 'Email or phone number is required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -13,9 +15,8 @@ export const signupSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   contactNumber: z
     .string()
-    .min(10, 'Contact number must be at least 10 digits')
-    .max(15, 'Contact number must be less than 15 digits')
-    .regex(/^[0-9+()-\s]+$/, 'Enter a valid phone number'),
+    .min(1, 'Phone number is required')
+    .refine(isValidIndianPhoneNumber, 'Enter a valid 10-digit Indian mobile number'),
   platform: z.string().optional(),
 });
 

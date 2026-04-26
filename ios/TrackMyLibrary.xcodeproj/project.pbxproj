@@ -20,7 +20,7 @@
 		13B07F961A680F5B00A75B9A /* TrackMyLibrary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrackMyLibrary.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TrackMyLibrary/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TrackMyLibrary/Info.plist; sourceTree = "<group>"; };
-		45E8817E1518A74E16004EC7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TrackMyLibrary/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		45E8817E1518A74E16004EC7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = TrackMyLibrary/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		64D4A758D582724603A9924B /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TrackMyLibrary/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		9AFB1E3AE1ADDC3467076DCC /* Pods-TrackMyLibrary.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TrackMyLibrary.debug.xcconfig"; path = "Target Support Files/Pods-TrackMyLibrary/Pods-TrackMyLibrary.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TrackMyLibrary/SplashScreen.storyboard; sourceTree = "<group>"; };
@@ -64,7 +64,6 @@
 				9AFB1E3AE1ADDC3467076DCC /* Pods-TrackMyLibrary.debug.xcconfig */,
 				AC7D446290A9261408A562B5 /* Pods-TrackMyLibrary.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -376,6 +375,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TrackMyLibrary/TrackMyLibrary.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DXDQYVMFWT;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -412,6 +412,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TrackMyLibrary/TrackMyLibrary.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DXDQYVMFWT;
 				INFOPLIST_FILE = TrackMyLibrary/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (

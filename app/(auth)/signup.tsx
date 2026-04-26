@@ -40,6 +40,7 @@ import { spacing, radius } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
 import { getErrorMessage, useSignupMutation } from '@/hooks/use-auth-mutations';
 import { useTheme } from '@/hooks/use-theme';
+import { formatIndianPhoneInput, toIndianPhoneE164 } from '@/lib/indian-phone';
 import { SignupFormValues, signupSchema } from '@/schemas/auth';
 
 const { width } = Dimensions.get('window');
@@ -115,7 +116,11 @@ export default function Signup() {
   const onSubmit = async (values: SignupFormValues) => {
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await signupMutation.mutateAsync({ ...values, platform: Platform.OS });
+      await signupMutation.mutateAsync({
+        ...values,
+        contactNumber: toIndianPhoneE164(values.contactNumber),
+        platform: Platform.OS,
+      });
       router.replace('/onboarding/setup');
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -161,7 +166,14 @@ export default function Signup() {
                 setFocusedField(null);
                 onBlur();
               }}
-              onChangeText={onChange}
+              onChangeText={(text) => {
+                if (name === 'contactNumber') {
+                  onChange(formatIndianPhoneInput(text));
+                  return;
+                }
+
+                onChange(text);
+              }}
               value={value}
               {...options}
             />
@@ -321,6 +333,7 @@ export default function Signup() {
 
                   {renderInputField('contactNumber', 'Phone Number', '98765 43210', 'call-outline', {
                     keyboardType: 'phone-pad',
+                    maxLength: 11,
                     returnKeyType: 'next',
                   })}
 
