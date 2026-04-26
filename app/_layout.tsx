@@ -8,11 +8,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryProvider } from '@/providers/query-provider';
 import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
 import { ActivityProvider } from '@/providers/activity-provider';
-import { OfflineIndicator } from '@/components/ui/offline-indicator';
+import { NoInternetScreen } from '@/components/ui/no-internet-screen';
 import { BugBubble } from '@lokal-dev/react-native-bugbubble';
+import { NetworkProvider, useNetworkStatus } from '@/providers/network-provider';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -43,7 +45,36 @@ Sentry.init({
   // spotlight: __DEV__,
 });
 
-// ... imports
+function AppNavigator() {
+  const theme = useTheme();
+  const { hasCheckedConnection, isOffline, refreshConnection } = useNetworkStatus();
+
+  if (hasCheckedConnection && isOffline) {
+    return (
+      <NoInternetScreen
+        theme={theme}
+        onRetry={() => {
+          void refreshConnection();
+        }}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Stack>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="student-detail/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding/setup" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      </Stack>
+      <Toast config={toastConfig} />
+    </>
+  );
+}
 
 export default Sentry.wrap(function RootLayout() {
   const colorScheme = useColorScheme();
@@ -53,39 +84,31 @@ export default Sentry.wrap(function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryProvider>
-          <PostHogProvider
-            apiKey="phc_dltVo9iYK5gTfaYXBpcLEiKpaRRnvUHQL7cWDZLjMej"
-            options={{
-              host: "https://us.i.posthog.com",
-              enableSessionReplay: true,
-              sessionReplayConfig: {
-                maskAllTextInputs: true,
-                maskAllImages: true,
-                captureLog: true,
-                captureNetworkTelemetry: true,
-                throttleDelayMs: 1000,
-              },
-            }}
-          >
-            <SubscriptionProvider>
-              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <ActivityProvider>
-                  <Stack>
-                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="profile" options={{ headerShown: false }} />
-                    <Stack.Screen name="student-detail/[id]" options={{ headerShown: false }} />
-                    <Stack.Screen name="onboarding/setup" options={{ headerShown: false }} />
-                    <Stack.Screen name="index" options={{ headerShown: false }} />
-                    <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                  </Stack>
-                </ActivityProvider>
-                <StatusBar style="auto" />
-              </ThemeProvider>
-              <Toast config={toastConfig} />
-              <OfflineIndicator />
-            </SubscriptionProvider>
-          </PostHogProvider>
+          <NetworkProvider>
+            <PostHogProvider
+              apiKey="phc_dltVo9iYK5gTfaYXBpcLEiKpaRRnvUHQL7cWDZLjMej"
+              options={{
+                host: "https://us.i.posthog.com",
+                enableSessionReplay: true,
+                sessionReplayConfig: {
+                  maskAllTextInputs: true,
+                  maskAllImages: true,
+                  captureLog: true,
+                  captureNetworkTelemetry: true,
+                  throttleDelayMs: 1000,
+                },
+              }}
+            >
+              <SubscriptionProvider>
+                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                  <ActivityProvider>
+                    <AppNavigator />
+                  </ActivityProvider>
+                  <StatusBar style="auto" />
+                </ThemeProvider>
+              </SubscriptionProvider>
+            </PostHogProvider>
+          </NetworkProvider>
         </QueryProvider>
       </SafeAreaProvider>
       {__DEV__ && <BugBubble />}

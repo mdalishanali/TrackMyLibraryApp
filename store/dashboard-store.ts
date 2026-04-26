@@ -12,7 +12,7 @@ type DashboardStore = {
 export const useDashboardStore = create<DashboardStore>()(
   persist(
     (set) => ({
-      layoutMode: 'classic',
+      layoutMode: 'modern',
       setLayoutMode: (mode) => set({ layoutMode: mode }),
     }),
     {
