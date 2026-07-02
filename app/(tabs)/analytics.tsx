@@ -31,7 +31,7 @@ import { useAnalyticsQuery, RevenueBreakdown, RevenueMonth } from '@/hooks/use-a
 import { useExpensesQuery, useCreateExpense, useDeleteExpense, useUpdateExpense, Expense } from '@/hooks/use-expenses'; // Import expenses hooks
 import { ExpenseFormModal } from '@/components/expenses/expense-form-modal';
 import { showToast } from '@/lib/toast';
-import { formatCurrency, formatDate } from '@/utils/format';
+import { formatCurrency, formatCurrencyCompact, formatDate } from '@/utils/format';
 import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width } = Dimensions.get('window');
@@ -398,8 +398,12 @@ export default function AnalyticsScreen() {
                 <Ionicons name={item.icon as any} size={20} color={item.color} />
               </View>
               <Text style={[styles.statLabel, { color: theme.muted }]}>{item.label}</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>
-                {formatCurrency(item.value)}
+              <Text
+                style={[styles.statValue, { color: theme.text }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {formatCurrencyCompact(item.value)}
               </Text>
               {item.subValue && (
                 <Text style={[styles.statSubValue, { color: item.color }]}>{item.subValue}</Text>
