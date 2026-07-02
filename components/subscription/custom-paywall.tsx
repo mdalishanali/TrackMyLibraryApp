@@ -201,7 +201,15 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
           package_id: selectedPackage.identifier,
           error: e.message,
         });
-        logErrorToDiscord(e, `Purchase Failed: ${selectedPackage.product.identifier}`);
+        logErrorToDiscord(e, `Purchase Failed: ${selectedPackage.product.identifier}`, [
+          { name: 'Business Name', value: user?.company?.businessName || 'N/A', inline: true },
+          { name: 'Admin Name', value: user?.name || 'N/A', inline: true },
+          { name: 'Admin Email', value: user?.email || 'N/A', inline: true },
+          { name: 'Contact Number', value: user?.company?.contactNumber || user?.contactNumber || 'N/A', inline: true },
+          { name: 'Company ID', value: user?.company?._id || 'N/A', inline: true },
+          { name: 'Package', value: selectedPackage.identifier || 'N/A', inline: true },
+          { name: 'Price', value: String(selectedPackage.product.priceString ?? selectedPackage.product.price), inline: true },
+        ]);
         Alert.alert('Error', 'Failed to process purchase. Please try again.');
       } else {
         posthog?.capture('purchase_cancelled', {

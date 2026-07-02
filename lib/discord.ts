@@ -35,7 +35,13 @@ export const sendDiscordNotification = async (content: string, embed?: any) => {
   }
 };
 
-export const logErrorToDiscord = async (error: any, context?: string) => {
+type DiscordField = { name: string; value: string; inline?: boolean };
+
+export const logErrorToDiscord = async (
+  error: any,
+  context?: string,
+  extraFields?: DiscordField[]
+) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : 'No stack trace';
 
@@ -46,6 +52,7 @@ export const logErrorToDiscord = async (error: any, context?: string) => {
       { name: 'Message', value: errorMessage.substring(0, 1024) },
       { name: 'Context', value: context || 'Unknown context' },
       { name: 'Platform', value: Platform.OS },
+      ...(extraFields ?? []),
       { name: 'Stack Trace', value: `\`\`\`${errorStack?.substring(0, 1000)}\`\`\`` },
     ],
     timestamp: new Date().toISOString(),
