@@ -17,7 +17,6 @@ import {
   useInfiniteStudentsQuery
 } from '@/hooks/use-students';
 import { useShiftsQuery } from '@/hooks/use-shifts';
-import { useDashboardQuery } from '@/hooks/use-dashboard';
 
 import { useCreatePayment } from '@/hooks/use-payments';
 import { useSeatsQuery } from '@/hooks/use-seats';
@@ -90,7 +89,6 @@ export default function StudentsScreen() {
     shiftId
   });
 
-  const dashboardQuery = useDashboardQuery();
   const seatsQuery = useSeatsQuery();
   const createStudent = useCreateStudent();
   const deleteStudent = useDeleteStudent();
@@ -100,14 +98,10 @@ export default function StudentsScreen() {
   const { data: templates } = useWhatsappTemplates();
   const { data: automationSettings } = useAutomationSettings();
   const { user } = useAuth();
-  const { isPro, presentPaywall } = useSubscription();
+  const { presentPaywall } = useSubscription();
   const { triggerRating } = useQuickRating();
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
-  const activeStudentsCount = dashboardQuery.data?.activeStudentsCount ?? 0;
-  const totalCount = useMemo(() => {
-    return dashboardQuery.data?.totalStudents ?? (studentsQuery.data?.pages[0]?.pagination?.total || students.length);
-  }, [dashboardQuery.data, studentsQuery.data, students.length]);
 
   const seats = useMemo(
     () => (seatsQuery.data ?? []).flatMap((f: any) =>
@@ -124,16 +118,9 @@ export default function StudentsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     posthog?.capture('add_student_button_clicked');
 
-    // Check Free Tier Limit
-    if (!isPro && activeStudentsCount >= 20) {
-      posthog?.capture('student_limit_paywall_shown', { count: activeStudentsCount });
-      presentPaywall('student_limit');
-      return;
-    }
-
     setEditingStudent(null);
     setIsStudentFormOpen(true);
-  }, [posthog, isPro, activeStudentsCount, presentPaywall]);
+  }, [posthog]);
 
   const openEditForm = useCallback((id: string) => {
     posthog?.capture('edit_student_form_opened');
