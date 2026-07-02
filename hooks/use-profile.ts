@@ -54,18 +54,57 @@ export const useProfileQuery = (options?: { enabled?: boolean }) => {
   });
 };
 
+export type LeaveReason =
+  | 'too_expensive'
+  | 'just_testing'
+  | 'missing_feature'
+  | 'too_complicated'
+  | 'found_another_app'
+  | 'other';
+
+type LeavePayload = {
+  reason?: LeaveReason;
+  feedback?: string;
+};
+
+// Drop undefined keys so they never reach the request body's JSON type.
+const buildLeaveBody = ({ reason, feedback }: LeavePayload): Record<string, string> => {
+  const body: Record<string, string> = {};
+  if (reason) body.reason = reason;
+  if (feedback) body.feedback = feedback;
+  return body;
+};
+
 export const useDeleteAccount = () => {
   const { logout } = useAuth();
   const posthog = usePostHog();
 
   return useMutation({
-    mutationFn: async () => {
-      const { data } = await api.delete('/user/account');
+    mutationFn: async (payload: LeavePayload = {}) => {
+      const { data } = await api.delete('/user/account', { data: buildLeaveBody(payload) });
       return data;
     },
-    onSuccess: () => {
-      posthog?.capture('account_deleted');
+    onSuccess: (_data, variables) => {
+      posthog?.capture('account_deleted', { reason: variables?.reason ?? 'not_provided' });
       posthog?.reset(); // Clear user identity
+      logout();
+      queryClient.clear();
+    },
+  });
+};
+
+export const useDeactivateAccount = () => {
+  const { logout } = useAuth();
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async (payload: LeavePayload = {}) => {
+      const { data } = await api.post('/user/deactivate', buildLeaveBody(payload));
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      posthog?.capture('account_deactivated', { reason: variables?.reason ?? 'not_provided' });
+      posthog?.reset();
       logout();
       queryClient.clear();
     },

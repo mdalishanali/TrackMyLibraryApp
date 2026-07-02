@@ -17,7 +17,8 @@ import { spacing, radius, typography } from '@/constants/design';
 import { BRAND_FOOTER_TEXT } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/providers/subscription-provider';
-import { useDeleteAccount } from '@/hooks/use-profile';
+import { useDeleteAccount, useDeactivateAccount } from '@/hooks/use-profile';
+import { LeaveAccountSheet } from '@/components/settings/leave-account-sheet';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppearanceStore, AppearanceMode } from '@/hooks/use-appearance';
@@ -36,10 +37,11 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isPro, presentPaywall, restorePurchases, presentCustomerCenter, isExpiringSoon, daysRemainingText } = useSubscription();
   const deleteAccount = useDeleteAccount();
+  const deactivateAccount = useDeactivateAccount();
   const { mode } = useAppearanceStore();
   const posthog = usePostHog();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   
   // Track screen view
@@ -50,7 +52,7 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteAccount = () => {
-    setShowDeleteConfirm(true);
+    setShowLeaveSheet(true);
   };
 
   return (
@@ -435,24 +437,31 @@ export default function SettingsScreen() {
         }}
         destructive
       />
-      <ConfirmDialog
-        visible={showDeleteConfirm}
-        title="Delete account?"
-        description="This will permanently remove your account and associated data."
-        confirmText="Delete Account"
-        onCancel={() => setShowDeleteConfirm(false)}
-        onConfirm={async () => {
+      <LeaveAccountSheet
+        visible={showLeaveSheet}
+        onClose={() => setShowLeaveSheet(false)}
+        deactivating={deactivateAccount.isPending}
+        deleting={deleteAccount.isPending}
+        onDeactivate={async ({ reason }) => {
           try {
-            await deleteAccount.mutateAsync();
-            setShowDeleteConfirm(false);
+            await deactivateAccount.mutateAsync({ reason });
+            setShowLeaveSheet(false);
+            showToast('Account paused', 'success');
+            router.replace('/(auth)/login');
+          } catch (error) {
+            Alert.alert('Unable to pause account', getErrorMessage(error));
+          }
+        }}
+        onDelete={async ({ reason }) => {
+          try {
+            await deleteAccount.mutateAsync({ reason });
+            setShowLeaveSheet(false);
             showToast('Account deleted', 'success');
             router.replace('/(auth)/login');
           } catch (error) {
             Alert.alert('Unable to delete', getErrorMessage(error));
           }
         }}
-        destructive
-        loading={deleteAccount.isPending}
       />
       <BulkImportModal
         visible={showBulkImport}
