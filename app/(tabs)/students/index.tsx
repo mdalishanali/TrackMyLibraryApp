@@ -27,6 +27,7 @@ import { useSendTemplate, useWhatsappTemplates, useAutomationSettings } from '@/
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/providers/subscription-provider';
+import { handleStudentLimitError } from '@/lib/student-limit-error';
 import { useQuickRating } from '@/hooks/use-quick-rating';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
@@ -126,7 +127,7 @@ export default function StudentsScreen() {
     // Check Free Tier Limit
     if (!isPro && activeStudentsCount >= 20) {
       posthog?.capture('student_limit_paywall_shown', { count: activeStudentsCount });
-      presentPaywall();
+      presentPaywall('student_limit');
       return;
     }
 
@@ -231,12 +232,14 @@ export default function StudentsScreen() {
       setEditingStudent(null);
       setFilter('recent');
     } catch (error: any) {
-      console.error('saveStudent (Directory) FAILED:', error);
-      // Handle Student Limit Paywall
-      if (error?.response?.status === 402) {
+      // Free-tier limit is an expected, handled state (opens the paywall) — close
+      // the form and stop here, without logging or re-throwing a generic failure.
+      if (handleStudentLimitError(error, presentPaywall)) {
         setIsStudentFormOpen(false);
-        presentPaywall();
+        return;
       }
+
+      console.error('saveStudent (Directory) FAILED:', error);
       // RE-THROW so the modal knows it failed and doesn't close/reset
       throw error;
     }

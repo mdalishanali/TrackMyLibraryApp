@@ -39,6 +39,8 @@ import { StatusBadges } from '@/components/students/StudentSummary';
 import { ChangeSeatModal } from '@/components/students/change-seat-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { showToast } from '@/lib/toast';
+import { handleStudentLimitError } from '@/lib/student-limit-error';
+import { useSubscription } from '@/providers/subscription-provider';
 import { useScreenView } from '@/hooks/use-screen-view';
 import { formatDate } from '@/utils/format';
 
@@ -69,6 +71,7 @@ export default function SeatsScreen() {
   const { data: shifts = [] } = useShiftsQuery();
   const router = useRouter();
   const createStudent = useCreateStudent();
+  const { presentPaywall } = useSubscription();
   const { setup } = useLocalSearchParams();
 
   const [studentDefaults, setStudentDefaults] = useState<(StudentFormValues & { _id?: string }) | null>(null);
@@ -378,6 +381,14 @@ export default function SeatsScreen() {
       setIsStudentModalOpen(false);
       setStudentDefaults(null);
     } catch (err) {
+      // Free-tier limit is an expected, handled state (opens the paywall) — close
+      // the form and stop here, without logging or re-throwing a generic failure.
+      if (handleStudentLimitError(err, presentPaywall)) {
+        setIsStudentModalOpen(false);
+        setStudentDefaults(null);
+        return;
+      }
+
       console.error('saveStudent Mutation FAILED:', err);
       throw err;
     }

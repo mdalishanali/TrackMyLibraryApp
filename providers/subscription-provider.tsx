@@ -5,12 +5,17 @@ import { useAuth } from '@/hooks/use-auth';
 import { useProfileQuery } from '@/hooks/use-profile';
 import { SubscriptionModal } from '@/components/subscription/subscription-modal';
 
+// Why the paywall opened. Drives the contextual banner at the top of the paywall
+// (e.g. the free student-limit block) so the reason survives even while the
+// full-screen modal covers any toast.
+export type PaywallReason = 'student_limit' | null;
+
 interface SubscriptionContextType {
   isPro: boolean;
   isLoading: boolean;
   isBlocked: boolean;
   customerInfo: CustomerInfo | null;
-  presentPaywall: () => void;
+  presentPaywall: (reason?: PaywallReason) => void;
   presentCustomerCenter: () => void;
   restorePurchases: () => Promise<void>;
   checkSubscriptionStatus: () => Promise<void>;
@@ -35,6 +40,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isRcPro, setIsRcPro] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallReason, setPaywallReason] = useState<PaywallReason>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
 
   const checkSubscriptionStatus = useCallback(async () => {
@@ -153,7 +159,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     isLoading: combinedLoading,
     isBlocked: isAuthenticated && !isProActive && !combinedLoading,
     customerInfo,
-    presentPaywall: () => setShowPaywall(true),
+    presentPaywall: (reason: PaywallReason = null) => {
+      setPaywallReason(reason);
+      setShowPaywall(true);
+    },
     presentCustomerCenter,
     restorePurchases,
     checkSubscriptionStatus,
@@ -169,9 +178,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       <SubscriptionModal
         visible={showPaywall || value.isBlocked}
         isBlocked={value.isBlocked}
-        onClose={() => setShowPaywall(false)}
+        reason={paywallReason}
+        onClose={() => {
+          setShowPaywall(false);
+          setPaywallReason(null);
+        }}
         onPurchaseSuccess={() => {
           setShowPaywall(false);
+          setPaywallReason(null);
           checkSubscriptionStatus();
         }}
       />

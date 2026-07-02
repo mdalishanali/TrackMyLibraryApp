@@ -28,6 +28,7 @@ import { useCreateStudent } from '@/hooks/use-students';
 import { useShiftsQuery } from '@/hooks/use-shifts';
 import { transformFormToPayload } from '@/utils/student-transform';
 import { showToast } from '@/lib/toast';
+import { handleStudentLimitError } from '@/lib/student-limit-error';
 import { useScreenView } from '@/hooks/use-screen-view';
 import { Skeleton, SkeletonCard, SkeletonMetricCard, SkeletonList } from '@/components/ui/skeleton';
 import { useDashboardStore } from '@/store/dashboard-store';
@@ -413,7 +414,7 @@ export default function DashboardScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user } = useAuth();
-  const { isPro } = useSubscription();
+  const { isPro, presentPaywall } = useSubscription();
 
   // Track screen view
   useScreenView('Dashboard');
@@ -447,6 +448,13 @@ export default function DashboardScreen() {
       setIsStudentFormOpen(false);
       showToast('Student Added', 'success');
     } catch (error: any) {
+      // Free-tier limit is an expected, handled state (opens the paywall) — not an
+      // error worth logging. Handle it first before any generic logging/toast.
+      if (handleStudentLimitError(error, presentPaywall)) {
+        setIsStudentFormOpen(false);
+        return;
+      }
+
       console.error(error);
       showToast('Failed to save student', 'error');
     }

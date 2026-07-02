@@ -1,10 +1,12 @@
 import React from 'react';
 import { Modal } from 'react-native';
 import { CustomPaywall } from '@/components/subscription/custom-paywall';
+import type { PaywallReason } from '@/providers/subscription-provider';
 
 interface SubscriptionModalProps {
   visible: boolean;
   isBlocked: boolean;
+  reason?: PaywallReason;
   onClose: () => void;
   onPurchaseSuccess: () => void;
 }
@@ -12,6 +14,7 @@ interface SubscriptionModalProps {
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   visible,
   isBlocked,
+  reason,
   onClose,
   onPurchaseSuccess,
 }) => {
@@ -24,6 +27,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     >
       <CustomPaywall
         isBlocked={isBlocked}
+        reason={reason}
         onClose={onClose}
         onPurchaseSuccess={onPurchaseSuccess}
       />

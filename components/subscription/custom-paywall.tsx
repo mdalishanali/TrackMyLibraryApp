@@ -29,20 +29,70 @@ import Animated, {
 } from 'react-native-reanimated';
 import { logErrorToDiscord } from '@/lib/discord';
 import { usePostHog } from 'posthog-react-native';
+import type { PaywallReason } from '@/providers/subscription-provider';
+
+// Copy for the contextual banner shown at the top of the paywall. Keyed by the
+// reason the paywall was opened so the user always knows why they landed here.
+const REASON_BANNERS: Record<Exclude<PaywallReason, null>, { title: string; sub: string }> = {
+  student_limit: {
+    title: 'Free limit reached',
+    sub: 'Upgrade to Pro to add unlimited students.',
+  },
+};
 
 const { width, height } = Dimensions.get('window');
 const ILLUSTRATION = require('../../assets/images/subscription_premium_illustration.jpg');
+
+// Only features that actually ship in the app are listed here. Each maps to a real
+// screen/hook: students (use-students), WhatsApp (use-whatsapp), QR (qr-code screen),
+// shifts (use-shifts), multi-branch (use-libraries), admins (use-users),
+// revenue/analytics (use-revenue/use-analytics), expenses (use-expenses),
+// branding/custom form (branding screen), CSV import (bulk-import-modal).
+type ProFeature = { icon: string; text: string; sub: string; color?: string };
+
+const PRO_FEATURES: ProFeature[] = [
+  { icon: 'people', text: 'Add Unlimited Students', sub: 'No limit on students or seats' },
+  { icon: 'logo-whatsapp', text: 'Auto WhatsApp Reminders', sub: 'Fee & due reminders on autopilot', color: '#25D366' },
+  { icon: 'receipt', text: 'WhatsApp Fee Receipts', sub: 'Instant proof for parents' },
+  { icon: 'qr-code', text: 'QR Student Registration', sub: 'Students join by scanning a code' },
+  { icon: 'grid', text: 'Multi-Shift Seat Maps', sub: 'Morning, evening, night & more' },
+  { icon: 'trending-up', text: 'Revenue & Analytics', sub: 'Track collections & growth' },
+  { icon: 'wallet', text: 'Expense Management', sub: 'Know your real profit' },
+  { icon: 'business', text: 'Multiple Branches', sub: 'Run all libraries from one app' },
+  { icon: 'people-circle', text: 'Multiple Admins', sub: 'Add staff with their own login' },
+  { icon: 'create', text: 'Custom Registration Form', sub: 'Collect Aadhaar, photo & more' },
+  { icon: 'cloud-upload', text: 'Bulk Import via CSV', sub: 'Move your data in minutes' },
+  { icon: 'shield-checkmark', text: '100% Safe & Secure Data', sub: 'Cloud backup included' },
+];
 
 interface CustomPaywallProps {
   onClose?: () => void;
   onPurchaseSuccess: () => void;
   isBlocked?: boolean;
+  reason?: PaywallReason;
 }
 
-export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchaseSuccess, isBlocked }) => {
+// Pick the first name so the greeting reads naturally ("Namaste Pankaj ji").
+const getFirstName = (fullName?: string): string => {
+  if (!fullName) return '';
+  return fullName.trim().split(/\s+/)[0];
+};
+
+export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchaseSuccess, isBlocked, reason }) => {
   const theme = useTheme();
   const { logout, user } = useAuth();
   const posthog = usePostHog();
+
+  const reasonBanner = reason ? REASON_BANNERS[reason] : null;
+
+  const firstName = getFirstName(user?.name);
+  const libraryName = user?.company?.businessName?.trim();
+  // Warm, India-friendly greeting. Falls back gracefully when name is missing.
+  const greeting = firstName ? `Namaste, ${firstName} ji 🙏` : 'Namaste 🙏';
+  // Only put the library name inside the CTA pill when it is short enough to
+  // fit on one line; long names fall back to the generic label.
+  const MAX_CTA_NAME_LENGTH = 16;
+  const canPersonalizeCta = !!libraryName && libraryName.length <= MAX_CTA_NAME_LENGTH;
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -171,6 +221,85 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
     );
   }
 
+  // Pricing block — shown high on the page so the offer is visible without scrolling.
+  const renderPlans = (
+    <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.plans}>
+      {packages.map((pkg) => {
+        const isSelected = selectedPackage?.identifier === pkg.identifier;
+        const isYearly = pkg.packageType === 'ANNUAL';
+
+        return (
+          <TouchableOpacity
+            key={pkg.identifier}
+            activeOpacity={0.8}
+            onPress={() => {
+              posthog?.capture('package_selected', {
+                package_id: pkg.identifier,
+                package_type: pkg.packageType,
+                price: pkg.product.price,
+              });
+              setSelectedPackage(pkg);
+            }}
+          >
+            <Animated.View
+              style={[
+                styles.planCard,
+                {
+                  backgroundColor: isSelected ? '#1E293B' : '#0F172A',
+                  borderColor: isSelected ? '#FFD700' : '#334155',
+                  transform: [{ scale: isSelected ? 1.02 : 1 }]
+                }
+              ]}
+            >
+              <View style={styles.planInfo}>
+                <Text style={[styles.planTitle, { color: isSelected ? '#FFD700' : '#fff' }]}>
+                  {isYearly ? 'Yearly Plan (Best Value)' : 'Monthly Plan'}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                  <Text style={styles.planPrice}>{pkg.product.priceString}</Text>
+                  <Text style={styles.planPeriod}>/{isYearly ? 'year' : 'mo'}</Text>
+                </View>
+                {isYearly && <Text style={{ color: '#4ADE80', fontWeight: '700', marginTop: 4 }}>Less than a chai per day! (₹6/day)</Text>}
+              </View>
+
+              <View style={[
+                styles.radioButton,
+                {
+                  borderColor: isSelected ? '#FFD700' : '#475569',
+                  backgroundColor: isSelected ? '#FFD700' : 'transparent'
+                }
+              ]}>
+                {isSelected && <Ionicons name="checkmark" size={16} color="#000" />}
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+        );
+      })}
+    </Animated.View>
+  );
+
+  // Feature list — moved below pricing; the "everything you get" reinforcement.
+  const renderFeatures = (
+    <Animated.View entering={FadeInDown.delay(450).springify()} style={styles.features}>
+      <Text style={styles.featuresHeading}>Everything you get with Pro</Text>
+      {PRO_FEATURES.map((f, i) => (
+        <Animated.View
+          entering={FadeInDown.delay(450 + i * 60)}
+          key={i}
+          style={styles.featureItem}
+        >
+          <View style={styles.featureIconBox}>
+            <Ionicons name={f.icon as any} size={28} color={f.color || '#F8FAFC'} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.featureText}>{f.text}</Text>
+            <Text style={styles.featureSub}>{f.sub}</Text>
+          </View>
+        </Animated.View>
+      ))}
+    </Animated.View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: '#0F172A' }]}>
       <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
@@ -194,13 +323,16 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
             )}
           </View>
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.headerText}>
+            <Text style={styles.greetingText}>{greeting}</Text>
             <View style={styles.preTitleContainer}>
               <Text style={styles.preTitle}>PREMIUM ACCESS</Text>
               <View style={styles.proBadge}>
                 <Text style={styles.proBadgeText}>PRO</Text>
               </View>
             </View>
-            <Text style={styles.mainTitle}>TrackMyLibrary</Text>
+            <Text style={styles.mainTitle} numberOfLines={2}>
+              {libraryName || 'TrackMyLibrary'}
+            </Text>
             <View style={[styles.offerBadge, trialTimeLeft ? { backgroundColor: '#EF4444' } : {}]}>
               <LinearGradient
                 colors={trialTimeLeft ? ['#EF4444', '#DC2626'] : ['#FFD700', '#FFA500']}
@@ -218,6 +350,18 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
         </View>
 
         <View style={styles.content}>
+          {reasonBanner ? (
+            <Animated.View entering={FadeInDown.springify()} style={styles.reasonBanner}>
+              <View style={styles.reasonIconBox}>
+                <Ionicons name="alert-circle" size={22} color="#FCA5A5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reasonTitle}>{reasonBanner.title}</Text>
+                <Text style={styles.reasonSub}>{reasonBanner.sub}</Text>
+              </View>
+            </Animated.View>
+          ) : null}
+
           <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.trustBadge}>
             <View style={styles.trustAvatars}>
               {['👨‍🏫', '🏢', '📚'].map((emoji, i) => (
@@ -238,91 +382,21 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
                 </View>
               ))}
             </View>
-            <Text style={[styles.trustText, { color: '#94A3B8', marginLeft: -20 }]}>
-              Trusted by <Text style={{ color: '#fff', fontWeight: '800' }}>1,000+ Library Owners</Text>
+            <Text
+              style={[styles.trustText, { color: '#94A3B8', marginLeft: -20, flex: 1, flexShrink: 1 }]}
+              numberOfLines={2}
+            >
+              {firstName ? (
+                <>Join <Text style={{ color: '#fff', fontWeight: '800' }}>1,000+ owners</Text> like you, {firstName} ji</>
+              ) : (
+                <>Trusted by <Text style={{ color: '#fff', fontWeight: '800' }}>1,000+ Library Owners</Text></>
+              )}
             </Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.features}>
-            {[
-              { icon: 'people', text: 'Add Unlimited Students', sub: 'No limit on students or seats' },
-              { icon: 'logo-whatsapp', text: 'Auto WhatsApp Reminders', sub: 'Send fees & due fast', color: '#25D366' },
-              { icon: 'receipt', text: 'Send Fee Receipt on WhatsApp', sub: 'Instant proof for parents' },
-              { icon: 'shield-checkmark', text: '100% Safe & Secure Data', sub: 'Cloud backup included' },
-            ].map((f, i) => (
-              <Animated.View
-                entering={FadeInDown.delay(400 + i * 100)}
-                key={i}
-                style={styles.featureItem}
-              >
-                <View style={styles.featureIconBox}>
-                  <Ionicons name={f.icon as any} size={28} color={f.color || '#F8FAFC'} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.featureText}>{f.text}</Text>
-                  <Text style={styles.featureSub}>{f.sub}</Text>
-                </View>
-              </Animated.View>
-            ))}
-          </Animated.View>
+          {renderPlans}
 
-          <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.plans}>
-            {packages.map((pkg, index) => {
-              const isSelected = selectedPackage?.identifier === pkg.identifier;
-              const isYearly = pkg.packageType === 'ANNUAL';
-
-              return (
-                <TouchableOpacity
-                  key={pkg.identifier}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    posthog?.capture('package_selected', {
-                      package_id: pkg.identifier,
-                      package_type: pkg.packageType,
-                      price: pkg.product.price,
-                    });
-                    setSelectedPackage(pkg);
-                  }}
-                >
-                  <Animated.View 
-                    style={[
-                      styles.planCard,
-                      {
-                        backgroundColor: isSelected ? '#1E293B' : '#0F172A',
-                        borderColor: isSelected ? '#FFD700' : '#334155',
-                        transform: [{ scale: isSelected ? 1.02 : 1 }]
-                      }
-                    ]}
-                  >
-                    <View style={styles.planInfo}>
-                      <Text style={[styles.planTitle, { color: isSelected ? '#FFD700' : '#fff' }]}>
-                        {isYearly ? 'Yearly Plan (Best Value)' : 'Monthly Plan'}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                        <Text style={styles.planPrice}>
-                          {pkg.product.priceString}
-                        </Text>
-                        <Text style={styles.planPeriod}>
-                          /{isYearly ? 'year' : 'mo'}
-                        </Text>
-                      </View>
-                      {isYearly && <Text style={{ color: '#4ADE80', fontWeight: '700', marginTop: 4 }}>Less than a chai per day! (₹6/day)</Text>}
-                    </View>
-
-                    <View style={[
-                      styles.radioButton,
-                      {
-                        borderColor: isSelected ? '#FFD700' : '#475569',
-                        backgroundColor: isSelected ? '#FFD700' : 'transparent'
-                      }
-                    ]}>
-                      {isSelected && <Ionicons name="checkmark" size={16} color="#000" />}
-                    </View>
-                  </Animated.View>
-                </TouchableOpacity>
-              );
-            })}
-          </Animated.View>
+          {renderFeatures}
 
           <View style={styles.contactSection}>
             <Text style={[styles.contactTitle, { color: '#fff' }]}>Need Help?</Text>
@@ -371,7 +445,9 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
               {isPurchasing ? (
                 <ActivityIndicator color="#000" />
               ) : (
-                <Text style={styles.buyButtonText}>Unlock Pro Access</Text>
+                <Text style={styles.buyButtonText} numberOfLines={1}>
+                  {canPersonalizeCta ? `Upgrade ${libraryName}` : 'Unlock Pro Access'}
+                </Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -434,6 +510,15 @@ const styles = StyleSheet.create({
   headerText: { position: 'absolute', bottom: isSmallDevice ? 16 : 25, left: 24, right: 24 },
 
   // Title Section
+  greetingText: {
+    color: '#F8FAFC',
+    fontSize: isSmallDevice ? 15 : 17,
+    fontWeight: '700',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4
+  },
   preTitleContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   preTitle: {
     color: '#FFD700',
@@ -491,6 +576,29 @@ const styles = StyleSheet.create({
 
   content: { flex: 1, paddingHorizontal: 20, paddingTop: isSmallDevice ? 16 : 24 },
 
+  // Reason banner — contextual "why you're here" strip (e.g. free student limit).
+  reasonBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderRadius: 16,
+    padding: isSmallDevice ? 12 : 14,
+    marginBottom: isSmallDevice ? 16 : 20,
+  },
+  reasonIconBox: {
+    width: isSmallDevice ? 34 : 38,
+    height: isSmallDevice ? 34 : 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+  },
+  reasonTitle: { fontSize: isSmallDevice ? 15 : 16, fontWeight: '800', color: '#FEE2E2' },
+  reasonSub: { fontSize: isSmallDevice ? 12 : 13, fontWeight: '500', color: '#FCA5A5', marginTop: 2 },
+
   // Trust Section
   trustBadge: {
     flexDirection: 'row',
@@ -516,6 +624,12 @@ const styles = StyleSheet.create({
 
   // Features
   features: { gap: isSmallDevice ? 10 : 16, marginBottom: isSmallDevice ? 24 : 40 },
+  featuresHeading: {
+    color: '#fff',
+    fontSize: isSmallDevice ? 16 : 18,
+    fontWeight: '800',
+    marginBottom: isSmallDevice ? 4 : 8
+  },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
