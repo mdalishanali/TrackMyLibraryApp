@@ -30,17 +30,66 @@ export type BulkProgress = { done: number; total: number };
 
 const PERMISSION_DENIED_MESSAGE = 'Contacts permission is needed to save students';
 
-/** Matches the server's own cache window for this endpoint. */
 const ROSTER_STALE_MS = 60_000;
 
 /**
- * Fetch every student worth saving — active AND inactive.
+ * Ceiling on pages walked in one sync. At the server's 500-row page that is 50,000
+ * students — far beyond any real library, and it exists only so a server bug that
+ * always returns `hasMore` cannot spin forever.
+ */
+const MAX_ROSTER_PAGES = 100;
+
+type DirectoryPage = {
+    students: Student[];
+    nextCursor: string | null;
+    hasMore: boolean;
+};
+
+/**
+ * Walk /students/directory page by page, handing each page to `onPage` as it arrives.
  *
- * Uses the dedicated /students/directory endpoint rather than GET /students: the
- * latter powers the dashboard and joins `payments` on every call (~1200 extra docs
- * for a 200-student library) before computing dues and overdue days, none of which a
- * contact card uses. The directory endpoint is status-agnostic, so this is ONE call
- * instead of the two-and-merge the dashboard endpoint's Active-only filter required.
+ * Uses the dedicated directory endpoint rather than GET /students: the latter powers
+ * the dashboard and joins `payments` on every call (~1200 extra docs for a
+ * 200-student library) before computing dues and overdue days, none of which a contact
+ * card uses. It is also status-agnostic, so inactive students arrive in the same walk.
+ *
+ * @param onPage - Receives each page. Return a promise to apply backpressure — the next
+ *                 page is not requested until it settles, so a slow phonebook write
+ *                 cannot make pages pile up in memory.
+ * @returns Total rows seen.
+ */
+const walkDirectory = async (
+    onPage: (students: Student[]) => Promise<void> | void
+): Promise<number> => {
+    let cursor: string | null = null;
+    let seen = 0;
+
+    for (let pageIndex = 0; pageIndex < MAX_ROSTER_PAGES; pageIndex += 1) {
+        const { data } = await api.get('/students/directory', {
+            params: cursor ? { cursor } : undefined,
+        });
+
+        const page = (data ?? {}) as DirectoryPage;
+        const students = (page.students ?? []).filter((student) => Boolean(student.number));
+
+        seen += students.length;
+        await onPage(students);
+
+        if (!page.hasMore || !page.nextCursor) return seen;
+        cursor = page.nextCursor;
+    }
+
+    console.warn('[useSaveContacts] Stopped at the page ceiling; roster may be truncated');
+    return seen;
+};
+
+/**
+ * The full roster, assembled from every page.
+ *
+ * The modal needs a count and an "already saved" comparison up front, so the list is
+ * materialised here. At ~320 bytes per student a 5000-student library is ~1.6MB of JS
+ * objects — acceptable held once; what paging avoids is a single 6MB JSON parse and the
+ * matching serialisation spike on the server.
  *
  * @param isEnabled - Gate the fetch so opening a screen doesn't pull the roster.
  */
@@ -50,9 +99,11 @@ export const useContactStudentsQuery = (isEnabled: boolean) =>
         enabled: isEnabled,
         staleTime: ROSTER_STALE_MS,
         queryFn: async (): Promise<Student[]> => {
-            const { data } = await api.get('/students/directory');
-            const students = (data?.students ?? []) as Student[];
-            return students.filter((student) => Boolean(student.number));
+            const roster: Student[] = [];
+            await walkDirectory((students) => {
+                roster.push(...students);
+            });
+            return roster;
         },
     });
 
