@@ -54,6 +54,12 @@
       ],
       "expo-localization",
       [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow TrackMyLibrary to save your students as contacts, so their names show on incoming calls and you can reach them on WhatsApp."
+        }
+      ],
+      [
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io",

@@ -27,6 +27,7 @@ import { showToast } from '@/lib/toast';
 import { usePostHog } from 'posthog-react-native';
 import { useScreenView } from '@/hooks/use-screen-view';
 import { BulkImportModal } from '@/components/students/bulk-import-modal';
+import { SaveContactsModal } from '@/components/contacts/save-contacts-modal';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showSaveContacts, setShowSaveContacts] = useState(false);
   
   // Track screen view
   useScreenView('Settings');
@@ -293,6 +295,17 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
+              icon="people"
+              label="Save Students to Contacts"
+              description="See names on calls, find them in WhatsApp"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowSaveContacts(true);
+              }}
+              themeTint="#25D366"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
               icon="log-out"
               label="Sign Out"
               description="Log out from this device"
@@ -466,6 +479,10 @@ export default function SettingsScreen() {
       <BulkImportModal
         visible={showBulkImport}
         onClose={() => setShowBulkImport(false)}
+      />
+      <SaveContactsModal
+        visible={showSaveContacts}
+        onClose={() => setShowSaveContacts(false)}
       />
     </SafeScreen>
   );
