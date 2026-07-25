@@ -202,6 +202,30 @@ export const useSaveContacts = () => {
         [businessName, isSaving]
     );
 
+    /**
+     * Keep an ALREADY-SAVED contact in step with an edited student. Never creates one,
+     * and never prompts.
+     *
+     * A seat or shift change would otherwise leave a stale contact — the owner sees
+     * "Seat 12" on a call for a student who moved to seat 4. Silent by design: this
+     * rides along with an edit the owner already confirmed, so a toast about the
+     * phonebook would be noise, and a student who was never saved is simply left alone.
+     */
+    const syncOne = useCallback(
+        async (student: Student): Promise<void> => {
+            try {
+                // Read-only check — must not raise a prompt during an unrelated edit.
+                const { status } = await Contacts.getPermissionsAsync();
+                if (status !== 'granted') return;
+
+                await saveStudentContact({ student, businessName, updateOnly: true });
+            } catch (error) {
+                console.error('[useSaveContacts] syncOne failed:', error);
+            }
+        },
+        [businessName]
+    );
+
     /** Save many students, tracking progress. Returns the tally, or null on failure. */
     const saveMany = useCallback(
         async (students: Student[]): Promise<BulkSaveResult | null> => {
@@ -248,5 +272,5 @@ export const useSaveContacts = () => {
 
     const clearResult = useCallback(() => setResult(null), []);
 
-    return { isSaving, progress, result, saveOne, saveMany, clearResult };
+    return { isSaving, progress, result, saveOne, syncOne, saveMany, clearResult };
 };

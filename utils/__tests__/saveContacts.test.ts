@@ -123,6 +123,43 @@ describe('saveStudentContact — create vs update', () => {
     });
 });
 
+describe('saveStudentContact — updateOnly (the edit flow)', () => {
+    it('refreshes a contact that already exists', async () => {
+        givenPhonebook([{ id: 'existing-id', number: '9876543210' }]);
+
+        const outcome = await saveStudentContact({
+            student: makeStudent(),
+            businessName: 'Lib',
+            updateOnly: true,
+        });
+
+        expect(outcome).toBe('updated');
+        expect(mocked.updateContactAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips a student who was never saved — editing is not consent to add them', async () => {
+        givenPhonebook([]);
+
+        const outcome = await saveStudentContact({
+            student: makeStudent(),
+            businessName: 'Lib',
+            updateOnly: true,
+        });
+
+        expect(outcome).toBe('skipped');
+        expect(mocked.addContactAsync).not.toHaveBeenCalled();
+        expect(mocked.updateContactAsync).not.toHaveBeenCalled();
+    });
+
+    it('still creates when updateOnly is not set', async () => {
+        givenPhonebook([]);
+
+        const outcome = await saveStudentContact({ student: makeStudent(), businessName: 'Lib' });
+
+        expect(outcome).toBe('created');
+    });
+});
+
 describe('saveStudentContact — failure paths', () => {
     it('fails without calling the native layer when the number is unusable', async () => {
         const outcome = await saveStudentContact({
@@ -193,6 +230,17 @@ describe('saveStudentContactsBulk', () => {
 
         expect(onProgress).toHaveBeenCalledTimes(3);
         expect(onProgress).toHaveBeenLastCalledWith(3, 3);
+    });
+
+    it('keeps every tally a real number, never NaN', async () => {
+        givenPhonebook([{ id: 'existing-id', number: '9000000002' }]);
+
+        const result = await saveStudentContactsBulk({ students: roster, businessName: 'Lib' });
+
+        [result.created, result.updated, result.failed, result.total].forEach((count) => {
+            expect(Number.isFinite(count)).toBe(true);
+        });
+        expect(result.created + result.updated + result.failed).toBe(result.total);
     });
 
     it('returns an empty tally for an empty roster without touching contacts', async () => {

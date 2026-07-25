@@ -68,7 +68,7 @@ export default function StudentDetailScreen() {
   const [reminderChannel, setReminderChannel] = useState<'whatsapp' | 'sms' | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const sendReceiptMutation = useSendPaymentReceipt();
-  const { saveOne, isSaving: isSavingContact } = useSaveContacts();
+  const { saveOne, syncOne: syncContact, isSaving: isSavingContact } = useSaveContacts();
   const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
 
 
@@ -221,6 +221,14 @@ export default function StudentDetailScreen() {
 
       setIsEditStudentOpen(false);
       showToast('Student updated', 'success');
+
+      // Keep an already-saved contact in step, so a re-seated student does not keep
+      // showing their old seat on incoming calls. Refetched first because the payload
+      // carries seat and shift IDs, while a contact needs their resolved labels.
+      // Not awaited — the edit is already saved and confirmed to the owner.
+      void studentQuery.refetch().then(({ data }) => {
+        if (data) syncContact(data);
+      });
     } catch (error: any) {
       console.error('handleUpdateStudent (Detail) FAILED:', error);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update student';

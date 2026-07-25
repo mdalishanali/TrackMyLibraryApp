@@ -18,7 +18,7 @@ import { buildStudentContact, toPhoneKey } from '@/utils/contactBuilder';
  *     reported so the owner knows exactly what happened.
  */
 
-export type SaveOutcome = 'created' | 'updated' | 'failed';
+export type SaveOutcome = 'created' | 'updated' | 'failed' | 'skipped';
 
 export type BulkSaveResult = {
     created: number;
@@ -127,21 +127,29 @@ const updateExistingContact = async (
  * @param args.student       - Student to save
  * @param args.businessName  - Library name for the contact's company field
  * @param args.existingIndex - Optional pre-built index (bulk path); built on demand otherwise
+ * @param args.updateOnly    - Refresh an existing contact but never create one. Used by
+ *        the edit flow: a student whose seat changed should have their contact corrected,
+ *        but editing a student is not consent to add them to the phonebook.
  */
 export const saveStudentContact = async ({
     student,
     businessName,
     existingIndex,
+    updateOnly = false,
 }: {
     student: Student;
     businessName: string;
     existingIndex?: ContactIndex;
+    updateOnly?: boolean;
 }): Promise<SaveOutcome> => {
     const phoneKey = toPhoneKey(student.number);
     if (!phoneKey) return 'failed';
 
     const index = existingIndex ?? (await buildContactIndex());
     const existingId = index.get(phoneKey);
+
+    if (!existingId && updateOnly) return 'skipped';
+
     const contact = buildStudentContact({ student, businessName });
 
     try {
@@ -194,8 +202,14 @@ export const saveStudentContactsBulk = async ({
         const student = students[i];
         const outcome = await saveStudentContact({ student, businessName, existingIndex: index });
 
-        result[outcome] += 1;
-        if (outcome === 'failed') result.failedNames.push(student.name || 'Unnamed student');
+        // 'skipped' is unreachable here — bulk never passes updateOnly — but tallying by
+        // key would silently produce NaN if that ever changed.
+        if (outcome === 'created') result.created += 1;
+        else if (outcome === 'updated') result.updated += 1;
+        else if (outcome === 'failed') {
+            result.failed += 1;
+            result.failedNames.push(student.name || 'Unnamed student');
+        }
 
         onProgress?.(i + 1, total);
     }
