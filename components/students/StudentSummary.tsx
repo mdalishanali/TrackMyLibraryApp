@@ -8,6 +8,7 @@ import { AppBadge } from '@/components/ui/app-badge';
 import { AppButton } from '@/components/ui/app-button';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
 import { formatCurrency, formatDate, formatTime } from '@/utils/format';
+import { getFloorValue } from '@/utils/student-fields';
 
 const formatShift = (shift?: string | null) => {
   if (!shift) return '—';
@@ -129,9 +130,9 @@ const InfoItem = ({ icon, label, value, theme, onPress, valueColor }: { icon: ke
 };
 
 export function StudentMeta({ student, theme }: { student: Student; theme: Theme }) {
-  const floor = (student as any).floor ?? student.floorNumber;
+  const floor = getFloorValue(student);
   const sectionStr = !floor || isNaN(Number(floor))
-    ? (floor ?? 'Section 1')
+    ? (floor || 'Section 1')
     : `Section ${floor}`;
 
   const seatValue = student.seatNumber

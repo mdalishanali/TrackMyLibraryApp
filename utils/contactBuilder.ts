@@ -2,6 +2,7 @@ import * as Contacts from 'expo-contacts';
 
 import { Student } from '@/types/api';
 import { formatCurrency, formatDate, formatTime } from '@/utils/format';
+import { getFloorValue, getSeatValue, getShiftValue } from '@/utils/student-fields';
 
 /**
  * contactBuilder.ts
@@ -47,44 +48,8 @@ export const toPhoneKey = (raw?: string): string => {
     return digits.slice(-INDIA_LOCAL_LENGTH);
 };
 
-/**
- * Section/floor label. The students list endpoint projects `floorNumber` while the
- * detail endpoint returns `floor` — same fallback the summary UI uses.
- */
-const getFloorLabel = (student: Student): string => {
-    const floor = student.floor ?? (student as { floorNumber?: number | string }).floorNumber;
-    return floor === undefined || floor === null ? '' : String(floor);
-};
-
-/** Resolve the seat label from either a populated seat or a flat seatNumber. */
-const getSeatLabel = (student: Student): string => {
-    if (student.seatNumber) return String(student.seatNumber);
-
-    const seat = student.seat as unknown;
-    if (seat && typeof seat === 'object' && 'seatNumber' in seat) {
-        return String((seat as { seatNumber?: number }).seatNumber ?? '');
-    }
-
-    return '';
-};
-
-/**
- * Shift name(s), tolerating all three shapes the API returns:
- *   - `shiftNames: string[]`  — /students/directory
- *   - `allocations: Shift[]`  — populated detail responses
- *   - `shift: string`         — legacy denormalised field
- */
-const getShiftLabel = (student: Student): string => {
-    const directoryNames = (student as { shiftNames?: string[] }).shiftNames ?? [];
-    if (directoryNames.length > 0) return directoryNames.filter(Boolean).join(', ');
-
-    const names = (student.allocations ?? [])
-        .map((item) => (typeof item === 'object' && item !== null ? (item as { name?: string }).name : null))
-        .filter((name): name is string => Boolean(name));
-
-    if (names.length > 0) return names.join(', ');
-    return student.shift ?? '';
-};
+// Seat / floor / shift readers live in utils/student-fields.ts — the same fallback
+// chains are needed by the student summary UI, and the two copies had already drifted.
 
 /** Daily timing window(s), e.g. "07:00 AM - 12:00 PM". */
 const getTimingLabel = (student: Student): string => {
@@ -98,7 +63,7 @@ const getTimingLabel = (student: Student): string => {
  */
 export const buildContactName = (student: Student): string => {
     const name = (student.name ?? '').trim() || 'Student';
-    const seat = getSeatLabel(student);
+    const seat = getSeatValue(student);
     return seat ? `${name} (Seat ${seat})` : name;
 };
 
@@ -107,9 +72,9 @@ export const buildContactName = (student: Student): string => {
  * so it carries the two things worth knowing at a glance: seat and shift.
  */
 const buildJobTitle = (student: Student): string => {
-    const seat = getSeatLabel(student);
-    const floor = getFloorLabel(student);
-    const shift = getShiftLabel(student);
+    const seat = getSeatValue(student);
+    const floor = getFloorValue(student);
+    const shift = getShiftValue(student);
 
     const parts = [
         seat ? `Seat ${seat}` : '',
