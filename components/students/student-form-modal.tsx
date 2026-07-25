@@ -97,7 +97,7 @@ export function StudentFormModal({
 }: Props) {
     const insets = useSafeAreaInsets();
     const contactPreference = useSaveContactPreference();
-    const { saveOne: saveContact } = useSaveContacts();
+    const { saveInBackground: saveContact } = useSaveContacts();
 
     // An edit always arrives with the student's number prefilled; a new admission never
     // does. Derived rather than added as a prop, which would mean touching all four

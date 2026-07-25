@@ -95,7 +95,10 @@ const walkDirectory = async (
  */
 export const useContactStudentsQuery = (isEnabled: boolean) =>
     useQuery({
-        queryKey: ['students', 'contact-roster'],
+        // NOT under ['students']: the student mutations invalidate that key by prefix,
+        // which would refetch this entire paginated roster every time a student is
+        // created or edited — the exact walk this query exists to do only on demand.
+        queryKey: ['contact-roster'],
         enabled: isEnabled,
         staleTime: ROSTER_STALE_MS,
         queryFn: async (): Promise<Student[]> => {
@@ -203,6 +206,45 @@ export const useSaveContacts = () => {
     );
 
     /**
+     * Save a student in the BACKGROUND, after the caller has already closed.
+     *
+     * saveOne() cannot be used for this: it guards on `isSaving` and calls setState, so
+     * once the form unmounts the guard reads a stale closure and the updates land on a
+     * dead component. This path touches no component state at all — it only awaits the
+     * native calls and reports through a toast, which is global.
+     *
+     * Fire it with `void`; the caller must not await it.
+     */
+    const saveInBackground = useCallback(
+        async (student: Student): Promise<void> => {
+            try {
+                const isGranted = await requestContactsPermission();
+                if (!isGranted) {
+                    showToast(PERMISSION_DENIED_MESSAGE, 'error');
+                    return;
+                }
+
+                const outcome = await saveStudentContact({ student, businessName });
+
+                if (outcome === 'failed') {
+                    showToast('Could not save contact', 'error');
+                    return;
+                }
+
+                showToast(
+                    outcome === 'updated' ? 'Contact updated' : 'Saved to contacts',
+                    'success',
+                    `${student.name} is now in your phonebook`
+                );
+            } catch (error) {
+                console.error('[useSaveContacts] saveInBackground failed:', error);
+                showToast('Could not save contact', 'error');
+            }
+        },
+        [businessName]
+    );
+
+    /**
      * Keep an ALREADY-SAVED contact in step with an edited student. Never creates one,
      * and never prompts.
      *
@@ -272,5 +314,14 @@ export const useSaveContacts = () => {
 
     const clearResult = useCallback(() => setResult(null), []);
 
-    return { isSaving, progress, result, saveOne, syncOne, saveMany, clearResult };
+    return {
+        isSaving,
+        progress,
+        result,
+        saveOne,
+        saveInBackground,
+        syncOne,
+        saveMany,
+        clearResult,
+    };
 };
