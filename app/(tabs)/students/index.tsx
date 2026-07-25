@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
 import { spacing } from '@/constants/design';
@@ -303,7 +302,7 @@ export default function StudentsScreen() {
   const initialFormValues = useMemo(() => mapStudentToForm(editingStudent), [editingStudent]);
 
   const listHeader = useMemo(() => (
-    <Animated.View entering={FadeInDown.duration(800)} style={styles.header}>
+    <View style={styles.header}>
       <View style={[styles.headerTop, styles.px_xl]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
@@ -357,7 +356,7 @@ export default function StudentsScreen() {
           />
         )}
       </View>
-    </Animated.View>
+    </View>
   ), [theme, search, filter, filteredCount, countLabel, quickFilter, days, customAgo, customIn, shiftId, shifts]);
 
   return (
@@ -379,10 +378,7 @@ export default function StudentsScreen() {
         isLoading={studentsQuery.isFetching && students.length === 0}
       />
 
-      <Animated.View
-        entering={FadeInUp.delay(1000).duration(800)}
-        style={styles.fabContainer}
-      >
+      <View style={styles.fabContainer}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={openCreateForm}
@@ -398,7 +394,7 @@ export default function StudentsScreen() {
             <Text style={styles.fabText}>New Member</Text>
           </LinearGradient>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <StudentFormModal
         visible={isStudentFormOpen}
