@@ -27,6 +27,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/providers/subscription-provider';
 import { handleStudentLimitError } from '@/lib/student-limit-error';
 import { useQuickRating } from '@/hooks/use-quick-rating';
+import { useExportStudents } from '@/hooks/use-export-students';
+import { StudentAudience } from '@/constants/student-export';
+import { ExportOptionsModal } from '@/components/students/export-options-modal';
 
 import StudentSearchBar from '@/components/students/StudentSearchBar';
 import StudentFilters from '@/components/students/StudentFilters';
@@ -99,6 +102,8 @@ export default function StudentsScreen() {
   const { user } = useAuth();
   const { presentPaywall } = useSubscription();
   const { triggerRating } = useQuickRating();
+  const { exportStudents, isExporting } = useExportStudents();
+  const [showExportOptions, setShowExportOptions] = useState(false);
 
   const students = useMemo(() => studentsQuery.data?.pages.flatMap(p => p.students) ?? [], [studentsQuery.data]);
 
@@ -189,6 +194,22 @@ export default function StudentsScreen() {
   const handleViewStudent = useCallback((id: string) => {
     router.push(`/student-detail/${id}`);
   }, [router]);
+
+  // The sheet opens on top of the filters already applied, so the export starts from
+  // what the owner is looking at and they only choose audience and columns there.
+  const exportBaseParams = useMemo(
+    () => ({ search: debouncedSearch, filter, days, quickFilter, shiftId }),
+    [debouncedSearch, filter, days, quickFilter, shiftId]
+  );
+
+  const handleExportConfirm = useCallback(
+    async (options: { status: StudentAudience; columns: string[] }) => {
+      posthog?.capture('students_export_started', { source: 'students', filter, ...options });
+      setShowExportOptions(false);
+      await exportStudents({ ...exportBaseParams, ...options });
+    },
+    [exportStudents, exportBaseParams, filter, posthog]
+  );
 
   const handleLoadMore = useCallback(() => {
     if (studentsQuery.hasNextPage && !studentsQuery.isFetchingNextPage) {
@@ -308,6 +329,22 @@ export default function StudentsScreen() {
           <Text style={[styles.headerPreTitle, { color: theme.muted }]}>MANAGEMENT</Text>
           <Text style={[styles.title, { color: theme.text }]}>Directory</Text>
         </View>
+        <TouchableOpacity
+          onPress={() => setShowExportOptions(true)}
+          disabled={isExporting}
+          accessibilityRole="button"
+          accessibilityLabel="Export students as CSV"
+          style={[
+            styles.exportBtn,
+            { backgroundColor: theme.primary + '15', opacity: isExporting ? 0.5 : 1 },
+          ]}
+        >
+          <Ionicons
+            name={isExporting ? 'hourglass-outline' : 'download-outline'}
+            size={20}
+            color={theme.primary}
+          />
+        </TouchableOpacity>
         <View style={[styles.countBadge, { backgroundColor: theme.primary + '15' }]}>
           <Text style={[styles.countVal, { color: theme.primary }]}>{filteredCount}</Text>
           <Text style={[styles.countUnit, { color: theme.primary }]}>{countLabel}</Text>
@@ -357,7 +394,7 @@ export default function StudentsScreen() {
         )}
       </View>
     </View>
-  ), [theme, search, filter, filteredCount, countLabel, quickFilter, days, customAgo, customIn, shiftId, shifts]);
+  ), [theme, search, filter, filteredCount, countLabel, quickFilter, days, customAgo, customIn, shiftId, shifts, isExporting]);
 
   return (
     <SafeScreen edges={['top']}>
@@ -450,6 +487,13 @@ export default function StudentsScreen() {
         theme={theme}
         hasCredits={(automationSettings?.whatsappCredits || 0) > 0}
       />
+      <ExportOptionsModal
+        visible={showExportOptions}
+        onClose={() => setShowExportOptions(false)}
+        onConfirm={handleExportConfirm}
+        baseParams={exportBaseParams}
+        isExporting={isExporting}
+      />
     </SafeScreen>
   );
 }
@@ -473,6 +517,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    // Keeps the export button off the count badge now that both sit on the right.
+    gap: spacing.sm,
+  },
+  exportBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 34,
