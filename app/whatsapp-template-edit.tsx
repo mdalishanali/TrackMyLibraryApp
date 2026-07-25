@@ -33,7 +33,11 @@ export default function WhatsappTemplateEditScreen() {
     { id: '{joining_date}', label: 'Join Date' },
     { id: '{shift}', label: 'Shift' },
     { id: '{seat_number}', label: 'Seat' },
-    { id: '{floor}', label: 'Floor' },
+    { id: '{floor}', label: 'Section' },
+    { id: '{shift_timing}', label: 'Timing' },
+    { id: '{owner_contact}', label: 'Contact' },
+    { id: '{reminder_context}', label: 'Valid Till' },
+    { id: '{payment_status}', label: 'Paid Status' },
     { id: '{amount}', label: 'Amount' },
     { id: '{end_date}', label: 'Expiry' },
   ];
