@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Dimensions, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SectionHeader } from '@/components/ui/section-header';
 import { spacing } from '@/constants/design';
@@ -33,7 +32,7 @@ type GridAction = {
 
 function GradientActionCard({ action, delay }: { action: GradientAction; delay: number }) {
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(700)}>
+    <View>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -62,7 +61,7 @@ function GradientActionCard({ action, delay }: { action: GradientAction; delay: 
           </View>
         </LinearGradient>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -95,14 +94,14 @@ function GridActionItem({ action, theme, idx, total }: { action: GridAction; the
 
 function ActionGrid({ title, actions, theme, delay }: { title: string; actions: GridAction[]; theme: any; delay: number }) {
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(700)} style={styles.gridSection}>
+    <View style={styles.gridSection}>
       <SectionHeader>{title}</SectionHeader>
       <View style={[styles.gridCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         {actions.map((action, idx) => (
           <GridActionItem key={action.title} action={action} theme={theme} idx={idx} total={actions.length} />
         ))}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -110,7 +109,7 @@ function HeroBanner({ theme, activeStudents, todayRevenue }: { theme: any; activ
   const router = useRouter();
 
   return (
-    <Animated.View entering={FadeInDown.duration(800)} style={styles.bannerContainer}>
+    <View style={styles.bannerContainer}>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -153,7 +152,7 @@ function HeroBanner({ theme, activeStudents, todayRevenue }: { theme: any; activ
           </View>
         </LinearGradient>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -177,7 +176,7 @@ function MetricCard({
   onPress?: () => void;
 }) {
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(700)} style={styles.metricCardWrapper}>
+    <View style={styles.metricCardWrapper}>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -199,7 +198,7 @@ function MetricCard({
           <Text style={[styles.metricLabel, { color: theme.muted }]}>{label}</Text>
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -251,7 +250,7 @@ function EngagementCarousel({ theme }: { theme: any }) {
         contentContainerStyle={styles.carouselScroll}
       >
         {carouselItems.map((item, idx) => (
-          <Animated.View key={item.title} entering={FadeInDown.delay(600 + idx * 100).duration(800)}>
+          <View key={item.title}>
             <Pressable
               onPress={item.onPress}
               style={({ pressed }) => [
@@ -277,7 +276,7 @@ function EngagementCarousel({ theme }: { theme: any }) {
                 </View>
               </LinearGradient>
             </Pressable>
-          </Animated.View>
+          </View>
         ))}
       </ScrollView>
     </View>
@@ -350,7 +349,7 @@ function DuesAlert({ duesCount, totalDues, theme }: { duesCount: number; totalDu
   if (duesCount === 0) return null;
 
   return (
-    <Animated.View entering={FadeInDown.delay(600).duration(700)}>
+    <View>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -378,7 +377,7 @@ function DuesAlert({ duesCount, totalDues, theme }: { duesCount: number; totalDu
           <Ionicons name="chevron-forward" size={14} color="#fff" />
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -404,7 +403,7 @@ function ShareCard({ theme }: { theme: any }) {
   const borderColor = isDark ? '#312E81' : '#C7D2FE';
 
   return (
-    <Animated.View entering={FadeInDown.delay(800).duration(800)}>
+    <View>
       <Pressable onPress={onShare} style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }] }]}>
         <LinearGradient
           colors={cardColors as [string, string]}
@@ -422,7 +421,7 @@ function ShareCard({ theme }: { theme: any }) {
           </View>
         </LinearGradient>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -444,7 +443,7 @@ function RatingCard({ theme }: { theme: any }) {
   const borderColor = isDark ? '#431407' : '#FED7AA';
 
   return (
-    <Animated.View entering={FadeInDown.delay(700).duration(800)}>
+    <View>
       <LinearGradient
         colors={cardColors as [string, string]}
         style={[styles.ratingCard, { borderColor }]}
@@ -476,7 +475,7 @@ function RatingCard({ theme }: { theme: any }) {
         </View>
         <View style={[styles.ratingDecorCircle, isDark && { backgroundColor: 'rgba(245, 158, 11, 0.05)' }]} />
       </LinearGradient>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -496,7 +495,7 @@ function MadeInIndiaFooter({ theme }: { theme: any }) {
 
 function TrustBanner({ theme }: { theme: any }) {
   return (
-    <Animated.View entering={FadeInDown.delay(700).duration(700)} style={styles.trustSection}>
+    <View style={styles.trustSection}>
       <LinearGradient
         colors={[theme.primary + '08', theme.primary + '02']}
         start={{ x: 0, y: 0 }}
@@ -575,7 +574,7 @@ function TrustBanner({ theme }: { theme: any }) {
           </Pressable>
         </View>
       </LinearGradient>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -591,7 +590,7 @@ function SupportBanner({ theme }: { theme: any }) {
   };
 
   return (
-    <Animated.View entering={FadeInDown.delay(800).duration(700)}>
+    <View>
       <View style={[styles.supportCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.supportHeader}>
           <View style={[styles.supportIcon, { backgroundColor: '#25D366' + '15' }]}>
@@ -629,7 +628,7 @@ function SupportBanner({ theme }: { theme: any }) {
           </Pressable>
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -647,7 +646,7 @@ function TipOfTheDay({ theme }: { theme: any }) {
   const todayTip = DAILY_TIPS[new Date().getDay()];
 
   return (
-    <Animated.View entering={FadeInDown.delay(450).duration(700)}>
+    <View>
       <View style={[styles.tipCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={[styles.tipIcon, { backgroundColor: theme.primary + '12' }]}>
           <Ionicons name="bulb-outline" size={20} color={theme.primary} />
@@ -661,7 +660,7 @@ function TipOfTheDay({ theme }: { theme: any }) {
           <Text style={[styles.tipText, { color: theme.text }]}>{todayTip.tip}</Text>
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -803,7 +802,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
-    elevation: 8,
   },
   bannerContent: {
     flexDirection: 'row',
@@ -978,7 +976,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 1,
   },
   metricIcon: {
     width: 42,
@@ -1071,7 +1068,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
   },
   occupancyHeader: {
     flexDirection: 'row',
@@ -1158,7 +1154,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 4,
   },
   carouselGradient: {
     padding: 18,
@@ -1207,7 +1202,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
   },
   trustHeader: {
     flexDirection: 'row',

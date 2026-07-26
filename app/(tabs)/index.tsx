@@ -3,7 +3,6 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensio
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInUp, FadeInDown, Layout, SlideInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -46,8 +45,7 @@ function SubscriptionBanner({ theme }: { theme: any }) {
   if (!isExpiringSoon) return null;
 
   return (
-    <Animated.View
-      entering={FadeInDown.springify().damping(15)}
+    <View
       style={styles.bannerContainer}
     >
       <Pressable
@@ -81,7 +79,7 @@ function SubscriptionBanner({ theme }: { theme: any }) {
           <Ionicons name="chevron-forward" size={12} color={theme.danger} />
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -90,7 +88,7 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
   const router = useRouter();
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 100 + 400).duration(600)}>
+    <View>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -169,7 +167,7 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
           <Ionicons name="arrow-forward-circle" size={24} color={theme.primary + '40'} />
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -178,7 +176,7 @@ function PaymentCard({ payment, theme, index }: { payment: any; theme: any; inde
   const router = useRouter();
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 100 + 400).duration(600)}>
+    <View>
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -231,7 +229,7 @@ function PaymentCard({ payment, theme, index }: { payment: any; theme: any; inde
           </View>
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -273,12 +271,12 @@ function TrialTimer({ theme }: { theme: any }) {
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
   return (
-    <Animated.View entering={FadeInDown.duration(600)} style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
+    <View style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
       <Ionicons name="time" size={12} color="#fff" style={{ marginRight: 4 }} />
       <Text style={styles.trialText}>
         {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </Text>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -288,8 +286,7 @@ function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () 
   const progress = 0.5;
 
   return (
-    <Animated.View
-      entering={FadeInDown.delay(200)}
+    <View
       style={[
         styles.day1Goal,
         {
@@ -327,7 +324,7 @@ function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () 
             <Text style={[styles.progressText, { color: theme.muted }]}>1/2 Steps</Text>
           </View>
           <View style={[styles.progressBarBg, { backgroundColor: theme.surfaceAlt }]}>
-            <Animated.View
+            <View
               style={[
                 styles.progressBarFill,
                 { backgroundColor: theme.primary, width: '50%' }
@@ -368,7 +365,7 @@ function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () 
         <Text style={styles.goalBtnText}>Add Student Now</Text>
         <Ionicons name="arrow-forward" size={18} color="#fff" />
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -593,7 +590,7 @@ export default function DashboardScreen() {
         >
           {/* Premium Header */}
           <View style={styles.header}>
-            <Animated.View entering={FadeInDown.duration(800)}>
+            <View>
               <View style={styles.greetingRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.greetingText, { color: theme.muted }]}>{getGreeting()}</Text>
@@ -639,7 +636,7 @@ export default function DashboardScreen() {
               <View style={{ marginTop: 14 }}>
                  <DashboardModeToggle theme={theme} />
               </View>
-            </Animated.View>
+            </View>
           </View>
 
 
@@ -671,9 +668,8 @@ export default function DashboardScreen() {
                 <SectionHeader>Overview</SectionHeader>
                 <View style={styles.metricsGrid}>
                   {metrics.map((item, index) => (
-                    <Animated.View
-                      key={item.label} 
-                      entering={FadeInDown.delay(index * 100 + 400).duration(800)}
+                    <View
+                      key={item.label}
                       style={styles.metricCardWrapper}
                     >
                       <Pressable
@@ -703,7 +699,7 @@ export default function DashboardScreen() {
                           </View>
                         </LinearGradient>
                       </Pressable>
-                    </Animated.View>
+                    </View>
                   ))}
                 </View>
               </View>
@@ -795,8 +791,7 @@ export default function DashboardScreen() {
         />
 
         {layoutMode !== 'classic' && (
-          <Animated.View
-            entering={FadeInDown.delay(1000).duration(800)}
+          <View
             style={[styles.fabContainer, { bottom: 24 + insets.bottom }]}
           >
             <Pressable
@@ -815,7 +810,7 @@ export default function DashboardScreen() {
               </View>
               <Text style={styles.fabText}>New Member</Text>
             </Pressable>
-          </Animated.View>
+          </View>
         )}
       </View>
     </SafeScreen>

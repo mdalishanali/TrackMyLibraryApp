@@ -715,7 +715,6 @@ export default function StudentDetailScreen() {
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.25,
                     shadowRadius: 10,
-                    elevation: 4,
                   }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
                 >
                   {isReactivating ? (

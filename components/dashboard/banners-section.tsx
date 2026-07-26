@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { spacing } from '@/constants/design';
 
@@ -30,7 +29,7 @@ export function BannersSection({ theme }: BannersSectionProps) {
   return (
     <View style={styles.bannerSection}>
       {/* Referral Banner */}
-      <Animated.View entering={FadeInDown.delay(600).duration(800)}>
+      <View>
         <Pressable
           onPress={handleReferralClick}
           style={({ pressed }) => [
@@ -54,10 +53,10 @@ export function BannersSection({ theme }: BannersSectionProps) {
           </View>
           <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
         </Pressable>
-      </Animated.View>
+      </View>
 
       {/* WhatsApp Community Banner */}
-      <Animated.View entering={FadeInDown.delay(800).duration(800)}>
+      <View>
         <Pressable
           onPress={handleWhatsAppJoin}
           style={({ pressed }) => [
@@ -81,7 +80,7 @@ export function BannersSection({ theme }: BannersSectionProps) {
           </View>
           <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
         </Pressable>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -102,7 +101,6 @@ const styles = StyleSheet.create({
     gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
   },
   bannerGradient: {
     ...StyleSheet.absoluteFillObject,
