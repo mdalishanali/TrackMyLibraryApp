@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 
 import { AppCard } from '@/components/ui/app-card';
 import { radius, spacing } from '@/constants/design';
@@ -16,9 +15,7 @@ import {
 
 const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onSmsRemind, onAvatarPress, index = 0 }: any) => {
   return (
-    <Animated.View
-      entering={FadeInDown.delay(index * 50).duration(600)}
-      layout={Layout.springify()}
+    <View
     >
       <AppCard style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Pressable
@@ -65,7 +62,7 @@ const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onR
           </View>
         </Pressable>
       </AppCard>
-    </Animated.View>
+    </View>
   );
 });
 

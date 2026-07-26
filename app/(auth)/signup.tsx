@@ -116,12 +116,21 @@ export default function Signup() {
   const onSubmit = async (values: SignupFormValues) => {
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await signupMutation.mutateAsync({
-        ...values,
-        contactNumber: toIndianPhoneE164(values.contactNumber),
-        platform: Platform.OS,
-      });
-      router.replace('/onboarding/setup');
+      await signupMutation.mutateAsync(
+        {
+          ...values,
+          contactNumber: toIndianPhoneE164(values.contactNumber),
+          platform: Platform.OS,
+        },
+        {
+          // Leave the (auth) group before the token is stored. Once it is, this
+          // layout redirects to (tabs), which would race a replace issued after
+          // the await and mount the first wizard step twice.
+          onSuccess: () => {
+            router.replace('/onboarding/sections');
+          },
+        }
+      );
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Signup failed', getErrorMessage(error));

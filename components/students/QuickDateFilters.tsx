@@ -2,7 +2,6 @@ import { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { spacing } from '@/constants/design';
 
@@ -36,7 +35,7 @@ const QuickDateFilters = memo(({
   onClear 
 }: QuickDateFiltersProps) => {
   return (
-    <Animated.View entering={FadeInDown} style={[styles.daysFilterContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+    <View style={[styles.daysFilterContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
       <View style={[styles.px_xl, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Ionicons name="sparkles" size={12} color={theme.primary} />
@@ -176,7 +175,7 @@ const QuickDateFilters = memo(({
           </TouchableOpacity>
         ))}
       </ScrollView>
-    </Animated.View>
+    </View>
   );
 });
 
