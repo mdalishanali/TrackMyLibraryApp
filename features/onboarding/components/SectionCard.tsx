@@ -1,6 +1,5 @@
 import { StyleSheet, Text, TextInput, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { radius, spacing, typography } from '@/constants/design';
@@ -62,10 +61,7 @@ export function SectionCard({
   };
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(250)}
-      exiting={FadeOut.duration(180)}
-      layout={Layout.springify().damping(18)}
+    <View
       style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
     >
       <View style={styles.headerRow}>
@@ -170,14 +166,14 @@ export function SectionCard({
       </View>
 
       {hasSeats ? (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.totalRow}>
+        <View style={styles.totalRow}>
           <Ionicons name="grid-outline" size={13} color={theme.primary} />
           <Text style={[styles.totalText, { color: theme.primary }]}>
             {planned.seatCount} {planned.seatCount === 1 ? 'seat' : 'seats'}
           </Text>
-        </Animated.View>
+        </View>
       ) : null}
-    </Animated.View>
+    </View>
   );
 }
 

@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { radius, spacing, typography } from '@/constants/design';
 import { useTheme } from '@/hooks/use-theme';
@@ -13,14 +12,10 @@ type Props = {
   onBack?: () => void;
 };
 
-const PROGRESS_DURATION_MS = 400;
-
 export function WizardHeader({ step, title, subtitle, onBack }: Props) {
   const theme = useTheme();
 
-  const progressStyle = useAnimatedStyle(() => ({
-    width: withTiming(`${(step / TOTAL_STEPS) * 100}%`, { duration: PROGRESS_DURATION_MS }),
-  }));
+  const progressWidth = `${(step / TOTAL_STEPS) * 100}%` as const;
 
   return (
     <View style={styles.container}>
@@ -49,15 +44,15 @@ export function WizardHeader({ step, title, subtitle, onBack }: Props) {
       </View>
 
       <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
-        <Animated.View
-          style={[styles.progressFill, { backgroundColor: theme.primary }, progressStyle]}
+        <View
+          style={[styles.progressFill, { backgroundColor: theme.primary, width: progressWidth }]}
         />
       </View>
 
-      <Animated.View entering={FadeInDown.duration(400).springify()}>
+      <View>
         <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>{subtitle}</Text>
-      </Animated.View>
+      </View>
     </View>
   );
 }

@@ -1,7 +1,6 @@
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, Layout } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
@@ -106,7 +105,7 @@ export default function SectionsStep() {
           ))}
 
           {canAddSection ? (
-            <Animated.View layout={Layout.springify().damping(18)}>
+            <View>
               <Pressable
                 onPress={handleAddSection}
                 accessibilityRole="button"
@@ -122,14 +121,14 @@ export default function SectionsStep() {
                   Add another section
                 </Text>
               </Pressable>
-            </Animated.View>
+            </View>
           ) : (
-            <Animated.View entering={FadeIn.duration(200)} style={styles.capNotice}>
+            <View style={styles.capNotice}>
               <Ionicons name="information-circle-outline" size={15} color={theme.muted} />
               <Text style={[styles.capNoticeText, { color: theme.muted }]}>
                 You can add more sections later from the Seats tab.
               </Text>
-            </Animated.View>
+            </View>
           )}
         </ScrollView>
 
@@ -145,12 +144,11 @@ export default function SectionsStep() {
           </View>
 
           {sectionsError ? (
-            <Animated.Text
-              entering={FadeIn.duration(200)}
+            <Text
               style={[styles.errorText, { color: theme.warning }]}
             >
               {sectionsError}
-            </Animated.Text>
+            </Text>
           ) : null}
 
           <AppButton onPress={handleContinue} disabled={!isSectionsValid} fullWidth icon="arrow-forward">
