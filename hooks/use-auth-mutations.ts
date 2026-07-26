@@ -99,6 +99,10 @@ export const useSignupMutation = () => {
       return data;
     },
     onSuccess: ({ user, token }) => {
+      // The caller navigates to the wizard before this runs. Storing the token
+      // makes the (auth) layout redirect to (tabs), so the navigation has to
+      // already be off the (auth) group or the two race and the first wizard
+      // step mounts twice.
       setAuth({ user, token });
       posthog?.capture('user_signed_up', {
         user_id: user.id || user._id || 'unknown',
