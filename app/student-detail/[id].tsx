@@ -24,6 +24,7 @@ import { useCreatePayment, useDeletePayment as useDeletePaymentMutation, useInfi
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { useTheme } from '@/hooks/use-theme';
 import { useSendTemplate, useWhatsappTemplates, useSendPaymentReceipt, useAutomationSettings } from '@/hooks/use-whatsapp';
+import { useSaveContacts } from '@/hooks/use-save-contacts';
 import { useShiftsQuery } from '@/hooks/use-shifts';
 import { TemplateSelectorModal } from '@/components/whatsapp/TemplateSelectorModal';
 import { useAuth } from '@/hooks/use-auth';
@@ -67,6 +68,7 @@ export default function StudentDetailScreen() {
   const [reminderChannel, setReminderChannel] = useState<'whatsapp' | 'sms' | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const sendReceiptMutation = useSendPaymentReceipt();
+  const { saveOne, syncOne: syncContact, isSaving: isSavingContact } = useSaveContacts();
   const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
 
 
@@ -219,6 +221,14 @@ export default function StudentDetailScreen() {
 
       setIsEditStudentOpen(false);
       showToast('Student updated', 'success');
+
+      // Keep an already-saved contact in step, so a re-seated student does not keep
+      // showing their old seat on incoming calls. Refetched first because the payload
+      // carries seat and shift IDs, while a contact needs their resolved labels.
+      // Not awaited — the edit is already saved and confirmed to the owner.
+      void studentQuery.refetch().then(({ data }) => {
+        if (data) syncContact(data);
+      });
     } catch (error: any) {
       console.error('handleUpdateStudent (Detail) FAILED:', error);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update student';
@@ -705,7 +715,6 @@ export default function StudentDetailScreen() {
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.25,
                     shadowRadius: 10,
-                    elevation: 4,
                   }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
                 >
                   {isReactivating ? (
@@ -721,7 +730,14 @@ export default function StudentDetailScreen() {
           <View>
             <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 4 }]}>Personal Information</Text>
             <View style={[styles.detailsContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <DetailRow icon="call" label="Phone" value={student.number} theme={theme} />
+              <DetailRow
+                icon="call"
+                label="Phone"
+                value={student.number}
+                theme={theme}
+                onSaveContact={() => saveOne(student)}
+                isSavingContact={isSavingContact}
+              />
               {student.fatherName && <DetailRow icon="people" label="Father Name" value={student.fatherName} theme={theme} />}
               {student.address && <DetailRow icon="home" label="Address" value={student.address} theme={theme} />}
               {student.aadhaarNumber && <DetailRow icon="card" label="Aadhaar Number" value={student.aadhaarNumber} theme={theme} />}
@@ -980,7 +996,7 @@ export default function StudentDetailScreen() {
   );
 }
 
-function DetailRow({ icon, label, value, theme, last }: any) {
+function DetailRow({ icon, label, value, theme, last, onSaveContact, isSavingContact }: any) {
   const isPhone = label === 'Phone';
   const isWorkspace = label === 'Workspace';
 
@@ -990,43 +1006,62 @@ function DetailRow({ icon, label, value, theme, last }: any) {
     showToast('Copied to clipboard');
   };
 
+  // Phone actions live on their OWN row: four inline buttons squeezed the number
+  // into three wrapped lines ("7388 43714 3"), and a phone number must stay readable.
+  const phoneActions = [
+    { key: 'copy', icon: 'copy-outline', label: 'Copy', tint: theme.muted, onPress: () => handleCopy(value) },
+    { key: 'whatsapp', icon: 'logo-whatsapp', label: 'Chat', tint: '#25D366', onPress: () => Linking.openURL(`https://wa.me/91${value}`) },
+    { key: 'call', icon: 'call', label: 'Call', tint: theme.primary, onPress: () => Linking.openURL(`tel:${value}`) },
+    ...(onSaveContact
+      ? [{
+        key: 'save',
+        icon: isSavingContact ? 'hourglass-outline' : 'person-add',
+        label: isSavingContact ? 'Saving…' : 'Save',
+        tint: theme.info,
+        onPress: onSaveContact,
+      }]
+      : []),
+  ];
+
   const content = (
     <View style={[
       styles.detailRow,
+      isPhone && value && styles.detailRowStacked,
       !last && { borderBottomWidth: 1.5, borderBottomColor: theme.border + '30' }
     ]}>
-      <View style={[styles.detailIcon, { backgroundColor: theme.primary + '08' }]}>
-        <Ionicons name={icon} size={20} color={theme.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.detailLabel, { color: theme.muted }]}>{label}</Text>
-        <Text style={[styles.detailValue, { color: isPhone ? theme.primary : theme.text }]}>{value || '—'}</Text>
-      </View>
-      {isPhone && value && (
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity
-            onPress={() => handleCopy(value)}
-            style={[styles.smallActionBtn, { backgroundColor: theme.surfaceAlt }]}
-          >
-            <Ionicons name="copy-outline" size={16} color={theme.muted} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => Linking.openURL(`https://wa.me/91${value}`)}
-            style={[styles.smallActionBtn, { backgroundColor: '#25D366' + '15' }]}
-          >
-            <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => Linking.openURL(`tel:${value}`)}
-            style={[styles.smallActionBtn, { backgroundColor: theme.primary + '15' }]}
-          >
-            <Ionicons name="call" size={18} color={theme.primary} />
-          </TouchableOpacity>
+      <View style={styles.detailRowMain}>
+        <View style={[styles.detailIcon, { backgroundColor: theme.primary + '08' }]}>
+          <Ionicons name={icon} size={20} color={theme.primary} />
         </View>
-      )}
-      {isWorkspace && value !== 'Unallocated' && (
-        <View style={[styles.smallActionBtn, { backgroundColor: theme.primary + '10' }]}>
-          <Ionicons name="map-outline" size={18} color={theme.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.detailLabel, { color: theme.muted }]}>{label}</Text>
+          <Text style={[styles.detailValue, { color: isPhone ? theme.primary : theme.text }]}>{value || '—'}</Text>
+        </View>
+        {isWorkspace && value !== 'Unallocated' && (
+          <View style={[styles.smallActionBtn, { backgroundColor: theme.primary + '10' }]}>
+            <Ionicons name="map-outline" size={18} color={theme.primary} />
+          </View>
+        )}
+      </View>
+
+      {isPhone && value && (
+        <View style={styles.phoneActions}>
+          {phoneActions.map((action) => (
+            <TouchableOpacity
+              key={action.key}
+              onPress={action.onPress}
+              disabled={isSavingContact}
+              style={[
+                styles.phoneActionBtn,
+                { backgroundColor: action.tint + '12', borderColor: action.tint + '25' },
+              ]}
+            >
+              <Ionicons name={action.icon as any} size={17} color={action.tint} />
+              <Text style={[styles.phoneActionText, { color: action.tint }]} numberOfLines={1}>
+                {action.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
     </View>
@@ -1273,6 +1308,37 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // The phone row stacks: value above, actions below. Keeps a 10-digit number on one
+  // line instead of wrapping it around inline buttons.
+  detailRowStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 12,
+  },
+  detailRowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  // Full width, not indented under the value: four labelled buttons need every pixel
+  // (~63px each on a 375pt screen), and indenting by the icon column truncated them.
+  phoneActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  phoneActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 8,
+    borderRadius: 11,
+    borderWidth: 1,
+  },
+  phoneActionText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   countBadge: {
     paddingHorizontal: 10,

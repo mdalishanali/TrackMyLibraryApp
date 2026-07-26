@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
     gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
   },
   bannerGradient: {
     ...StyleSheet.absoluteFillObject,

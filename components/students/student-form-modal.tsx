@@ -22,11 +22,27 @@ import { AppCard } from '@/components/ui/app-card';
 import { AppBadge } from '@/components/ui/app-badge';
 import { radius, spacing, themeFor, typography } from '@/constants/design';
 import { PREPARATION_OPTIONS } from '@/constants/preparation-options';
+import { SaveContactToggle } from '@/components/contacts/save-contact-toggle';
+import { useSaveContactPreference } from '@/hooks/use-save-contact-preference';
+import { useSaveContacts } from '@/hooks/use-save-contacts';
+import { isValidIndianPhoneNumber } from '@/lib/indian-phone';
+import { Student } from '@/types/api';
 import { formatDate } from '@/utils/format';
+
+/** Indian mobile numbers are exactly 10 digits; the field refuses an 11th. */
+const INDIAN_MOBILE_LENGTH = 10;
+
+/** Stripped from pasted numbers before the length cap applies. */
+const INDIA_DIAL_PREFIX = '91';
 
 const studentSchema = z.object({
     name: z.string().min(1, 'Name is required'),
-    number: z.string().min(8, 'Enter a valid phone'),
+    // min(8) let 11+ digit numbers through. Reuses the same validator as the auth
+    // screens so a number accepted here is one WhatsApp and the phonebook can use.
+    number: z
+        .string()
+        .min(1, 'Phone number is required')
+        .refine(isValidIndianPhoneNumber, 'Enter a valid 10-digit mobile number'),
     joiningDate: z.string().min(1, 'Joining date is required'),
     fatherName: z.string().optional(),
     address: z.string().optional(),
@@ -80,6 +96,14 @@ export function StudentFormModal({
     title = 'Add Student',
 }: Props) {
     const insets = useSafeAreaInsets();
+    const contactPreference = useSaveContactPreference();
+    const { saveInBackground: saveContact } = useSaveContacts();
+
+    // An edit always arrives with the student's number prefilled; a new admission never
+    // does. Derived rather than added as a prop, which would mean touching all four
+    // call sites for a signal already present in the data.
+    const isEditing = Boolean(initialValues.number);
+
     const {
         control,
         handleSubmit,
@@ -241,8 +265,15 @@ export function StudentFormModal({
                 try {
                     setUploadProgress(1);
                     await onSubmit(vals, (p) => setUploadProgress(p));
+
+                    // Deliberately NOT awaited: the admission is already saved, and a
+                    // phonebook write plus its permission prompt would otherwise hold the
+                    // form open for seconds. Failures surface as a toast from the hook.
+                    if (!isEditing && contactPreference.isEnabled) {
+                        void saveContact(toContactStudent(vals, seats, shiftOptions));
+                    }
                     // Only reset if we are NOT about to unmount (parent will handle state)
-                    // But if parent keeps it, we reset. 
+                    // But if parent keeps it, we reset.
                     // To be safe and prevent "jump back" if closed, we can skip reset here
                     // as reset(initialValues) might be triggering a re-render to step 0 before close.
                 } catch (error: any) {
@@ -363,7 +394,7 @@ export function StudentFormModal({
 
                                         <AppCard style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                                             <FormField label="Full Name" name="name" control={control} errors={errors} theme={theme} placeholder="Enter member's full name" required />
-                                            <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" required />
+                                            <FormField label="Phone Number" name="number" control={control} errors={errors} theme={theme} keyboardType="phone-pad" placeholder="98765 43210" required digitsOnly maxLength={INDIAN_MOBILE_LENGTH} />
 
                                             <View style={styles.formGroup}>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -644,6 +675,17 @@ export function StudentFormModal({
                                                 </View>
                                             )}
                                         </AppCard>
+
+                                        {/* Only offered for new students: editing already has
+                                            a contact, and the student-detail screen owns
+                                            re-saving it. */}
+                                        {!isEditing && (
+                                            <SaveContactToggle
+                                                isEnabled={contactPreference.isEnabled}
+                                                onToggle={contactPreference.toggle}
+                                                isPermissionGranted={contactPreference.isPermissionGranted}
+                                            />
+                                        )}
                                     </View>
                                 )}
                             </Animated.View>
@@ -732,8 +774,29 @@ export function StudentFormModal({
     );
 }
 
-function FormField({ label, name, control, errors, theme, keyboardType = 'default', placeholder, multiline, required }: any) {
+function FormField({ label, name, control, errors, theme, keyboardType = 'default', placeholder, multiline, required, maxLength, digitsOnly }: any) {
     const hasError = Boolean(errors[name]);
+
+    // Strips non-digits and enforces the cap on the way in, so an over-long number
+    // never reaches the form state. Validation still runs — this only stops the field
+    // from holding something it can never accept.
+    const sanitize = (text: string) => {
+        if (!digitsOnly) return text;
+
+        let digits = text.replace(/\D/g, '');
+
+        // Drop a pasted country code or trunk prefix BEFORE truncating. Otherwise
+        // "+91 98765 43210" would be cut to "9198765432" — ten digits that pass the
+        // pattern while being the wrong number.
+        if (digits.length > INDIAN_MOBILE_LENGTH && digits.startsWith(INDIA_DIAL_PREFIX)) {
+            digits = digits.slice(INDIA_DIAL_PREFIX.length);
+        } else if (digits.length > INDIAN_MOBILE_LENGTH && digits.startsWith('0')) {
+            digits = digits.slice(1);
+        }
+
+        return maxLength ? digits.slice(0, maxLength) : digits;
+    };
+
     return (
         <View style={styles.formGroup}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -746,11 +809,12 @@ function FormField({ label, name, control, errors, theme, keyboardType = 'defaul
                 render={({ field: { onChange, value } }) => (
                     <TextInput
                         value={value}
-                        onChangeText={onChange}
+                        onChangeText={(text) => onChange(sanitize(text))}
                         placeholder={placeholder}
                         placeholderTextColor={theme.muted}
                         keyboardType={keyboardType}
                         multiline={multiline}
+                        maxLength={maxLength}
                         style={[
                             styles.input,
                             { 
@@ -767,6 +831,54 @@ function FormField({ label, name, control, errors, theme, keyboardType = 'defaul
             {hasError && <Text style={styles.errorText}>{String(errors[name].message)}</Text>}
         </View>
     );
+}
+
+/**
+ * Map submitted form values onto the shape the contact builder reads.
+ *
+ * The form holds ids where a contact needs labels — `seat` is a seat id and `shift` is
+ * an array of shift ids — so both are resolved from the options already loaded for the
+ * pickers. Cheaper and more accurate than re-fetching the student after creation.
+ *
+ * @param values  - The submitted form values.
+ * @param seats   - Seat options, for resolving the seat number and floor.
+ * @param shifts  - Shift options, for resolving shift names.
+ */
+function toContactStudent(
+    // Structurally typed rather than StudentFormValues: react-hook-form hands the
+    // submit callback a TFieldValues that does not narrow here — a pre-existing
+    // inference gap in this file, not something this mapper should assert around.
+    values: Partial<StudentFormValues>,
+    seats: SeatOption[],
+    shifts: { label: string; value: string }[]
+) {
+    const seat = seats.find((option) => option._id === values.seat);
+    const shiftNames = (values.shift ?? [])
+        .map((id) => shifts.find((option) => option.value === id)?.label)
+        .filter((label): label is string => Boolean(label));
+
+    return {
+        // The student was just created, so no server id is available yet — and the
+        // contact builder only reads it for logging.
+        _id: '',
+        name: values.name,
+        number: values.number,
+        fatherName: values.fatherName,
+        address: values.address,
+        preparationFor: values.preparationFor,
+        gender: values.gender,
+        notes: values.notes,
+        joiningDate: values.joiningDate,
+        fees: values.fees ? Number(values.fees) : undefined,
+        status: 'Active',
+        seatNumber: seat ? Number(seat.seatNumber) : undefined,
+        floorNumber: seat?.floor,
+        shiftNames,
+        time:
+            values.startTime && values.endTime
+                ? [{ start: values.startTime, end: values.endTime }]
+                : undefined,
+    } as unknown as Student;
 }
 
 function ReviewItem({ label, value, theme }: any) {

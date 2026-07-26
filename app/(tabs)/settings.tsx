@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Linking } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,11 @@ import { getErrorMessage } from '@/hooks/use-auth-mutations';
 import { showToast } from '@/lib/toast';
 import { usePostHog } from 'posthog-react-native';
 import { useScreenView } from '@/hooks/use-screen-view';
+import { useExportStudents } from '@/hooks/use-export-students';
+import { StudentAudience } from '@/constants/student-export';
+import { ExportOptionsModal } from '@/components/students/export-options-modal';
 import { BulkImportModal } from '@/components/students/bulk-import-modal';
+import { SaveContactsModal } from '@/components/contacts/save-contacts-modal';
 
 const { width } = Dimensions.get('window');
 
@@ -43,9 +47,26 @@ export default function SettingsScreen() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showLeaveSheet, setShowLeaveSheet] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showSaveContacts, setShowSaveContacts] = useState(false);
   
   // Track screen view
   useScreenView('Settings');
+
+  const { exportStudents, isExporting } = useExportStudents();
+  const [showExportOptions, setShowExportOptions] = useState(false);
+
+  /**
+   * Settings has no filter state, so the sheet opens on the full roster and the
+   * owner narrows it there — this is the "download my data" entry point.
+   */
+  const handleExportConfirm = useCallback(
+    async (options: { status: StudentAudience; columns: string[] }) => {
+      posthog?.capture('students_export_started', { source: 'settings', ...options });
+      setShowExportOptions(false);
+      await exportStudents(options);
+    },
+    [exportStudents, posthog]
+  );
 
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
@@ -293,6 +314,26 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
+              icon="download-outline"
+              label="Export Students"
+              description="Download your student list as a CSV"
+              onPress={() => setShowExportOptions(true)}
+              isBusy={isExporting}
+              themeTint="#0EA5E9"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="people"
+              label="Save Students to Contacts"
+              description="See names on calls, find them in WhatsApp"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowSaveContacts(true);
+              }}
+              themeTint="#25D366"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
               icon="log-out"
               label="Sign Out"
               description="Log out from this device"
@@ -467,6 +508,16 @@ export default function SettingsScreen() {
         visible={showBulkImport}
         onClose={() => setShowBulkImport(false)}
       />
+      <SaveContactsModal
+        visible={showSaveContacts}
+        onClose={() => setShowSaveContacts(false)}
+      />
+      <ExportOptionsModal
+        visible={showExportOptions}
+        onClose={() => setShowExportOptions(false)}
+        onConfirm={handleExportConfirm}
+        isExporting={isExporting}
+      />
     </SafeScreen>
   );
 }
@@ -478,19 +529,23 @@ type ActionRowProps = {
   onPress: () => void;
   themeTint: string;
   destructive?: boolean;
+  /** Shows a spinner and blocks repeat taps while the action is running. */
+  isBusy?: boolean;
 };
 
-function ActionRow({ icon, label, description, onPress, themeTint, destructive }: ActionRowProps) {
+function ActionRow({ icon, label, description, onPress, themeTint, destructive, isBusy }: ActionRowProps) {
   const theme = useTheme();
 
   return (
     <Pressable
+      disabled={isBusy}
       onPress={() => {
         Haptics.impactAsync(destructive ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
       style={({ pressed }) => [
         styles.row,
+        isBusy && { opacity: 0.6 },
         pressed && { backgroundColor: theme.surfaceAlt }
       ]}>
       <View style={[styles.rowIconBox, { backgroundColor: themeTint + '15' }]}>
@@ -500,11 +555,15 @@ function ActionRow({ icon, label, description, onPress, themeTint, destructive }
         <Text style={[styles.rowLabel, { color: destructive ? theme.danger : theme.text }]}>{label}</Text>
         {description && <Text style={[styles.rowDesc, { color: theme.muted }]}>{description}</Text>}
       </View>
-      <Ionicons
-        name="chevron-forward"
-        size={18}
-        color={destructive ? theme.danger + '40' : theme.muted + '40'}
-      />
+      {isBusy ? (
+        <ActivityIndicator size="small" color={themeTint} />
+      ) : (
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={destructive ? theme.danger + '40' : theme.muted + '40'}
+        />
+      )}
     </Pressable>
   );
 }

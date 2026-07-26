@@ -802,7 +802,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
-    elevation: 8,
   },
   bannerContent: {
     flexDirection: 'row',
@@ -977,7 +976,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 1,
   },
   metricIcon: {
     width: 42,
@@ -1070,7 +1068,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
   },
   occupancyHeader: {
     flexDirection: 'row',
@@ -1157,7 +1154,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 4,
   },
   carouselGradient: {
     padding: 18,
@@ -1206,7 +1202,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
   },
   trustHeader: {
     flexDirection: 'row',

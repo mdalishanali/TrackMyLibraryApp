@@ -135,7 +135,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
-    elevation: 10,
     alignSelf: 'center',
     marginVertical: 10,
   },
@@ -213,7 +212,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
   },
   avatar: {
     width: '100%',

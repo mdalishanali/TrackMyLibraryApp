@@ -13,10 +13,12 @@ import {
   ValidityInfo,
 } from './StudentSummary';
 
-const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onSmsRemind, onAvatarPress, index = 0 }: any) => {
+// `index` is accepted but unused: the staggered entrance it drove (index * 50ms) made
+// the seventh card land 350ms late, so the list read as slow. Kept in the signature so
+// call sites need no change.
+const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onRemind, onSmsRemind, onAvatarPress }: any) => {
   return (
-    <View
-    >
+    <View>
       <AppCard style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Pressable
           onPress={onView ? () => onView(student._id) : undefined}
