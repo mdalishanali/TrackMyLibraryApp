@@ -1,7 +1,6 @@
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { usePostHog } from 'posthog-react-native';
 
 import { AppBadge } from '@/components/ui/app-badge';
@@ -167,8 +166,7 @@ export function StudentMeta({ student, theme }: { student: Student; theme: Theme
 
 export function PaymentSummary({ student, theme }: { student: Student; theme: Theme }) {
   return (
-    <Animated.View
-      entering={FadeInDown.delay(400)}
+    <View
       style={[styles.paymentBox, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
     >
       <View style={styles.paymentHeader}>
@@ -208,7 +206,7 @@ export function PaymentSummary({ student, theme }: { student: Student; theme: Th
           </View>
         )}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 

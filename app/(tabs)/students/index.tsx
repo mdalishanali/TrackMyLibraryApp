@@ -415,7 +415,9 @@ export default function StudentsScreen() {
         isLoading={studentsQuery.isFetching && students.length === 0}
       />
 
-      <View style={styles.fabContainer}>
+      <View
+        style={styles.fabContainer}
+      >
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={openCreateForm}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -241,6 +241,27 @@ function getGreeting() {
   return 'Good Evening';
 }
 
+const MS_PER_SECOND = 1000;
+const MS_PER_MINUTE = 60 * MS_PER_SECOND;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
+/**
+ * Trial countdowns can span many days, where a raw HH:MM:SS clock reads as a
+ * meaningless large number (e.g. "163:40:16"). Show the two largest units only.
+ */
+function formatTrialRemaining(diffMs: number) {
+  const days = Math.floor(diffMs / MS_PER_DAY);
+  const hours = Math.floor((diffMs % MS_PER_DAY) / MS_PER_HOUR);
+  const minutes = Math.floor((diffMs % MS_PER_HOUR) / MS_PER_MINUTE);
+  const seconds = Math.floor((diffMs % MS_PER_MINUTE) / MS_PER_SECOND);
+
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  if (minutes > 0) return `${minutes}m ${seconds}s left`;
+  return `${seconds}s left`;
+}
+
 function TrialTimer({ theme }: { theme: any }) {
   const { expiresAt, isTrial } = useSubscription();
 
@@ -266,16 +287,10 @@ function TrialTimer({ theme }: { theme: any }) {
     );
   }
 
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
   return (
     <View style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
       <Ionicons name="time" size={12} color="#fff" style={{ marginRight: 4 }} />
-      <Text style={styles.trialText}>
-        {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-      </Text>
+      <Text style={styles.trialText}>{formatTrialRemaining(diff)}</Text>
     </View>
   );
 }
@@ -515,9 +530,15 @@ export default function DashboardScreen() {
   const isError = dashboardQuery.isError || seatsQuery.isError;
   const isReallyNewUser = !isLoading && !isError && (!seatsQuery.data || seatsQuery.data.filter((f: any) => f.floor !== 0 && f.floor !== '0').length === 0);
 
+  // The dashboard stays mounted while the wizard is open and the user still has
+  // zero floors, so this effect would re-fire and remount the wizard on every
+  // re-render. The ref makes the redirect happen once per dashboard mount.
+  const hasRedirectedToOnboarding = useRef(false);
+
   useEffect(() => {
-    if (isReallyNewUser) {
-      router.replace('/onboarding/setup');
+    if (isReallyNewUser && !hasRedirectedToOnboarding.current) {
+      hasRedirectedToOnboarding.current = true;
+      router.replace('/onboarding/sections');
     }
   }, [isReallyNewUser, router]);
 

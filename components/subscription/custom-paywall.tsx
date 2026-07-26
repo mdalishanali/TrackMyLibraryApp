@@ -43,6 +43,11 @@ const REASON_BANNERS: Record<Exclude<PaywallReason, null>, { title: string; sub:
 const { width, height } = Dimensions.get('window');
 const ILLUSTRATION = require('../../assets/images/subscription_premium_illustration.jpg');
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+// The countdown now shows whole days, so a minute-level refresh is enough to
+// roll the label over without re-rendering the paywall every second.
+const TRIAL_TIMER_REFRESH_MS = 60 * 1000;
+
 // Only features that actually ship in the app are listed here. Each maps to a real
 // screen/hook: students (use-students), WhatsApp (use-whatsapp), QR (qr-code screen),
 // shifts (use-shifts), multi-branch (use-libraries), admins (use-users),
@@ -155,15 +160,19 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
         return;
       }
 
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const daysLeft = Math.ceil(diff / MS_PER_DAY);
+      const dayLabel = daysLeft === 1 ? 'day' : 'days';
+      const endDate = end.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
 
-      setTrialTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      setTrialTimeLeft(`${daysLeft} ${dayLabel} left · ${endDate}`);
     };
 
     updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+    const interval = setInterval(updateTimer, TRIAL_TIMER_REFRESH_MS);
     return () => clearInterval(interval);
   }, [user?.company?.trialEnd]);
 
@@ -351,7 +360,7 @@ export const CustomPaywall: React.FC<CustomPaywallProps> = ({ onClose, onPurchas
               />
               <Ionicons name={trialTimeLeft ? "timer-outline" : "sparkles"} size={16} color={trialTimeLeft ? "#FFF" : "#000"} />
               <Text style={[styles.offerText, trialTimeLeft ? { color: '#FFF' } : {}]}>
-                {trialTimeLeft ? `Trial Expires in: ${trialTimeLeft}` : 'Launch Offer: ₹199/mo'}
+                {trialTimeLeft ? `Trial: ${trialTimeLeft}` : 'Launch Offer: ₹199/mo'}
               </Text>
             </View>
           </Animated.View>
