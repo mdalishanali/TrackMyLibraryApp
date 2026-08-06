@@ -13,6 +13,7 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
 import { ActivityProvider } from '@/providers/activity-provider';
 import { NoInternetScreen } from '@/components/ui/no-internet-screen';
+import { MaintenanceScreen } from '@/components/ui/maintenance-screen';
 import { BugBubble } from '@lokal-dev/react-native-bugbubble';
 import { NetworkProvider, useNetworkStatus } from '@/providers/network-provider';
 
@@ -47,7 +48,19 @@ Sentry.init({
 
 function AppNavigator() {
   const theme = useTheme();
-  const { hasCheckedConnection, isOffline, refreshConnection } = useNetworkStatus();
+  const { hasCheckedConnection, isOffline, isServerUnreachable, refreshConnection } =
+    useNetworkStatus();
+
+  if (hasCheckedConnection && isServerUnreachable) {
+    return (
+      <MaintenanceScreen
+        theme={theme}
+        onRetry={() => {
+          void refreshConnection();
+        }}
+      />
+    );
+  }
 
   if (hasCheckedConnection && isOffline) {
     return (

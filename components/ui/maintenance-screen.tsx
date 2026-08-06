@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { 
   FadeInDown, 
@@ -16,7 +16,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { spacing } from '@/constants/design';
+import { SUPPORT } from '@/constants/config';
+import { openWhatsappWithMessage } from '@/utils/whatsapp';
 import { SafeScreen } from '../layout/safe-screen';
+
+const SUPPORT_PHONE_DISPLAY = `+${SUPPORT.whatsappNumber.slice(0, 2)} ${SUPPORT.whatsappNumber.slice(2)}`;
+const SUPPORT_MESSAGE = "Hey TrackMyLibrary! I'm facing connection issues. Is the server down?";
 
 interface MaintenanceScreenProps {
   theme: any;
@@ -117,7 +122,8 @@ export const MaintenanceScreen = ({ theme, onRetry, isRetrying, error }: Mainten
             
             <Text style={[styles.title, { color: theme.text }]}>Under Maintenance</Text>
             <Text style={[styles.subtitle, { color: theme.muted }]}>
-              We are currently optimizing the server performance to serve you better. We'll be back online in a few minutes.
+              Don&apos;t panic — our team is already working on it. Your data is completely safe.
+              We&apos;ll be back online shortly.
             </Text>
             
             {error && (
@@ -155,10 +161,7 @@ export const MaintenanceScreen = ({ theme, onRetry, isRetrying, error }: Mainten
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                // Encode support message to let the team know the user is experiencing downtime
-                const msg = encodeURIComponent("Hey TrackMyLibrary! I'm facing connection issues. Is the server down?");
-                // Redirect user to WhatsApp support using the primary contact number
-                Linking.openURL(`whatsapp://send?phone=917348335273&text=${msg}`);
+                void openWhatsappWithMessage(SUPPORT.whatsappNumber, SUPPORT_MESSAGE);
               }}
               style={({ pressed }) => [
                 styles.supportButton,
@@ -166,13 +169,15 @@ export const MaintenanceScreen = ({ theme, onRetry, isRetrying, error }: Mainten
               ]}
             >
               <Ionicons name="logo-whatsapp" size={18} color={theme.primary} />
-              <Text style={[styles.supportText, { color: theme.primary }]}>CONTACT SUPPORT</Text>
+              <Text style={[styles.supportText, { color: theme.primary }]}>
+                CONTACT SUPPORT · {SUPPORT_PHONE_DISPLAY}
+              </Text>
             </Pressable>
         </Animated.View>
 
         <View style={styles.footer}>
            <Text style={[styles.footerText, { color: theme.muted + '40' }]}>
-              ERR_CONNECTION_REFUSED_OR_DB_UNHEALTHY
+              Your data is safe · TrackMyLibrary
            </Text>
         </View>
       </View>
