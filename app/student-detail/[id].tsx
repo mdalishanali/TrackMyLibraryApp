@@ -17,6 +17,7 @@ import { AppCard } from '@/components/ui/app-card';
 import { PaymentFormModal, PaymentFormValues } from '@/components/students/payment-form-modal';
 import { FullScreenLoader } from '@/components/ui/fullscreen-loader';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { API_BASE_URL } from '@/constants/config';
 import { spacing } from '@/constants/design';
 import { useDeleteStudent, useUpdateStudent } from '@/hooks/use-students';
 import { useStudentQuery } from '@/hooks/use-student';
@@ -76,8 +77,7 @@ export default function StudentDetailScreen() {
     try {
       setSharingPaymentId(paymentId);
 
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL;
-      const url = `${baseUrl}/public/invoice/${paymentId}`;
+      const url = `${API_BASE_URL}/public/invoice/${paymentId}`;
 
       const fileUri = `${FileSystem.cacheDirectory}invoice_${paymentId}.pdf`;
       const downloadResumable = FileSystem.createDownloadResumable(url, fileUri);
