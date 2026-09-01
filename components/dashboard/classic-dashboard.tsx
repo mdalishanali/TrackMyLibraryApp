@@ -696,6 +696,7 @@ export function ClassicDashboard({
 
   const quickActions: GradientAction[] = [
     { title: 'Add Student', subtitle: 'New admission', icon: 'person-add', gradient: ['#10b981', '#059669'], onPress: onAddStudent },
+    { title: 'Send Reminders', subtitle: duesCount > 0 ? `${duesCount} students due` : 'WhatsApp dues', icon: 'logo-whatsapp', gradient: ['#25D366', '#128C7E'], onPress: () => router.push('/whatsapp-student-select') },
     { title: 'Log Expense', subtitle: 'Track costs', icon: 'receipt', gradient: ['#f59e0b', '#d97706'], onPress: onAddExpense },
     // { title: 'Record Payment', subtitle: 'Collect fees', icon: 'wallet', gradient: ['#8b5cf6', '#7c3aed'], onPress: () => router.push('/payments') },
     { title: 'View Reports', subtitle: 'Deep insights', icon: 'bar-chart', gradient: ['#3b82f6', '#2563eb'], onPress: () => router.push('/analytics') },
