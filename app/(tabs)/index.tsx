@@ -23,6 +23,7 @@ import { BannersSection } from '@/components/dashboard/banners-section';
 import { ClassicDashboard } from '@/components/dashboard/classic-dashboard';
 import { useSeatsQuery } from '@/hooks/use-seats';
 import { StudentFormModal, StudentFormValues } from '@/components/students/student-form-modal';
+import { StudentNotes } from '@/components/students/StudentSummary';
 import { useCreateStudent } from '@/hooks/use-students';
 import { useShiftsQuery } from '@/hooks/use-shifts';
 import { transformFormToPayload } from '@/utils/student-transform';
@@ -149,6 +150,8 @@ function StudentCard({ student, theme, index }: { student: any; theme: any; inde
             </Text>
           </View>
         </View>
+
+        <StudentNotes student={student} theme={theme} />
 
         <View style={[styles.studentMeta, { borderTopColor: theme.border + '50' }]}>
           <View style={styles.metaItem}>
