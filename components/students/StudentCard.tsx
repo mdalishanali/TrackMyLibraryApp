@@ -9,6 +9,7 @@ import {
   StatusBadges,
   StudentHeader,
   StudentMeta,
+  StudentNotes,
   TimeSlots,
   ValidityInfo,
 } from './StudentSummary';
@@ -33,6 +34,8 @@ const StudentCard = memo(({ student, theme, onView, onEdit, onDelete, onPay, onR
               theme={theme}
               onAvatarPress={onAvatarPress}
             />
+
+            <StudentNotes student={student} theme={theme} />
 
             <View style={styles.divider} />
 

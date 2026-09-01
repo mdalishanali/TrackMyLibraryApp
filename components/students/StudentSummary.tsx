@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +36,7 @@ type Student = {
   aadhaarNumber?: string;
   address?: string;
   fatherName?: string;
+  notes?: string;
   lastPayment?: {
     paymentDate?: string;
     startDate?: string;
@@ -76,6 +78,7 @@ export function StudentHeader({
 }) {
   const isInactive = student.status === 'Inactive';
   const hasDues = typeof student.dueAmount === 'number' && student.dueAmount > 0;
+  const hasNotes = !!student.notes?.trim();
 
   return (
     <View style={styles.headerRow}>
@@ -97,6 +100,11 @@ export function StudentHeader({
       <View style={{ flex: 1 }}>
         <View style={styles.nameHeaderRow}>
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{student.name}</Text>
+          {hasNotes && (
+            <View style={[styles.noteBadge, { backgroundColor: theme.warning + '15' }]}>
+              <Ionicons name="document-text" size={12} color={theme.warning} />
+            </View>
+          )}
           {hasDues && (
             <View style={[styles.dueBadge, { backgroundColor: theme.danger + '10' }]}>
               <Text style={[styles.dueText, { color: theme.danger }]}>₹{student.dueAmount}</Text>
@@ -350,6 +358,35 @@ export function ValidityInfo({ student, theme }: { student: Student; theme: Them
   );
 }
 
+const NOTE_PREVIEW_LINES = 2;
+
+export function StudentNotes({ student, theme }: { student: Student; theme: Theme }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const note = student.notes?.trim();
+
+  if (!note) return null;
+
+  return (
+    <TouchableOpacity
+      onPress={() => setIsExpanded((prev) => !prev)}
+      activeOpacity={0.8}
+      style={[styles.noteStrip, { backgroundColor: theme.warning + '10', borderColor: theme.warning + '30' }]}
+    >
+      <Ionicons name="document-text" size={14} color={theme.warning} style={styles.noteStripIcon} />
+      <View style={styles.noteBody}>
+        <Text style={[styles.noteLabel, { color: theme.warning }]}>NOTE</Text>
+        <Text
+          style={[styles.noteText, { color: theme.text }]}
+          numberOfLines={isExpanded ? undefined : NOTE_PREVIEW_LINES}
+        >
+          {note}
+        </Text>
+      </View>
+      <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={theme.warning} />
+    </TouchableOpacity>
+  );
+}
+
 export function ActionRow({ theme, actions }: { theme: Theme; actions: Actions }) {
   const posthog = usePostHog();
 
@@ -501,6 +538,38 @@ const styles = StyleSheet.create({
   dueText: {
     fontWeight: '900',
     fontSize: 11,
+  },
+  noteBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noteStrip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  noteStripIcon: {
+    marginTop: 2,
+  },
+  noteBody: {
+    flex: 1,
+    gap: 2,
+  },
+  noteLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  noteText: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   metaGrid: {
     gap: spacing.sm,
