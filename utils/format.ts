@@ -52,3 +52,11 @@ export const formatTime = (value?: string | null) => {
   const minuteStr = String(minutes).padStart(2, '0');
   return `${hourStr}:${minuteStr} ${period}`;
 };
+
+// formatTime expects a plain "HH:MM" string; ISO datetimes need the Date parsed first.
+export const formatTimeOfDay = (value?: string | Date | null) => {
+  if (!value) return '--:--';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return formatTime(`${date.getHours()}:${date.getMinutes()}`);
+};
