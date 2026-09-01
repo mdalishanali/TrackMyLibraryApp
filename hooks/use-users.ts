@@ -3,11 +3,14 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
 
+export type UserRole = 'Admin' | 'Manager';
+
 export type UserRecord = {
   _id: string;
   name: string;
   email: string;
   contactNumber: string;
+  role: UserRole;
 };
 
 export type UserPayload = {
@@ -15,6 +18,7 @@ export type UserPayload = {
   email: string;
   contactNumber: string;
   password: string;
+  role: UserRole;
 };
 
 export const useUsersQuery = () =>
