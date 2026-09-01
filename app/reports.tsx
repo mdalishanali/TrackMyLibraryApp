@@ -52,7 +52,7 @@ export default function Reports() {
   useScreenView('Reports');
 
   const monthParam = toMonthParam(month);
-  const { data: summary, isLoading } = useMonthlySummary(monthParam);
+  const { data: summary, isLoading, isError, refetch } = useMonthlySummary(monthParam);
   const { exportReport, exportingDataset } = useExportMonthlyReport();
   const { exportStudents, isExporting } = useExportStudents();
 
@@ -114,6 +114,16 @@ export default function Reports() {
 
         {isLoading ? (
           <ActivityIndicator style={styles.loader} color={theme.primary} />
+        ) : isError ? (
+          <Pressable
+            onPress={() => refetch()}
+            style={[styles.errorCard, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '30' }]}
+          >
+            <Ionicons name="cloud-offline-outline" size={18} color={theme.danger} />
+            <Text style={[styles.errorText, { color: theme.danger }]}>
+              Couldn&apos;t load this month&apos;s summary. Tap to retry.
+            </Text>
+          </Pressable>
         ) : (
           <View style={styles.cardsGrid}>
             {summaryCards.map((card) => (
@@ -141,7 +151,13 @@ export default function Reports() {
                 icon={row.icon}
                 color={row.color}
                 title={row.title}
-                subtitle={count === null ? 'Loading…' : `${count} ${count === 1 ? 'row' : 'rows'} this month`}
+                subtitle={
+                  count !== null
+                    ? `${count} ${count === 1 ? 'row' : 'rows'} this month`
+                    : isError
+                      ? 'Tap to export this month'
+                      : 'Loading…'
+                }
                 onPress={() => exportReport(monthParam, row.dataset)}
                 isBusy={exportingDataset === row.dataset}
                 disabled={exportingDataset !== null}
@@ -231,6 +247,19 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginVertical: spacing.xl,
+  },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.md,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: typography.size.xs,
+    fontWeight: '600',
   },
   cardsGrid: {
     flexDirection: 'row',
