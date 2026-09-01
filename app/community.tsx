@@ -1,24 +1,27 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView, Linking } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
+import { spacing } from '@/constants/design';
+import {
+  COMMUNITY_BENEFITS,
+  WHATSAPP_DARK_GREEN,
+  WHATSAPP_GREEN,
+  useJoinCommunity,
+} from '@/features/community';
+import { useScreenView } from '@/hooks/use-screen-view';
 import { useTheme } from '@/hooks/use-theme';
-import { spacing, radius, typography } from '@/constants/design';
 
 export default function CommunityScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { joinCommunity } = useJoinCommunity('dashboard');
 
-  const handleJoinNow = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const groupLink = 'https://chat.whatsapp.com/EwWTjFuXvP9CiLPVmhFMlu?mode=gi_t';
-    Linking.openURL(groupLink);
-  };
+  useScreenView('Community');
 
   return (
     <SafeScreen>
@@ -40,14 +43,14 @@ export default function CommunityScreen() {
           <View style={{ width: 44 }} />
         </View>
 
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Community Hero */}
           <Animated.View entering={FadeInUp.duration(800)}>
             <LinearGradient
-              colors={['#25D366', '#128C7E']}
+              colors={[WHATSAPP_GREEN, WHATSAPP_DARK_GREEN]}
               style={styles.heroCard}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -74,41 +77,27 @@ export default function CommunityScreen() {
           {/* Benefits List */}
           <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.contentBox}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Why Join?</Text>
-            
+
             <View style={styles.benefitsGrid}>
-              <View style={[styles.benefitItem, { backgroundColor: theme.surfaceAlt }]}>
-                <Ionicons name="notifications-outline" size={24} color="#25D366" />
-                <View style={styles.benefitText}>
-                  <Text style={[styles.benefitTitle, { color: theme.text }]}>New Updates</Text>
-                  <Text style={[styles.benefitDesc, { color: theme.muted }]}>Be the first to know about new features and bug fixes.</Text>
+              {COMMUNITY_BENEFITS.map((benefit) => (
+                <View key={benefit.title} style={[styles.benefitItem, { backgroundColor: theme.surfaceAlt }]}>
+                  <Ionicons name={benefit.icon} size={24} color={WHATSAPP_GREEN} />
+                  <View style={styles.benefitText}>
+                    <Text style={[styles.benefitTitle, { color: theme.text }]}>{benefit.title}</Text>
+                    <Text style={[styles.benefitDesc, { color: theme.muted }]}>{benefit.description}</Text>
+                  </View>
                 </View>
-              </View>
-
-              <View style={[styles.benefitItem, { backgroundColor: theme.surfaceAlt }]}>
-                <Ionicons name="help-buoy-outline" size={24} color="#25D366" />
-                <View style={styles.benefitText}>
-                  <Text style={[styles.benefitTitle, { color: theme.text }]}>Direct Help</Text>
-                  <Text style={[styles.benefitDesc, { color: theme.muted }]}>Get quick answers to your technical or billing issues.</Text>
-                </View>
-              </View>
-
-              <View style={[styles.benefitItem, { backgroundColor: theme.surfaceAlt }]}>
-                <Ionicons name="people-outline" size={24} color="#25D366" />
-                <View style={styles.benefitText}>
-                  <Text style={[styles.benefitTitle, { color: theme.text }]}>Networking</Text>
-                  <Text style={[styles.benefitDesc, { color: theme.muted }]}>Connect with other library owners across India.</Text>
-                </View>
-              </View>
+              ))}
             </View>
           </Animated.View>
 
           {/* Action Button */}
           <Animated.View entering={FadeInDown.delay(400).duration(800)}>
             <Pressable
-              onPress={handleJoinNow}
+              onPress={joinCommunity}
               style={({ pressed }) => [
                 styles.actionBtn,
-                { backgroundColor: '#25D366' },
+                { backgroundColor: WHATSAPP_GREEN },
                 pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }
               ]}
             >
@@ -157,7 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    shadowColor: '#25D366',
+    shadowColor: WHATSAPP_GREEN,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -238,7 +227,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRadius: 24,
     gap: 12,
-    shadowColor: '#25D366',
+    shadowColor: WHATSAPP_GREEN,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 15,

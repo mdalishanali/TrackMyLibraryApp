@@ -12,6 +12,7 @@ export default function OnboardingLayout() {
         <Stack.Screen name="sections" />
         <Stack.Screen name="shifts" />
         <Stack.Screen name="review" />
+        <Stack.Screen name="community" />
         <Stack.Screen name="setup" />
       </Stack>
     </OnboardingWizardProvider>

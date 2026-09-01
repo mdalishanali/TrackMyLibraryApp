@@ -35,12 +35,13 @@ export default function ReviewStep() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       // A retried request finds the library already built — send the owner on
-      // rather than reporting a failure for work that succeeded.
-      showToast(
-        result?.alreadySetUp ? 'Your library is ready 🚀' : 'Library created successfully 🚀',
-        'success'
-      );
-      router.replace('/(tabs)');
+      // rather than reporting a failure for work that succeeded. The success
+      // toast lives on the celebration step, which routes on to (tabs).
+      if (result?.alreadySetUp) {
+        showToast('Your library is ready 🚀', 'success');
+      }
+
+      router.replace('/onboarding/community');
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showToast(getErrorMessage(error), 'error');
