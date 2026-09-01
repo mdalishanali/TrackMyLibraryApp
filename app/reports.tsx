@@ -3,9 +3,14 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { usePostHog } from 'posthog-react-native';
 
 import { SafeScreen } from '@/components/layout/safe-screen';
+import { ExportListRow } from '@/components/reports/export-list-row';
+import { ExportOptionsModal } from '@/components/students/export-options-modal';
 import { radius, spacing, typography } from '@/constants/design';
+import { StudentAudience } from '@/constants/student-export';
+import { useExportStudents } from '@/hooks/use-export-students';
 import {
   useExportMonthlyReport,
   useMonthlySummary,
@@ -23,7 +28,7 @@ import {
   toMonthParam,
 } from '@/utils/report-month';
 
-type ExportRowConfig = {
+type MonthlyRowConfig = {
   dataset: ReportDataset;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
@@ -31,46 +36,40 @@ type ExportRowConfig = {
   countOf: (summary: MonthlySummary) => number;
 };
 
-const EXPORT_ROWS: ExportRowConfig[] = [
-  {
-    dataset: 'payments',
-    icon: 'wallet-outline',
-    color: '#10b981',
-    title: 'Payments',
-    countOf: (summary) => summary.payments.count,
-  },
-  {
-    dataset: 'expenses',
-    icon: 'receipt-outline',
-    color: '#f59e0b',
-    title: 'Expenses',
-    countOf: (summary) => summary.expenses.count,
-  },
-  {
-    dataset: 'admissions',
-    icon: 'person-add-outline',
-    color: '#3b82f6',
-    title: 'New Admissions',
-    countOf: (summary) => summary.newStudents,
-  },
+const MONTHLY_ROWS: MonthlyRowConfig[] = [
+  { dataset: 'payments', icon: 'wallet-outline', color: '#10b981', title: 'Payments', countOf: (s) => s.payments.count },
+  { dataset: 'expenses', icon: 'receipt-outline', color: '#f59e0b', title: 'Expenses', countOf: (s) => s.expenses.count },
+  { dataset: 'admissions', icon: 'person-add-outline', color: '#3b82f6', title: 'New Admissions', countOf: (s) => s.newStudents },
 ];
 
-export default function MonthlyReport() {
+export default function Reports() {
   const theme = useTheme();
   const router = useRouter();
+  const posthog = usePostHog();
   const [month, setMonth] = useState(currentReportMonth());
+  const [showStudentExport, setShowStudentExport] = useState(false);
 
-  useScreenView('MonthlyReport');
+  useScreenView('Reports');
 
   const monthParam = toMonthParam(month);
   const { data: summary, isLoading } = useMonthlySummary(monthParam);
   const { exportReport, exportingDataset } = useExportMonthlyReport();
+  const { exportStudents, isExporting } = useExportStudents();
 
   const isCurrentMonth = isSameReportMonth(month, currentReportMonth());
 
   const changeMonth = (delta: number) => {
     Haptics.selectionAsync();
     setMonth((value) => shiftReportMonth(value, delta));
+  };
+
+  const handleStudentExportConfirm = async (options: {
+    status: StudentAudience;
+    columns: string[];
+  }) => {
+    posthog?.capture('students_export_started', { source: 'reports', ...options });
+    setShowStudentExport(false);
+    await exportStudents(options);
   };
 
   const summaryCards = summary
@@ -91,12 +90,13 @@ export default function MonthlyReport() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Monthly Report</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Reports & Exports</Text>
         <View style={styles.backBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Month stepper */}
+        {/* Monthly report */}
+        <Text style={[styles.sectionLabel, { color: theme.muted }]}>MONTHLY REPORT</Text>
         <View style={[styles.monthRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Pressable onPress={() => changeMonth(-1)} hitSlop={8} style={[styles.monthBtn, { backgroundColor: theme.surfaceAlt }]}>
             <Ionicons name="chevron-back" size={20} color={theme.text} />
@@ -112,7 +112,6 @@ export default function MonthlyReport() {
           </Pressable>
         </View>
 
-        {/* Summary */}
         {isLoading ? (
           <ActivityIndicator style={styles.loader} color={theme.primary} />
         ) : (
@@ -132,41 +131,37 @@ export default function MonthlyReport() {
           </View>
         )}
 
-        {/* Export rows */}
-        <Text style={[styles.sectionLabel, { color: theme.muted }]}>EXPORT AS CSV</Text>
         <View style={[styles.exportCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {EXPORT_ROWS.map((row, index) => {
+          {MONTHLY_ROWS.map((row, index) => {
             const count = summary ? row.countOf(summary) : null;
-            const isExportingThis = exportingDataset === row.dataset;
 
             return (
-              <Pressable
+              <ExportListRow
                 key={row.dataset}
+                icon={row.icon}
+                color={row.color}
+                title={row.title}
+                subtitle={count === null ? 'Loading…' : `${count} ${count === 1 ? 'row' : 'rows'} this month`}
                 onPress={() => exportReport(monthParam, row.dataset)}
+                isBusy={exportingDataset === row.dataset}
                 disabled={exportingDataset !== null}
-                style={({ pressed }) => [
-                  styles.exportRow,
-                  index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <View style={[styles.exportIcon, { backgroundColor: row.color + '15' }]}>
-                  <Ionicons name={row.icon} size={22} color={row.color} />
-                </View>
-                <View style={styles.exportText}>
-                  <Text style={[styles.exportTitle, { color: theme.text }]}>{row.title}</Text>
-                  <Text style={[styles.exportSub, { color: theme.muted }]}>
-                    {count === null ? 'Loading…' : `${count} ${count === 1 ? 'row' : 'rows'} this month`}
-                  </Text>
-                </View>
-                {isExportingThis ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <Ionicons name="download-outline" size={22} color={theme.primary} />
-                )}
-              </Pressable>
+                showDivider={index > 0}
+              />
             );
           })}
+        </View>
+
+        {/* Full data */}
+        <Text style={[styles.sectionLabel, { color: theme.muted }]}>FULL DATA</Text>
+        <View style={[styles.exportCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <ExportListRow
+            icon="people-outline"
+            color="#0ea5e9"
+            title="All Students"
+            subtitle="Complete roster — choose audience & columns"
+            onPress={() => setShowStudentExport(true)}
+            isBusy={isExporting}
+          />
         </View>
 
         <View style={styles.hintRow}>
@@ -176,6 +171,13 @@ export default function MonthlyReport() {
           </Text>
         </View>
       </ScrollView>
+
+      <ExportOptionsModal
+        visible={showStudentExport}
+        onClose={() => setShowStudentExport(false)}
+        onConfirm={handleStudentExportConfirm}
+        isExporting={isExporting}
+      />
     </SafeScreen>
   );
 }
@@ -198,7 +200,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
-    gap: spacing.lg,
+    gap: spacing.md,
+  },
+  sectionLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    marginTop: spacing.xs,
   },
   monthRow: {
     flexDirection: 'row',
@@ -251,48 +259,17 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     fontWeight: '600',
   },
-  sectionLabel: {
-    fontSize: typography.size.xs,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    marginTop: spacing.xs,
-  },
   exportCard: {
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-  },
-  exportRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  exportIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exportText: {
-    flex: 1,
-    gap: 2,
-  },
-  exportTitle: {
-    fontSize: typography.size.md,
-    fontWeight: '700',
-  },
-  exportSub: {
-    fontSize: typography.size.xs,
-    fontWeight: '500',
   },
   hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   hintText: {
     fontSize: typography.size.xs,
