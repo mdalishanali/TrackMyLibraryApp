@@ -113,9 +113,52 @@ export const useUpdateAutomationSettings = () => {
       });
       return data as AutomationSettings;
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['whatsapp-automation-settings'], data);
+    onSuccess: (_data, variables) => {
+      // Merge only the fields this mutation changed. Replacing the cache with
+      // the PATCH response wiped read-only fields (credits, messages sent)
+      // whenever the server echoed a partial object, showing 0 credits.
+      queryClient.setQueryData<AutomationSettings>(
+        ['whatsapp-automation-settings'],
+        (current) => (current ? { ...current, ...variables } : current)
+      );
       posthog?.capture('whatsapp_automation_settings_updated');
+    },
+  });
+};
+
+export type DueStudent = {
+  _id: string;
+  name: string;
+  number: string;
+  latestPaymentEndDate: string | null;
+  lastReminderSentAt: string | null;
+  reminderType: '3day' | 'today' | 'overdue' | null;
+};
+
+export const useDueStudents = () => {
+  return useQuery<DueStudent[]>({
+    queryKey: ['whatsapp-due-students'],
+    queryFn: async () => {
+      const { data } = await api.get('/whatsapp/due-students');
+      return data;
+    },
+  });
+};
+
+export const useSendSelectedReminders = () => {
+  const posthog = usePostHog();
+
+  return useMutation({
+    mutationFn: async (studentIds: string[]) => {
+      const { data } = await api.post('/whatsapp/selected-reminders', { studentIds });
+      return data as { queued: number; skipped: number; requested: number };
+    },
+    onSuccess: (data, studentIds) => {
+      posthog?.capture('whatsapp_selected_reminders_sent', {
+        selected: studentIds.length,
+        queued: data?.queued,
+        skipped: data?.skipped,
+      });
     },
   });
 };

@@ -338,6 +338,18 @@ export default function WhatsappSettingsScreen() {
             >
               {sendBulkReminders.isPending ? 'Sending...' : 'Send to All Due Students'}
             </AppButton>
+            <AppButton
+              variant="outline"
+              icon="people-outline"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/whatsapp-student-select');
+              }}
+              disabled={!whatsappEnabled}
+              style={{ marginTop: spacing.sm }}
+            >
+              Choose Specific Students
+            </AppButton>
           </View>
         </Animated.View>
 
