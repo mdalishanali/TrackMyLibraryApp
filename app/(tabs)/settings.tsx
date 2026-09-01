@@ -295,6 +295,14 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
+              icon="people-circle"
+              label="User Management"
+              description="Add or remove staff accounts"
+              onPress={() => router.push('/users')}
+              themeTint="#6366F1"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
               icon="color-wand"
               label="Library Branding"
               description="Upload logo for invoices & receipts"
@@ -311,6 +319,14 @@ export default function SettingsScreen() {
                 setShowBulkImport(true);
               }}
               themeTint={theme.primary}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
+              icon="bar-chart-outline"
+              label="Monthly Report"
+              description="Payments, expenses & admissions per month"
+              onPress={() => router.push('/monthly-report')}
+              themeTint="#10B981"
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow

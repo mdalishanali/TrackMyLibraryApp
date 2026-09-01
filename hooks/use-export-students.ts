@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
-import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 
 import { api } from '@/lib/api-client';
+import { isSharingAvailable, readCsvFilename, shareCsv } from '@/lib/share-csv';
 import { showToast } from '@/lib/toast';
 import { StudentAudience } from '@/constants/student-export';
 
@@ -37,23 +36,6 @@ export interface ExportStudentsParams {
 const ROW_LIMIT_STATUS = 413;
 
 const FALLBACK_FILENAME = 'students.csv';
-
-const CSV_MIME_TYPE = 'text/csv';
-
-/** iOS needs a uniform type identifier for the share sheet to offer the right apps. */
-const CSV_UTI = 'public.comma-separated-values-text';
-
-/**
- * The server names the file after the library and date. Reuse that name so what
- * lands in the owner's Drive matches what the web export produces.
- */
-const readFilename = (disposition: unknown): string => {
-    if (typeof disposition !== 'string') return FALLBACK_FILENAME;
-
-    const match = disposition.match(/filename="?([^"]+)"?/);
-
-    return match?.[1] || FALLBACK_FILENAME;
-};
 
 /**
  * An error response to a text request still arrives as the response body, so the
@@ -103,21 +85,6 @@ export const fetchExportCount = async (params: ExportStudentsParams): Promise<nu
     return typeof data?.count === 'number' ? data.count : 0;
 };
 
-/**
- * Write the CSV into the cache directory, replacing any file left by a previous
- * export so repeated exports do not accumulate.
- */
-const writeCsvToCache = (filename: string, csv: string): File => {
-    const file = new File(Paths.cache, filename);
-
-    // overwrite replaces a file left by an earlier export of the same day, so
-    // repeated exports neither accumulate nor fail on an existing path.
-    file.create({ overwrite: true });
-    file.write(csv);
-
-    return file;
-};
-
 export const useExportStudents = () => {
     const [isExporting, setIsExporting] = useState(false);
 
@@ -128,7 +95,7 @@ export const useExportStudents = () => {
             try {
                 setIsExporting(true);
 
-                const isShareAvailable = await Sharing.isAvailableAsync();
+                const isShareAvailable = await isSharingAvailable();
 
                 // Checked BEFORE the request: downloading a roster the device cannot
                 // then hand anywhere would burn the call and leave a file nobody sees.
@@ -151,16 +118,14 @@ export const useExportStudents = () => {
                     return;
                 }
 
-                const filename = readFilename(response.headers?.['content-disposition']);
-                const file = writeCsvToCache(filename, csv);
+                const filename = readCsvFilename(
+                    response.headers?.['content-disposition'],
+                    FALLBACK_FILENAME
+                );
 
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-                await Sharing.shareAsync(file.uri, {
-                    mimeType: CSV_MIME_TYPE,
-                    UTI: CSV_UTI,
-                    dialogTitle: 'Export students',
-                });
+                await shareCsv(filename, csv, 'Export students');
             } catch (error) {
                 console.error('[useExportStudents] Export failed:', error);
 
