@@ -713,6 +713,7 @@ export function ClassicDashboard({
 
   const toolActions: GridAction[] = [
     { title: 'WhatsApp', icon: 'logo-whatsapp', color: '#25D366', onPress: () => router.push('/whatsapp-settings') },
+    { title: 'Reports', icon: 'bar-chart', color: '#10b981', onPress: () => router.push('/reports') },
     { title: 'QR Code', icon: 'qr-code', color: '#7c3aed', onPress: () => router.push('/qr-code') },
     { title: 'Branding', icon: 'color-wand', color: '#e11d48', onPress: () => router.push('/branding') },
     { title: 'Refer & Earn', icon: 'gift', color: '#6366f1', onPress: () => router.push('/referral') },

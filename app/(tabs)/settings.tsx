@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -26,9 +26,6 @@ import { getErrorMessage } from '@/hooks/use-auth-mutations';
 import { showToast } from '@/lib/toast';
 import { usePostHog } from 'posthog-react-native';
 import { useScreenView } from '@/hooks/use-screen-view';
-import { useExportStudents } from '@/hooks/use-export-students';
-import { StudentAudience } from '@/constants/student-export';
-import { ExportOptionsModal } from '@/components/students/export-options-modal';
 import { BulkImportModal } from '@/components/students/bulk-import-modal';
 import { SaveContactsModal } from '@/components/contacts/save-contacts-modal';
 
@@ -51,22 +48,6 @@ export default function SettingsScreen() {
   
   // Track screen view
   useScreenView('Settings');
-
-  const { exportStudents, isExporting } = useExportStudents();
-  const [showExportOptions, setShowExportOptions] = useState(false);
-
-  /**
-   * Settings has no filter state, so the sheet opens on the full roster and the
-   * owner narrows it there — this is the "download my data" entry point.
-   */
-  const handleExportConfirm = useCallback(
-    async (options: { status: StudentAudience; columns: string[] }) => {
-      posthog?.capture('students_export_started', { source: 'settings', ...options });
-      setShowExportOptions(false);
-      await exportStudents(options);
-    },
-    [exportStudents, posthog]
-  );
 
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
@@ -295,6 +276,14 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
+              icon="people-circle"
+              label="User Management"
+              description="Add or remove staff accounts"
+              onPress={() => router.push('/users')}
+              themeTint="#6366F1"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
+            <ActionRow
               icon="color-wand"
               label="Library Branding"
               description="Upload logo for invoices & receipts"
@@ -314,12 +303,11 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
-              icon="download-outline"
-              label="Export Students"
-              description="Download your student list as a CSV"
-              onPress={() => setShowExportOptions(true)}
-              isBusy={isExporting}
-              themeTint="#0EA5E9"
+              icon="bar-chart-outline"
+              label="Reports & Exports"
+              description="Monthly reports & full data downloads"
+              onPress={() => router.push('/reports')}
+              themeTint="#10B981"
             />
             <View style={[styles.divider, { backgroundColor: theme.border + '50' }]} />
             <ActionRow
@@ -511,12 +499,6 @@ export default function SettingsScreen() {
       <SaveContactsModal
         visible={showSaveContacts}
         onClose={() => setShowSaveContacts(false)}
-      />
-      <ExportOptionsModal
-        visible={showExportOptions}
-        onClose={() => setShowExportOptions(false)}
-        onConfirm={handleExportConfirm}
-        isExporting={isExporting}
       />
     </SafeScreen>
   );

@@ -125,6 +125,7 @@ export function StudentFormModal({
     const [timePickerType, setTimePickerType] = useState<'startTime' | 'endTime' | null>(null);
     const [isImageProcessing, setIsImageProcessing] = useState(false);
     const [pickerSheetVisible, setPickerSheetVisible] = useState(false);
+    const [isPrepSuggestionsOpen, setIsPrepSuggestionsOpen] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const [backgroundProgress, setBackgroundProgress] = useState(0);
@@ -365,6 +366,7 @@ export function StudentFormModal({
                             style={styles.modalScroll}
                             contentContainerStyle={styles.scrollContent}
                             showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
                         >
                             <Animated.View
                                 key={currentStep}
@@ -462,7 +464,12 @@ export function StudentFormModal({
                                                             placeholder="Type or select exam..."
                                                             placeholderTextColor={theme.muted}
                                                             value={values.preparationFor || ''}
-                                                            onChangeText={(text) => setValue('preparationFor', text)}
+                                                            onChangeText={(text) => {
+                                                                setValue('preparationFor', text);
+                                                                setIsPrepSuggestionsOpen(true);
+                                                            }}
+                                                            onFocus={() => setIsPrepSuggestionsOpen(true)}
+                                                            onBlur={() => setIsPrepSuggestionsOpen(false)}
                                                         />
                                                         {values.preparationFor ? (
                                                             <TouchableOpacity onPress={() => setValue('preparationFor', '')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -471,7 +478,7 @@ export function StudentFormModal({
                                                         ) : null}
                                                     </View>
                                                 </View>
-                                                {values.preparationFor && values.preparationFor.length > 0 && (() => {
+                                                {isPrepSuggestionsOpen && values.preparationFor && values.preparationFor.length > 0 && (() => {
                                                     const filtered = PREPARATION_OPTIONS.filter(
                                                         (o) => o.value && o.value.toLowerCase().includes((values.preparationFor || '').toLowerCase()) && o.value !== values.preparationFor
                                                     );
@@ -486,7 +493,10 @@ export function StudentFormModal({
                                                             {filtered.slice(0, 6).map((opt) => (
                                                                 <TouchableOpacity
                                                                     key={opt.value}
-                                                                    onPress={() => setValue('preparationFor', opt.value)}
+                                                                    onPress={() => {
+                                                                        setValue('preparationFor', opt.value);
+                                                                        setIsPrepSuggestionsOpen(false);
+                                                                    }}
                                                                     style={{ paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: theme.border + '50' }}
                                                                 >
                                                                     <Text style={{ color: theme.text, fontSize: 14 }}>{opt.label}</Text>
@@ -674,6 +684,16 @@ export function StudentFormModal({
                                                     </Text>
                                                 </View>
                                             )}
+
+                                            {values.notes?.trim() ? (
+                                                <View style={[styles.reviewNotes, { backgroundColor: theme.warning + '10', borderColor: theme.warning + '30' }]}>
+                                                    <Ionicons name="document-text" size={16} color={theme.warning} style={styles.reviewNotesIcon} />
+                                                    <View style={styles.reviewNotesBody}>
+                                                        <Text style={[styles.reviewLabel, { color: theme.warning }]}>NOTES</Text>
+                                                        <Text style={[styles.reviewNotesText, { color: theme.text }]}>{values.notes.trim()}</Text>
+                                                    </View>
+                                                </View>
+                                            ) : null}
                                         </AppCard>
 
                                         {/* Only offered for new students: editing already has
@@ -1187,6 +1207,26 @@ const styles = StyleSheet.create({
     reviewSeatText: {
         fontSize: 15,
         fontWeight: '800',
+    },
+    reviewNotes: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+    },
+    reviewNotesIcon: {
+        marginTop: 1,
+    },
+    reviewNotesBody: {
+        flex: 1,
+        gap: 4,
+    },
+    reviewNotesText: {
+        fontSize: 14,
+        fontWeight: '600',
+        lineHeight: 20,
     },
     footer: {
         flexDirection: 'row',
