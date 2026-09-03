@@ -113,6 +113,28 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return !!(isRcPro || isDbActive || isTrialActive);
   }, [isRcPro, user?.company]);
 
+  /**
+   * True when this company once had a paid subscription whose end date has passed.
+   * Only such a user is hard-blocked; a free-tier user who never paid is not.
+   */
+  const hasLapsedSubscription = useMemo(() => {
+    const company = user?.company;
+
+    // The server marks a lapsed subscription as 'Expired' / 'Rejected'. A live
+    // audit found 59 such companies carrying NO subscriptionEndDate, so relying
+    // on the date alone would let them slip past the block.
+    const status = company?.subscriptionStatus;
+    if (status === 'Expired' || status === 'Rejected') return true;
+
+    const endDateStr = company?.subscriptionEndDate;
+    if (!endDateStr) return false;
+
+    const endDate = new Date(endDateStr);
+    if (isNaN(endDate.getTime())) return false;
+
+    return endDate < new Date();
+  }, [user?.company]);
+
   const expiryData = useMemo(() => {
     const expDateStr = user?.company?.subscriptionEndDate || user?.company?.trialEnd;
     
@@ -157,7 +179,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const value = useMemo(() => ({
     isPro: isProActive,
     isLoading: combinedLoading,
-    isBlocked: isAuthenticated && !isProActive && !combinedLoading,
+    // Two different states, two different answers:
+    //   - Trial ended → NOT blocked. The free tier is capped by STUDENT COUNT
+    //     (server: FREE_STUDENT_LIMIT), not by elapsed days. Blocking here locked
+    //     out users still well under the limit, before they saw enough value to pay.
+    //     They now hit the paywall on the server's 402 LIMIT_REACHED instead.
+    //   - A PAID subscription lapsed → blocked, as before. Someone who already paid
+    //     and let it expire must renew to keep going.
+    // subscriptionEndDate is only ever set for a company that has paid, so it is
+    // what separates a lapsed customer from a free-tier user who never subscribed.
+    isBlocked: isAuthenticated && !isProActive && !combinedLoading && hasLapsedSubscription,
     customerInfo,
     presentPaywall: (reason: PaywallReason = null) => {
       setPaywallReason(reason);
@@ -170,7 +201,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     isExpiringSoon: expiryData.soon,
     expiresAt: expiryData.expiresAt,
     isTrial: expiryData.isTrial,
-  }), [isProActive, combinedLoading, isAuthenticated, customerInfo, presentCustomerCenter, restorePurchases, checkSubscriptionStatus, expiryData]);
+  }), [isProActive, combinedLoading, isAuthenticated, hasLapsedSubscription, customerInfo, presentCustomerCenter, restorePurchases, checkSubscriptionStatus, expiryData]);
 
   return (
     <SubscriptionContext.Provider value={value}>

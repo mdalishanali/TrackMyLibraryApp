@@ -11,7 +11,8 @@ export type Company = {
   contactNumber: string;
   trialStart: string;
   trialEnd: string;
-  subscriptionStatus: 'Trialing' | 'Active' | 'Expired' | 'None';
+  // Mirrors the server enum (models/company.js) — 'Rejected' was missing here.
+  subscriptionStatus: 'Trialing' | 'Active' | 'Expired' | 'Rejected' | 'None';
   subscriptionEndDate?: string;
   revenueCatId?: string;
   libraryLogo?: string;
