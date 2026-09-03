@@ -33,10 +33,16 @@ import type { PaywallReason } from '@/providers/subscription-provider';
 
 // Copy for the contextual banner shown at the top of the paywall. Keyed by the
 // reason the paywall was opened so the user always knows why they landed here.
+// The free tier's student cap, mirrored from the server (FREE_STUDENT_LIMIT).
+const FREE_STUDENT_LIMIT = 10;
+
 const REASON_BANNERS: Record<Exclude<PaywallReason, null>, { title: string; sub: string }> = {
   student_limit: {
-    title: 'Free limit reached',
-    sub: 'Upgrade to Pro to add unlimited students.',
+    // Leads with what the owner has already built rather than with the wall.
+    // Someone adding their 11th student has committed real work; the pitch is
+    // "keep going", not "you are blocked".
+    title: `Your library has outgrown the free plan`,
+    sub: `You're managing all ${FREE_STUDENT_LIMIT} free seats. Go Pro to add unlimited students and keep everything you've set up.`,
   },
 };
 
