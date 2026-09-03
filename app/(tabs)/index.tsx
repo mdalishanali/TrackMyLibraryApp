@@ -244,60 +244,6 @@ function getGreeting() {
   return 'Good Evening';
 }
 
-const MS_PER_SECOND = 1000;
-const MS_PER_MINUTE = 60 * MS_PER_SECOND;
-const MS_PER_HOUR = 60 * MS_PER_MINUTE;
-const MS_PER_DAY = 24 * MS_PER_HOUR;
-
-/**
- * Trial countdowns can span many days, where a raw HH:MM:SS clock reads as a
- * meaningless large number (e.g. "163:40:16"). Show the two largest units only.
- */
-function formatTrialRemaining(diffMs: number) {
-  const days = Math.floor(diffMs / MS_PER_DAY);
-  const hours = Math.floor((diffMs % MS_PER_DAY) / MS_PER_HOUR);
-  const minutes = Math.floor((diffMs % MS_PER_HOUR) / MS_PER_MINUTE);
-  const seconds = Math.floor((diffMs % MS_PER_MINUTE) / MS_PER_SECOND);
-
-  if (days > 0) return `${days}d ${hours}h left`;
-  if (hours > 0) return `${hours}h ${minutes}m left`;
-  if (minutes > 0) return `${minutes}m ${seconds}s left`;
-  return `${seconds}s left`;
-}
-
-function TrialTimer({ theme }: { theme: any }) {
-  const { expiresAt, isTrial } = useSubscription();
-
-  // Force re-render every second
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    if (!isTrial || !expiresAt) return;
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, [isTrial, expiresAt]);
-
-  if (!isTrial || !expiresAt) return null;
-
-  const diff = new Date(expiresAt).getTime() - now.getTime();
-
-  // Don't show if more than 24h (safeguard) or expired
-  if (diff <= 0) {
-    return (
-      <View style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
-        <Text style={styles.trialText}>EXPIRED</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.trialBadge, { backgroundColor: theme.danger }]}>
-      <Ionicons name="time" size={12} color="#fff" style={{ marginRight: 4 }} />
-      <Text style={styles.trialText}>{formatTrialRemaining(diff)}</Text>
-    </View>
-  );
-}
-
 // Day 1 Goal Widget - Revamped for High Engagement
 function Day1GoalWidget({ theme, onAddStudent }: { theme: any; onAddStudent: () => void }) {
   // Calculate progress (Library Setup is done, so 1/2 = 50%)
@@ -620,7 +566,6 @@ export default function DashboardScreen() {
                   <Text style={[styles.greetingText, { color: theme.muted }]}>{getGreeting()}</Text>
                   <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
                     {user?.name?.split(' ')[0] || 'User'}
-                    <TrialTimer theme={theme} />
                   </Text>
                 </View>
 
@@ -872,21 +817,6 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: -1,
-  },
-  trialBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginLeft: 8,
-    transform: [{ translateY: 2 }], // optical alignment
-  },
-  trialText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
   },
   headerActionBtn: {
     width: 50,
