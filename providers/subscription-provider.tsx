@@ -118,22 +118,23 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
    * Only such a user is hard-blocked; a free-tier user who never paid is not.
    */
   const hasLapsedSubscription = useMemo(() => {
-    const company = user?.company;
-
-    // The server marks a lapsed subscription as 'Expired' / 'Rejected'. A live
-    // audit found 59 such companies carrying NO subscriptionEndDate, so relying
-    // on the date alone would let them slip past the block.
-    const status = company?.subscriptionStatus;
-    if (status === 'Expired' || status === 'Rejected') return true;
-
-    const endDateStr = company?.subscriptionEndDate;
+    // subscriptionEndDate is set only once a company has actually paid, so its
+    // presence — not subscriptionStatus — is what separates a lapsed customer
+    // from a free-tier user.
+    //
+    // Status is deliberately NOT checked: the server treats every non-'Active'
+    // status as free tier (studentController.js gates on `!== 'Active'` alone),
+    // and 60 of the 130 'Expired' companies in production never paid a rupee —
+    // they simply ran out their trial. Blocking on status would lock those users
+    // out of a free tier the server still grants them.
+    const endDateStr = user?.company?.subscriptionEndDate;
     if (!endDateStr) return false;
 
     const endDate = new Date(endDateStr);
     if (isNaN(endDate.getTime())) return false;
 
     return endDate < new Date();
-  }, [user?.company]);
+  }, [user?.company?.subscriptionEndDate]);
 
   const expiryData = useMemo(() => {
     const expDateStr = user?.company?.subscriptionEndDate || user?.company?.trialEnd;
