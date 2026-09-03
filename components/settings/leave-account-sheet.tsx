@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -59,6 +59,43 @@ const DEFAULT_RETENTION = {
   body: 'A quick chat with us might help. We read every message.',
 };
 
+// A deliberate pause before an irreversible delete. Long enough to break an
+// impulse, short enough not to feel like a punishment.
+const DELETE_COOLDOWN_SECONDS = 30;
+const ONE_SECOND_MS = 1000;
+
+/**
+ * Counts down from DELETE_COOLDOWN_SECONDS whenever `active` turns true.
+ * Returns seconds remaining; 0 means the delete action is unlocked.
+ */
+function useDeleteCooldown(active: boolean) {
+  const [secondsLeft, setSecondsLeft] = useState(DELETE_COOLDOWN_SECONDS);
+  const deadlineRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      deadlineRef.current = null;
+      setSecondsLeft(DELETE_COOLDOWN_SECONDS);
+      return;
+    }
+
+    // Anchor to a wall-clock deadline so a backgrounded app doesn't freeze the
+    // countdown and strand the user on a permanently locked button.
+    deadlineRef.current = Date.now() + DELETE_COOLDOWN_SECONDS * ONE_SECOND_MS;
+
+    const tick = () => {
+      const remainingMs = (deadlineRef.current ?? 0) - Date.now();
+      setSecondsLeft(Math.max(0, Math.ceil(remainingMs / ONE_SECOND_MS)));
+    };
+
+    tick();
+    const interval = setInterval(tick, ONE_SECOND_MS);
+    return () => clearInterval(interval);
+  }, [active]);
+
+  return secondsLeft;
+}
+
 export function LeaveAccountSheet({
   visible,
   onClose,
@@ -75,9 +112,15 @@ export function LeaveAccountSheet({
 
   const busy = !!deactivating || !!deleting;
 
+  // The cooldown runs only while the permanent-delete step is on screen.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const cooldownLeft = useDeleteCooldown(confirmingDelete);
+  const isDeleteUnlocked = cooldownLeft === 0;
+
   const reset = () => {
     setStep('reason');
     setReason(null);
+    setConfirmingDelete(false);
   };
 
   const handleClose = () => {
@@ -91,8 +134,8 @@ export function LeaveAccountSheet({
     setStep(RETAINABLE_REASONS.includes(picked) ? 'retain' : 'confirm');
   };
 
-  const openWhatsApp = () => {
-    const message = 'Hi TrackMyLibrary, I was about to leave the app and wanted to talk first.';
+  const openWhatsApp = (context?: string) => {
+    const message = context ?? 'Hi TrackMyLibrary, I was about to leave the app and wanted to talk first.';
     Linking.openURL(`https://wa.me/${SUPPORT.whatsappNumber}?text=${encodeURIComponent(message)}`);
   };
 
@@ -103,7 +146,7 @@ export function LeaveAccountSheet({
   };
 
   const runDelete = async () => {
-    if (!reason) return;
+    if (!reason || !isDeleteUnlocked) return;
     await onDelete({ reason });
     reset();
   };
@@ -153,7 +196,7 @@ export function LeaveAccountSheet({
               <Text style={[styles.subtitle, { color: theme.muted }]}>{retention.body}</Text>
 
               <View style={styles.actions}>
-                <AppButton icon="logo-whatsapp" tone="success" onPress={openWhatsApp} fullWidth>
+                <AppButton icon="logo-whatsapp" tone="success" onPress={() => openWhatsApp()} fullWidth>
                   Chat with us on WhatsApp
                 </AppButton>
                 <AppButton variant="ghost" onPress={handleClose} fullWidth>
@@ -196,11 +239,61 @@ export function LeaveAccountSheet({
                 </AppButton>
               </View>
 
-              <Pressable onPress={runDelete} disabled={busy} style={styles.deleteLink}>
-                <Text style={[styles.deleteLinkLabel, { color: theme.danger }]}>
-                  {deleting ? 'Deleting…' : 'Delete permanently instead'}
-                </Text>
-              </Pressable>
+              {!confirmingDelete && (
+                <Pressable
+                  onPress={() => setConfirmingDelete(true)}
+                  disabled={busy}
+                  style={styles.deleteLink}>
+                  <Text style={[styles.deleteLinkLabel, { color: theme.danger }]}>
+                    Delete permanently instead
+                  </Text>
+                </Pressable>
+              )}
+
+              {confirmingDelete && (
+                <View style={[styles.dangerCard, { borderColor: theme.danger + '40', backgroundColor: theme.danger + '0D' }]}>
+                  <View style={styles.recommendHeader}>
+                    <Ionicons name="warning-outline" size={20} color={theme.danger} />
+                    <Text style={[styles.recommendTitle, { color: theme.text }]}>
+                      This can’t be undone
+                    </Text>
+                  </View>
+
+                  <Text style={[styles.recommendBody, { color: theme.muted }]}>
+                    Deleting removes your students, seats, payment history and invoices for good.
+                    We can’t bring any of it back.
+                  </Text>
+
+                  <AppButton
+                    icon="logo-whatsapp"
+                    tone="success"
+                    onPress={() =>
+                      openWhatsApp(
+                        'Hi TrackMyLibrary, I’m about to delete my account. Can you help before I do?',
+                      )
+                    }
+                    fullWidth>
+                    Talk to us first
+                  </AppButton>
+
+                  <AppButton
+                    variant="danger"
+                    onPress={runDelete}
+                    loading={deleting}
+                    disabled={busy || !isDeleteUnlocked}
+                    fullWidth>
+                    {isDeleteUnlocked
+                      ? 'Delete my account forever'
+                      : `Delete my account (${cooldownLeft}s)`}
+                  </AppButton>
+
+                  {!isDeleteUnlocked && (
+                    <Text style={[styles.cooldownHint, { color: theme.muted }]}>
+                      Take a moment — this button unlocks in {cooldownLeft}s.
+                    </Text>
+                  )}
+                </View>
+              )}
 
               <AppButton variant="ghost" onPress={handleClose} disabled={busy} fullWidth>
                 Cancel
@@ -315,6 +408,18 @@ const styles = StyleSheet.create({
   recommendBody: {
     fontSize: typography.size.sm,
     lineHeight: 20,
+  },
+  dangerCard: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  cooldownHint: {
+    fontSize: typography.size.sm,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   deleteLink: {
     alignItems: 'center',
