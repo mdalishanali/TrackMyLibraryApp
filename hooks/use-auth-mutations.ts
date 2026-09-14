@@ -89,6 +89,32 @@ export const useLoginMutation = () => {
   });
 };
 
+/**
+ * Password-less login for local development only. `__DEV__` is false in release
+ * bundles, so the callers below are stripped and this never ships to users.
+ */
+export const useDevLoginMutation = () => {
+  const { setAuth } = useAuth();
+
+  return useMutation<AuthResponse, AxiosError<ApiError>, string>({
+    mutationFn: async (identifier) => {
+      const { data } = await api.post(
+        '/auth/dev-login',
+        { identifier: identifier.trim() },
+        { skipSuccessToast: true }
+      );
+      return data;
+    },
+    onSuccess: ({ user, token }) => {
+      setAuth({ user, token });
+      showToast(`Logged in as ${user.name}`, 'success');
+    },
+    onError: () => {
+      showToast('Dev login failed. Is this user in the DB?', 'error');
+    },
+  });
+};
+
 export const useSignupMutation = () => {
   const { setAuth } = useAuth();
   const posthog = usePostHog();

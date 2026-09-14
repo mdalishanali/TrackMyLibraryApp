@@ -149,6 +149,18 @@ export default function SeatsScreen() {
     { label: 'Trial', value: 'Trial', color: theme.warning },
   ];
 
+  // Names are compared exactly: a substring test would let "Morning - Half Day
+  // Shift" match an "Evening - Half Day Shift" student on the shared suffix.
+  const studentHasShiftName = (student: any, shiftName: string) => {
+    const target = shiftName.toLowerCase();
+    const names: string[] = (student.shiftNames || []).map((sn: string) => sn.toLowerCase());
+    if (names.includes(target)) return true;
+    return (student.shift || '')
+      .split(',')
+      .map((n: string) => n.trim().toLowerCase())
+      .includes(target);
+  };
+
   const getFilteredStudents = (students: any[]) => {
     if (!students) return [];
 
@@ -163,16 +175,16 @@ export default function SeatsScreen() {
 
       if (selectedShift) {
         if (isFullDay) {
-          // Exact match on name for full day shifts
-          matchesShift = s.shift?.toLowerCase().includes(selectedShift.toLowerCase()) ||
-            s.shiftNames?.some((sn: string) => sn.toLowerCase().includes(selectedShift.toLowerCase()));
+          matchesShift = studentHasShiftName(s, selectedShift);
         } else if (fStart && fEnd) {
-          // Time overlap logic for partial shifts (e.g. Full Day student covers Morning slot)
-          matchesShift = s.shiftTimes?.some((st: any) => {
-            return fStart < st.endTime && st.startTime < fEnd;
-          }) || s.shift?.toLowerCase().includes(selectedShift.toLowerCase());
+          // Time overlap for partial shifts, e.g. a Full Day student covers the
+          // Morning slot. Falls back to the name only when times are missing.
+          const times = s.shiftTimes || [];
+          matchesShift = times.length > 0
+            ? times.some((st: any) => fStart < st.endTime && st.startTime < fEnd)
+            : studentHasShiftName(s, selectedShift);
         } else {
-          matchesShift = s.shift?.toLowerCase().includes(selectedShift.toLowerCase());
+          matchesShift = studentHasShiftName(s, selectedShift);
         }
       }
 
@@ -213,6 +225,16 @@ export default function SeatsScreen() {
       });
     }
 
+    // Filter by shift — keep vacant seats so admins can see what is allottable
+    // in the selected slot, matching how the payment filter behaves below.
+    if (selectedShift) {
+      baseSeats = baseSeats.filter(seat => {
+        const occupants = seat.students || [];
+        if (occupants.length === 0) return true;
+        return getFilteredStudents(occupants).length > 0;
+      });
+    }
+
     // Filter by payment status
     if (selectedPayment) {
       baseSeats = baseSeats.filter(seat => {
@@ -236,7 +258,7 @@ export default function SeatsScreen() {
     }
 
     return baseSeats;
-  }, [seatsByFloor, activeFloor, selectedStatus, selectedPayment, searchQuery]);
+  }, [seatsByFloor, activeFloor, selectedStatus, selectedPayment, searchQuery, selectedShift, shifts]);
 
   useEffect(() => {
     if (selectedSeat) {

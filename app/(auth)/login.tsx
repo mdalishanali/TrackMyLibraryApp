@@ -30,12 +30,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { spacing, radius, typography } from '@/constants/design';
 import { useAuth } from '@/hooks/use-auth';
-import { getErrorMessage, useLoginMutation } from '@/hooks/use-auth-mutations';
+import { getErrorMessage, useDevLoginMutation, useLoginMutation } from '@/hooks/use-auth-mutations';
 import { useTheme } from '@/hooks/use-theme';
 import { LoginFormValues, loginSchema } from '@/schemas/auth';
 import { useScreenView } from '@/hooks/use-screen-view';
 
 const { width } = Dimensions.get('window');
+
+/** Mirrors the web login screen's dev shortcuts. Dev builds only. */
+const DEV_LOGIN_PRESETS = [
+  { label: 'Admin', identifier: 'admin@example.com' },
+  { label: 'Test User', identifier: 'test@test.com' },
+] as const;
 
 export default function Login() {
   const theme = useTheme();
@@ -58,6 +64,8 @@ export default function Login() {
   });
 
   const loginMutation = useLoginMutation();
+  const devLoginMutation = useDevLoginMutation();
+  const [devIdentifier, setDevIdentifier] = useState('');
 
   // Animation values
   // const logoScale = useSharedValue(0);
@@ -259,6 +267,67 @@ export default function Login() {
                   </Pressable>
                 </Link>
               </View>
+
+              {/* Dev-only password-less login. __DEV__ is false in release
+                  bundles, so this whole block is stripped from shipped apps. */}
+              {__DEV__ && (
+                <View style={styles.devBlock}>
+                  <View style={styles.devDivider}>
+                    <View style={[styles.devDividerLine, { backgroundColor: theme.border }]} />
+                    <Text style={[styles.devDividerLabel, { color: theme.primary }]}>Dev Login</Text>
+                    <View style={[styles.devDividerLine, { backgroundColor: theme.border }]} />
+                  </View>
+
+                  <View style={styles.devRow}>
+                    <TextInput
+                      value={devIdentifier}
+                      onChangeText={setDevIdentifier}
+                      placeholder="Email or Phone..."
+                      placeholderTextColor={theme.muted}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      style={[
+                        styles.devInput,
+                        { backgroundColor: theme.surfaceAlt, borderColor: theme.border, color: theme.text },
+                      ]}
+                    />
+                    <Pressable
+                      onPress={() => devLoginMutation.mutate(devIdentifier)}
+                      disabled={!devIdentifier.trim() || devLoginMutation.isPending}
+                      style={[
+                        styles.devGoBtn,
+                        {
+                          backgroundColor: theme.primary,
+                          opacity: !devIdentifier.trim() || devLoginMutation.isPending ? 0.5 : 1,
+                        },
+                      ]}
+                    >
+                      {devLoginMutation.isPending ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.devGoText}>GO</Text>
+                      )}
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.devPresetRow}>
+                    {DEV_LOGIN_PRESETS.map((preset) => (
+                      <Pressable
+                        key={preset.identifier}
+                        onPress={() => devLoginMutation.mutate(preset.identifier)}
+                        disabled={devLoginMutation.isPending}
+                        style={[
+                          styles.devPresetBtn,
+                          { backgroundColor: theme.surfaceAlt, borderColor: theme.border },
+                        ]}
+                      >
+                        <Text style={[styles.devPresetText, { color: theme.text }]}>{preset.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
           </View>
 
@@ -432,6 +501,69 @@ const styles = StyleSheet.create({
   },
   signUpLink: {
     fontSize: 14,
+    fontWeight: '800',
+  },
+  devBlock: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  devDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  devDividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  devDividerLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  devRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  devInput: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  devGoBtn: {
+    height: 44,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  devGoText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  devPresetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  devPresetBtn: {
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  devPresetText: {
+    fontSize: 11,
     fontWeight: '800',
   },
   securityInfo: {
